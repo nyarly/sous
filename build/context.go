@@ -1,10 +1,12 @@
-package main
+package build
 
 import (
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+
+	. "github.com/opentable/sous/util"
 )
 
 type BuildContext struct {
@@ -30,7 +32,7 @@ func (bc *BuildContext) CanonicalPackageName() string {
 
 func getBuildNumber(git *GitInfo) int {
 	if n, ok := tryGetBuildNumberFromEnv(); ok {
-		logf("got build number %d from $BUILD_NUMBER")
+		Logf("got build number %d from $BUILD_NUMBER")
 		return n
 	}
 	return getBuildNumberFromHomeDirectory(git)
@@ -38,20 +40,20 @@ func getBuildNumber(git *GitInfo) int {
 
 func getBuildNumberFromHomeDirectory(git *GitInfo) int {
 	buildNumDir := fmt.Sprintf("~/.ot/build_numbers/%s", git.CanonicalName())
-	ensureDirExists(buildNumDir)
+	EnsureDirExists(buildNumDir)
 	filePath := fmt.Sprintf("%s/%s", buildNumDir, git.CommitSHA)
-	bns, ok := readFileString(filePath)
+	bns, ok := ReadFileString(filePath)
 	if !ok {
-		writeFile(1, filePath)
+		WriteFile(1, filePath)
 		return 1
 	}
 	bn, err := strconv.Atoi(bns)
 	if err != nil {
-		dief("unable to parse build number %s (from %s) as int: %s",
+		Dief("unable to parse build number %s (from %s) as int: %s",
 			bns, filePath, err)
 	}
 	bn++
-	writeFile(bn, filePath)
+	WriteFile(bn, filePath)
 	return bn
 }
 
@@ -60,7 +62,7 @@ func tryGetBuildNumberFromEnv() (int, bool) {
 	if envBN != "" {
 		n, err := strconv.Atoi(envBN)
 		if err != nil {
-			dief("Unable to parse $BUILD_NUMBER (%s) to int: %s", envBN, err)
+			Dief("Unable to parse $BUILD_NUMBER (%s) to int: %s", envBN, err)
 		}
 		return n, true
 	}

@@ -1,4 +1,6 @@
-package main
+package build
+
+import . "github.com/opentable/sous/util"
 
 type NodePackage struct {
 	Name    string
@@ -15,11 +17,11 @@ type NodePackageScripts struct {
 
 func tryBuildNodeJS(bc *BuildContext) {
 	var np *NodePackage
-	if !readFileJSON(&np, "package.json") {
+	if !ReadFileJSON(&np, "package.json") {
 		return
 	}
 	buildInfo := buildNodeJS(bc, np)
-	dief("Successfully built %s v%s as %s",
+	Dief("Successfully built %s v%s as %s",
 		bc.CanonicalPackageName(),
 		buildInfo.Version,
 		buildInfo.DockerImage())
