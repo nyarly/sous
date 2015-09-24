@@ -21,7 +21,7 @@ func tryBuildNodeJS(bc *BuildContext) {
 	buildInfo := buildNodeJS(bc, np)
 	dief("Successfully built %s v%s as %s",
 		bc.CanonicalPackageName(),
-		bc.BuildNumber,
+		buildInfo.Version,
 		buildInfo.DockerImage())
 
 }

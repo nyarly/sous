@@ -8,15 +8,17 @@ import (
 )
 
 type BuildContext struct {
-	Git         *GitInfo
-	BuildNumber int
+	Git            *GitInfo
+	BuildNumber    int
+	DockerRegistry string
 }
 
 func getBuildContext() *BuildContext {
 	gitInfo := getGitInfo()
 	return &BuildContext{
-		Git:         gitInfo,
-		BuildNumber: getBuildNumber(gitInfo),
+		Git:            gitInfo,
+		BuildNumber:    getBuildNumber(gitInfo),
+		DockerRegistry: "docker.otenv.com",
 	}
 }
 
@@ -37,7 +39,6 @@ func getBuildNumber(git *GitInfo) int {
 func getBuildNumberFromHomeDirectory(git *GitInfo) int {
 	buildNumDir := fmt.Sprintf("~/.ot/build_numbers/%s", git.CanonicalName())
 	ensureDirExists(buildNumDir)
-	dief("DEBUG :: Directory exists: %s", buildNumDir)
 	filePath := fmt.Sprintf("%s/%s", buildNumDir, git.CommitSHA)
 	bns, ok := readFileString(filePath)
 	if !ok {
@@ -51,7 +52,6 @@ func getBuildNumberFromHomeDirectory(git *GitInfo) int {
 	}
 	bn++
 	writeFile(bn, filePath)
-	dief("DEBUG ::: bn=%d", bn)
 	return bn
 }
 

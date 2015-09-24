@@ -26,9 +26,9 @@ func main() {
 }
 
 func writeFile(data interface{}, pathFormat string, a ...interface{}) {
-	path := fmt.Sprintf(pathFormat, a...)
+	path := resolvePath(pathFormat, a...)
 	dataStr := fmt.Sprint(data)
-	err := ioutil.WriteFile(path, []byte(dataStr), 777)
+	err := ioutil.WriteFile(path, []byte(dataStr), 0777)
 	if err != nil {
 		dief("unable to write file %s; %s", path, err)
 	}
@@ -51,7 +51,7 @@ func readFileJSON(v interface{}, pathFormat string, a ...interface{}) bool {
 }
 
 func readFile(pathFormat string, a ...interface{}) ([]byte, bool, string) {
-	path := fmt.Sprintf(pathFormat, a...)
+	path := resolvePath(pathFormat, a...)
 	contents, err := ioutil.ReadFile(path)
 	if err == nil {
 		if len(contents) == 0 {
@@ -96,7 +96,7 @@ func cmdTable(command string, args ...string) [][]string {
 
 func resolvePath(pathFormat string, a ...interface{}) string {
 	path := fmt.Sprintf(pathFormat, a...)
-	if path[0:1] == "~/" {
+	if path[0:2] == "~/" {
 		home := os.Getenv("HOME")
 		if home == "" {
 			dief("unable to resolve path beginning ~/; $HOME not set")
@@ -117,7 +117,7 @@ func ensureDirExists(pathFormat string, a ...interface{}) {
 		}
 	}
 	if os.IsNotExist(err) {
-		if err := os.Mkdir(path, 777); err != nil {
+		if err := os.MkdirAll(path, 0777); err != nil {
 			dief("unable to make directory %s; %s", path, err)
 		}
 		return
