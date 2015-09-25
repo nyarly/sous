@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/opentable/sous/util"
 	"github.com/wmark/semver"
@@ -44,9 +45,12 @@ func buildNodeJS(bc *BuildContext, np *NodePackage) *AppInfo {
 	var nodeVersion string
 	if np.Engines.Node == "" {
 		nodeVersion = availableNodeVersions[0]
-		Logf("WARNING: No Node version specified in package.json; using latest available version (%s)", nodeVersion)
+		Logf("WARNING: No NodeJS version specified in package.json; using latest available version (%s)", nodeVersion)
 	} else {
 		nodeVersion = selectBestVersion(np.Engines.Node, availableNodeVersions)
+		if nodeVersion == "" {
+			Dief("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s", np.Engines.Node, strings.Join(availableNodeVersions, ", "))
+		}
 	}
 	baseImageTag := "latest"
 	from := fmt.Sprintf("docker.otenv.com/ot-node-base-%s:%s", nodeVersion, baseImageTag)
@@ -68,7 +72,6 @@ func selectBestVersion(rangeSpecifier string, from []string) string {
 	if err != nil {
 		Dief("Unable to parse version range '%s' from package.json engines directive", rangeSpecifier)
 	}
-	Dief("Valid range: %s (%+v)", rangeSpecifier, r)
 	for _, vs := range from {
 		v := mustVersion(semver.NewVersion(vs))
 		if r.IsSatisfiedBy(v) {
