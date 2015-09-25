@@ -7,7 +7,7 @@ import (
 )
 
 func TrimWhitespace(s string) string {
-	return strings.Trim(s, "\t\r\n")
+	return strings.Trim(s, " \t\r\n")
 }
 
 func Dief(format string, a ...interface{}) {
