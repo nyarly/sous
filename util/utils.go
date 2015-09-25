@@ -19,7 +19,7 @@ func Logf(format string, a ...interface{}) {
 	log.Printf(format, a...)
 }
 
-func ExitSuccess(format string, a ...interface{}) {
+func ExitSuccessf(format string, a ...interface{}) {
 	if len(format) != 0 {
 		Logf(format, a...)
 	}

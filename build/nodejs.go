@@ -15,17 +15,12 @@ type NodePackageScripts struct {
 	Start, Test string
 }
 
-func tryBuildNodeJS(bc *BuildContext) {
+func tryBuildNodeJS(bc *BuildContext) *BuildInfo {
 	var np *NodePackage
 	if !ReadFileJSON(&np, "package.json") {
-		return
+		return nil
 	}
-	buildInfo := buildNodeJS(bc, np)
-	Dief("Successfully built %s v%s as %s",
-		bc.CanonicalPackageName(),
-		buildInfo.Version,
-		buildInfo.DockerImage())
-
+	return buildNodeJS(bc, np)
 }
 
 func buildNodeJS(bc *BuildContext, np *NodePackage) *BuildInfo {
