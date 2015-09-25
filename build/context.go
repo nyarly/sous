@@ -10,9 +10,14 @@ import (
 )
 
 type BuildContext struct {
-	Git            *GitInfo
-	BuildNumber    int
-	DockerRegistry string
+	Git                  *GitInfo
+	BuildNumber          int
+	DockerRegistry       string
+	Host, FullHost, User string
+}
+
+func (bc *BuildContext) IsCI() bool {
+	return bc.User == "ci"
 }
 
 func getBuildContext() *BuildContext {
@@ -21,6 +26,9 @@ func getBuildContext() *BuildContext {
 		Git:            gitInfo,
 		BuildNumber:    getBuildNumber(gitInfo),
 		DockerRegistry: "docker.otenv.com",
+		Host:           Cmd("hostname"),
+		FullHost:       Cmd("hostname", "-f"),
+		User:           getUser(),
 	}
 }
 
@@ -36,6 +44,17 @@ func getBuildNumber(git *GitInfo) int {
 		return n
 	}
 	return getBuildNumberFromHomeDirectory(git)
+}
+
+func buildingInCI() bool {
+	return os.Getenv("TEAMCITY_VERSION") != ""
+}
+
+func getUser() string {
+	if buildingInCI() {
+		return "ci"
+	}
+	return Cmd("whoami")
 }
 
 func getBuildNumberFromHomeDirectory(git *GitInfo) int {

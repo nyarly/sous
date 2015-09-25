@@ -17,9 +17,15 @@ func successOnAppInfo(i *BuildInfo) {
 		return
 	}
 	d := i.App.Dockerfile
-	d.AddLabel("com.opentable.builder.app", "sous")
-	d.AddLabel("com.opentable.source.git.repo", i.Context.Git.CanonicalName())
-	d.AddLabel("com.opentable.source.git.commit-sha", i.Context.Git.CommitSHA)
+	prefix := "com.opentable"
+	d.AddLabel(prefix+".builder.app", "sous")
+	d.AddLabel(prefix+".builder.host", i.Context.Host)
+	d.AddLabel(prefix+".builder.fullhost", i.Context.FullHost)
+	d.AddLabel(prefix+".builder.user", i.Context.User)
+	d.AddLabel(prefix+".source.git.repo", i.Context.Git.CanonicalName())
+	d.AddLabel(prefix+".source.git.commit-sha", i.Context.Git.CommitSHA)
+
+	d.Maintainer = i.Context.User
 
 	WriteFile(i.App.Dockerfile.Render(), "Dockerfile")
 
