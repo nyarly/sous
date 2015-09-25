@@ -41,7 +41,13 @@ func mustVersion(v *semver.Version, err error) *semver.Version {
 }
 
 func buildNodeJS(bc *BuildContext, np *NodePackage) *AppInfo {
-	nodeVersion := selectBestVersion(np.Engines.Node, availableNodeVersions)
+	var nodeVersion string
+	if np.Engines.Node == "" {
+		nodeVersion = availableNodeVersions[0]
+		Logf("WARNING: No Node version specified in package.json; using latest available version (%s)", nodeVersion)
+	} else {
+		nodeVersion = selectBestVersion(np.Engines.Node, availableNodeVersions)
+	}
 	baseImageTag := "latest"
 	from := fmt.Sprintf("docker.otenv.com/ot-node-base-%s:%s", nodeVersion, baseImageTag)
 	df := &Dockerfile{
@@ -62,6 +68,7 @@ func selectBestVersion(rangeSpecifier string, from []string) string {
 	if err != nil {
 		Dief("Unable to parse version range '%s' from package.json engines directive", rangeSpecifier)
 	}
+	Dief("Valid range: %s (%+v)", rangeSpecifier, r)
 	for _, vs := range from {
 		v := mustVersion(semver.NewVersion(vs))
 		if r.IsSatisfiedBy(v) {
