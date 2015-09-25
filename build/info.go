@@ -4,7 +4,7 @@ import "fmt"
 
 type BuildInfo struct {
 	Context *BuildContext
-	Version string
+	App     *AppInfo
 }
 
 func (b *BuildInfo) DockerImage() string {
@@ -12,7 +12,7 @@ func (b *BuildInfo) DockerImage() string {
 	return fmt.Sprintf("%s/%s:v%s-ci-%s-%d",
 		b.Context.DockerRegistry,
 		b.Context.CanonicalPackageName(),
-		b.Version,
+		b.App.Version,
 		b.Context.Git.CommitSHA[0:8],
 		b.Context.BuildNumber)
 }

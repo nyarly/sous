@@ -11,16 +11,19 @@ func Build() {
 	//    - others later
 	gitVersion := Cmd("git", "version")
 	Logf(gitVersion)
-	buildContext := getBuildContext()
-	var info *BuildInfo
-	info = tryBuildNodeJS(buildContext)
-	successOnInfo(info)
+	context := getBuildContext()
+	info := &BuildInfo{Context: context}
+	info.App = tryBuildNodeJS(context)
+	successOnAppInfo(info)
 	Dief("no buildable project detected")
 }
 
-func successOnInfo(i *BuildInfo) {
+func successOnAppInfo(i *BuildInfo) {
+	if i.App == nil {
+		return
+	}
 	ExitSuccessf("Successfully built %s v%s as %s",
 		i.Context.CanonicalPackageName(),
-		i.Version,
+		i.App.Version,
 		i.DockerImage())
 }

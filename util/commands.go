@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var whitespace = regexp.MustCompile("[ \\t\\r\\n]+")
+var Whitespace = regexp.MustCompile("[ \\t\\r\\n]+")
 
 func Cmd(command string, args ...string) string {
 	cmd := exec.Command(command, args...)
@@ -31,7 +31,7 @@ func CmdTable(command string, args ...string) [][]string {
 	lines := CmdLines(command, args...)
 	rows := make([][]string, len(lines))
 	for i, line := range lines {
-		rows[i] = whitespace.Split(line, -1)
+		rows[i] = Whitespace.Split(line, -1)
 	}
 	return rows
 }
