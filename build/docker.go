@@ -24,27 +24,25 @@ func (d *Dockerfile) Render() string {
 	return buf.String()
 }
 
+func (d *Dockerfile) AddLabel(name, value string) {
+	if d.Labels == nil {
+		d.Labels = map[string]string{}
+	}
+	d.Labels[name] = value
+}
+
 var dockerfileTemplate = `
 FROM {{.From}}
 MAINTAINER {{.Maintainer}}
+{{if .Labels}}{{$first:=true}}
+LABEL {{range $name, $value := .Labels}} \
+      {{$name}}={{$value}}{{end}}{{end}}
+{{range .Add}}{{if .Files}}ADD [{{range .Files}}"{{.}}", {{end}}"{{.Dest}}"]
+{{end}}{{end}}{{if .Workdir}}
+WORKDIR {{.Workdir}}{{end}}
+{{range .Run}}RUN {{.}}
+{{end}}
+{{if .Entrypoint}}ENTRYPOINT [{{range $i, $e := .Entrypoint}}{{if $i}},{{end}}"{{$e}}"{{end}}]{{end}}
+{{if .CMD}}CMD [{{range $i, $e := .CMD}}{{if $i}},{{end}}"{{$e}}"{{end}}]{{end}}
 
-{{if .Labels}}
-LABEL {{range $name, $value := .Labels}}{{$name}}={{$value}} \
-      {{end}}
-{{end}}
-{{range .Add}}{{if .Files}}
-ADD [{{range .Files}}"{{.}}",{{end}} ".Dest"]
-{{end}}
-{{if .Workdir}}
-WORKDIR {{.Workdir}}
-{{end}}
-{{range .Run}}
-RUN {{.}}
-{{end}}
-{{if .Entrypoint}}
-ENTRYPOINT [{{range $i, $e := .Entrypoint}}{{if $i}},{{end}}"{{$e}}"{{end}}]
-{{end}}
-{{if .CMD}}
-CMD [{{range $i, $e := .CMD}}{{if $i}},{{end}}"{{$e}}"{{end}}]
-{{end}}
 `

@@ -3,12 +3,6 @@ package build
 import . "github.com/opentable/sous/util"
 
 func Build() {
-	// Ensure dependencies are installed:
-	//    - Git
-	// Sniff current directory for type:
-	//
-	//    - NodeJS = package.json
-	//    - others later
 	gitVersion := Cmd("git", "version")
 	Logf(gitVersion)
 	context := getBuildContext()
@@ -22,6 +16,13 @@ func successOnAppInfo(i *BuildInfo) {
 	if i.App == nil {
 		return
 	}
+	d := i.App.Dockerfile
+	d.AddLabel("com.opentable.builder.app", "sous")
+	d.AddLabel("com.opentable.source.git.repo", i.Context.Git.CanonicalName())
+	d.AddLabel("com.opentable.source.git.commit-sha", i.Context.Git.CommitSHA)
+
+	WriteFile(i.App.Dockerfile.Render(), "Dockerfile")
+
 	ExitSuccessf("Successfully built %s v%s as %s",
 		i.Context.CanonicalPackageName(),
 		i.App.Version,

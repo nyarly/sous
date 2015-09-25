@@ -61,6 +61,8 @@ func buildNodeJS(bc *BuildContext, np *NodePackage) *AppInfo {
 		Run:     []string{"npm install --production; ls -la /srv/app"},
 		CMD:     Whitespace.Split(np.Scripts.Start, -1),
 	}
+	df.AddLabel("com.opentable.stack", "NodeJS")
+	df.AddLabel("com.opentable.nodejs.version", nodeVersion)
 	return &AppInfo{
 		Version:    np.Version,
 		Dockerfile: df,
