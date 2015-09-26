@@ -2,7 +2,7 @@ package build
 
 import . "github.com/opentable/sous/util"
 
-func Build() {
+func Build(args []string) {
 	gitVersion := Cmd("git", "version")
 	Logf(gitVersion)
 	context := getBuildContext()
@@ -10,6 +10,14 @@ func Build() {
 	info.App = tryBuildNodeJS(context)
 	successOnAppInfo(info)
 	Dief("no buildable project detected")
+}
+
+func BuildHelp() string {
+	return `sous build detects your project type, and tries to find a matching
+OpenTable supported stack to build against. Right now it only supports NodeJS
+projects. It builds a docker image, tagged and labelled correctly.
+
+sous build does not have any options yet`
 }
 
 func successOnAppInfo(i *BuildInfo) {
