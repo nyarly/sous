@@ -21,7 +21,7 @@ func (bc *BuildContext) IsCI() bool {
 }
 
 func getBuildContext() *BuildContext {
-	gitInfo := getGitInfo()
+	gitInfo := GetGitInfo()
 	return &BuildContext{
 		Git:            gitInfo,
 		BuildNumber:    getBuildNumber(gitInfo),
