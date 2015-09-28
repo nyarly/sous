@@ -1,28 +1,28 @@
-package build
+package git
 
 import (
 	"fmt"
 	"net/url"
 
-	. "github.com/opentable/sous/util"
+	. "github.com/opentable/sous/tools"
 )
 
-type GitInfo struct {
+type Info struct {
 	CommitSHA string
 	OriginURL *url.URL
 }
 
-func GetGitInfo() *GitInfo {
+func GetInfo() *Info {
 	if err := AssertCleanWorkingTree(); err != nil {
 		Dief("Unclean working tree: %s; please commit your changes", err)
 	}
-	return &GitInfo{
+	return &Info{
 		CommitSHA: Cmd("git", "rev-parse", "HEAD"),
 		OriginURL: getOriginURL(),
 	}
 }
 
-func (g *GitInfo) CanonicalName() string {
+func (g *Info) CanonicalName() string {
 	return g.OriginURL.Host + g.OriginURL.Path
 }
 

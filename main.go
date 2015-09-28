@@ -6,11 +6,12 @@ import (
 	"sort"
 
 	"github.com/opentable/sous/build"
-	. "github.com/opentable/sous/util"
+	"github.com/opentable/sous/commands"
+	. "github.com/opentable/sous/tools"
 )
 
 type SousCommand struct {
-	Func      func(args []string)
+	Func      func(packs []*build.Pack, args []string)
 	HelpFunc  func() string
 	ShortDesc string
 }
@@ -19,12 +20,9 @@ var Sous = struct {
 	Commands map[string]SousCommand
 }{
 	map[string]SousCommand{
-		"build": SousCommand{build.Build, build.BuildHelp, "build your project"},
+		"build":  SousCommand{commands.Build, commands.BuildHelp, "build your project"},
+		"detect": SousCommand{commands.Detect, commands.DetectHelp, "detect available actions"},
 	},
-}
-
-var sousCommands = map[string]func(args []string){
-	"build": build.Build,
 }
 
 func main() {
@@ -35,7 +33,7 @@ func main() {
 	}
 	command := os.Args[1]
 	if c, ok := Sous.Commands[command]; ok {
-		c.Func(os.Args[2:])
+		c.Func(buildPacks, os.Args[2:])
 		Dief("Command did not complete correctly")
 	}
 	Dief("Command %s not recognised; try `sous help`")
@@ -46,7 +44,7 @@ func usage() {
 	os.Exit(1)
 }
 
-func help(args []string) {
+func help(packs []*build.Pack, args []string) {
 	if len(args) != 0 {
 		command := args[0]
 		if c, ok := Sous.Commands[command]; ok {

@@ -6,23 +6,26 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/opentable/sous/util"
+	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/dir"
+	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/git"
 )
 
-type BuildContext struct {
-	Git                  *GitInfo
+type Context struct {
+	Git                  *git.Info
 	BuildNumber          int
 	DockerRegistry       string
 	Host, FullHost, User string
 }
 
-func (bc *BuildContext) IsCI() bool {
+func (bc *Context) IsCI() bool {
 	return bc.User == "ci"
 }
 
-func getBuildContext() *BuildContext {
-	gitInfo := GetGitInfo()
-	return &BuildContext{
+func GetContext() *Context {
+	gitInfo := git.GetInfo()
+	return &Context{
 		Git:            gitInfo,
 		BuildNumber:    getBuildNumber(gitInfo),
 		DockerRegistry: "docker.otenv.com",
@@ -32,13 +35,13 @@ func getBuildContext() *BuildContext {
 	}
 }
 
-func (bc *BuildContext) CanonicalPackageName() string {
+func (bc *Context) CanonicalPackageName() string {
 	c := bc.Git.CanonicalName()
 	p := strings.Split(c, "/")
 	return p[len(p)-1]
 }
 
-func getBuildNumber(git *GitInfo) int {
+func getBuildNumber(git *git.Info) int {
 	if n, ok := tryGetBuildNumberFromEnv(); ok {
 		Logf("got build number %d from $BUILD_NUMBER")
 		return n
@@ -57,13 +60,13 @@ func getUser() string {
 	return Cmd("whoami")
 }
 
-func getBuildNumberFromHomeDirectory(git *GitInfo) int {
+func getBuildNumberFromHomeDirectory(git *git.Info) int {
 	buildNumDir := fmt.Sprintf("~/.ot/build_numbers/%s", git.CanonicalName())
-	EnsureDirExists(buildNumDir)
+	dir.EnsureExists(buildNumDir)
 	filePath := fmt.Sprintf("%s/%s", buildNumDir, git.CommitSHA)
-	bns, ok := ReadFileString(filePath)
+	bns, ok := file.ReadString(filePath)
 	if !ok {
-		WriteFile(1, filePath)
+		file.Write(1, filePath)
 		return 1
 	}
 	bn, err := strconv.Atoi(bns)
@@ -72,7 +75,7 @@ func getBuildNumberFromHomeDirectory(git *GitInfo) int {
 			bns, filePath, err)
 	}
 	bn++
-	WriteFile(bn, filePath)
+	file.Write(bn, filePath)
 	return bn
 }
 

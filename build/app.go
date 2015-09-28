@@ -1,6 +1,6 @@
 package build
 
 type AppInfo struct {
-	Version    string
-	Dockerfile *Dockerfile
+	Version string
+	Data    interface{}
 }
