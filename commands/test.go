@@ -37,6 +37,8 @@ func Test(packs []*build.Pack, args []string) {
 
 	docker.Build(tag)
 
+	docker.Run(tag)
+
 	ExitSuccessf("Successfully built %s v%s as %s",
 		context.CanonicalPackageName(), appInfo.Version, tag)
 }
