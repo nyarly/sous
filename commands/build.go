@@ -23,15 +23,21 @@ func Build(packs []*build.Pack, args []string) {
 	if pack == nil {
 		Dief("no buildable project detected")
 	}
-	appInfo, err := pack.Features.Build.Detect(context)
+	buildFeature, ok := pack.Features["build"]
+	if !ok {
+		Dief("The %s build pack does not support build", pack.Name)
+	}
+	appInfo, err := buildFeature.Detect(context)
 	if err != nil {
 		Dief("unable to build %s project: %s", pack.Name, err)
 	}
-	df := pack.Features.Build.MakeDockerfile(appInfo)
+	df := buildFeature.MakeDockerfile(appInfo)
 	addMetadata(df, context)
 	file.Write(df.Render(), "Dockerfile")
 
 	tag := dockerTag(context, appInfo)
+
+	docker.Build(tag)
 
 	ExitSuccessf("Successfully built %s v%s as %s",
 		context.CanonicalPackageName(), appInfo.Version, tag)

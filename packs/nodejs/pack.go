@@ -11,8 +11,8 @@ import (
 var Pack = &build.Pack{
 	Name:   "NodeJS",
 	Detect: detect,
-	Features: &build.Features{
-		Build: &build.Feature{
+	Features: map[string]*build.Feature{
+		"build": &build.Feature{
 			Detect: func(c *build.Context) (*build.AppInfo, error) {
 				var np *NodePackage
 				if !file.ReadJSON(&np, "package.json") {

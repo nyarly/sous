@@ -5,11 +5,7 @@ import "github.com/opentable/sous/tools/docker"
 type Pack struct {
 	Name     string
 	Detect   func() error
-	Features *Features
-}
-
-type Features struct {
-	Build, Test *Feature
+	Features map[string]*Feature
 }
 
 type Feature struct {
