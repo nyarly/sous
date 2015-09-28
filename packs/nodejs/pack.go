@@ -27,6 +27,21 @@ var Pack = &build.Pack{
 				return buildNodeJS(i.Data.(*NodePackage))
 			},
 		},
+		"test": &build.Feature{
+			Detect: func(c *build.Context) (*build.AppInfo, error) {
+				var np *NodePackage
+				if !file.ReadJSON(&np, "package.json") {
+					return nil, fmt.Errorf("no file named package.json")
+				}
+				return &build.AppInfo{
+					Version: np.Version,
+					Data:    np,
+				}, nil
+			},
+			MakeDockerfile: func(i *build.AppInfo) *docker.Dockerfile {
+				return testNodeJS(i.Data.(*NodePackage))
+			},
+		},
 	},
 }
 

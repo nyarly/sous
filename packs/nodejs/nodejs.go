@@ -34,7 +34,7 @@ func mustVersion(v *semver.Version, err error) *semver.Version {
 	return v
 }
 
-func buildNodeJS(np *NodePackage) *docker.Dockerfile {
+func bestSupportedNodeVersion(np *NodePackage) string {
 	var nodeVersion string
 	if np.Engines.Node == "" {
 		nodeVersion = availableNodeVersions[0]
@@ -45,8 +45,17 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 			Dief("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s", np.Engines.Node, strings.Join(availableNodeVersions, ", "))
 		}
 	}
+	return nodeVersion
+}
+
+func dockerFrom(np *NodePackage, nodeVersion string) string {
 	baseImageTag := "latest"
-	from := fmt.Sprintf("docker.otenv.com/ot-node-base-%s:%s", nodeVersion, baseImageTag)
+	return fmt.Sprintf("docker.otenv.com/ot-node-base-%s:%s", nodeVersion, baseImageTag)
+}
+
+func buildNodeJS(np *NodePackage) *docker.Dockerfile {
+	nodeVersion := bestSupportedNodeVersion(np)
+	from := dockerFrom(np, nodeVersion)
 	df := &docker.Dockerfile{
 		From:    from,
 		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
@@ -56,6 +65,22 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 	}
 	df.AddLabel("com.opentable.stack", "NodeJS")
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
+	return df
+}
+
+func testNodeJS(np *NodePackage) *docker.Dockerfile {
+	nodeVersion := bestSupportedNodeVersion(np)
+	from := dockerFrom(np, nodeVersion)
+	df := &docker.Dockerfile{
+		From:    from,
+		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
+		Workdir: "/srv/app",
+		Run:     []string{"npm install; ls -la /srv/app"},
+		CMD:     []string{"npm test"},
+	}
+	df.AddLabel("com.opentable.stack", "NodeJS")
+	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
+	df.AddLabel("com.opentable.tests", "true")
 	return df
 }
 

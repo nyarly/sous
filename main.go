@@ -22,6 +22,7 @@ var Sous = struct {
 	map[string]SousCommand{
 		"build":  SousCommand{commands.Build, commands.BuildHelp, "build your project"},
 		"detect": SousCommand{commands.Detect, commands.DetectHelp, "detect available actions"},
+		"test":   SousCommand{commands.Test, commands.TestHelp, "test your project"},
 	},
 }
 
@@ -36,7 +37,7 @@ func main() {
 		c.Func(buildPacks, os.Args[2:])
 		Dief("Command did not complete correctly")
 	}
-	Dief("Command %s not recognised; try `sous help`")
+	Dief("Command %s not recognised; try `sous help`", command)
 }
 
 func usage() {

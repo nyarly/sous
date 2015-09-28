@@ -43,13 +43,17 @@ func Build(packs []*build.Pack, args []string) {
 		context.CanonicalPackageName(), appInfo.Version, tag)
 }
 
-func dockerTag(c *build.Context, a *build.AppInfo) string {
+func dockerTag(c *build.Context, a *build.AppInfo, postfix ...string) string {
+	name := c.CanonicalPackageName()
+	for _, p := range postfix {
+		name += p
+	}
 	// e.g. on TeamCity:
 	//   docker.otenv.com/widget-factory:v0.12.1-ci-912eeeab-1
 	if c.IsCI() {
 		return fmt.Sprintf("%s/%s:v%s-ci-%s-%d",
 			c.DockerRegistry,
-			c.CanonicalPackageName(),
+			name,
 			a.Version,
 			c.Git.CommitSHA[0:8],
 			c.BuildNumber)
@@ -59,7 +63,7 @@ func dockerTag(c *build.Context, a *build.AppInfo) string {
 	return fmt.Sprintf("%s/%s/%s:v%s-%s-%s-%d",
 		c.DockerRegistry,
 		c.User,
-		c.CanonicalPackageName(),
+		name,
 		a.Version,
 		c.Git.CommitSHA[0:8],
 		c.Host,
