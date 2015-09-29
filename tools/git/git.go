@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	. "github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cmd"
@@ -55,7 +56,13 @@ func getOriginURL() *url.URL {
 	}
 	for _, row := range table {
 		if row[0] == "origin" {
-			url, err := url.Parse(row[1])
+			rawURL := strings.TrimSuffix(row[1], ".git")
+			parts := strings.SplitN(rawURL, "@", 2)
+			if len(parts) == 2 {
+				rawURL = parts[1]
+			}
+			rawURL = strings.Replace(rawURL, ":", "/", -1)
+			url, err := url.Parse(rawURL)
 			if err != nil {
 				Dief("unable to parse origin (%s) as URL; %s", row[1], err)
 			}
