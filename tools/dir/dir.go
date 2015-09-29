@@ -7,6 +7,22 @@ import (
 	"github.com/opentable/sous/tools/path"
 )
 
+func Exists(pathFormat string, a ...interface{}) bool {
+	path := path.Resolve(pathFormat, a...)
+	s, err := os.Stat(path)
+	if err == nil {
+		if s.IsDir() {
+			return true
+		} else {
+			return false
+		}
+	}
+	if !os.IsNotExist(err) {
+		Dief("unable to stat path %s", path)
+	}
+	return false
+}
+
 func EnsureExists(pathFormat string, a ...interface{}) {
 	path := path.Resolve(pathFormat, a...)
 	s, err := os.Stat(path)

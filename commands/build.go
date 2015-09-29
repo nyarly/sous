@@ -7,6 +7,8 @@ import (
 	. "github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/git"
+	"github.com/opentable/sous/tools/version"
 )
 
 func BuildHelp() string {
@@ -18,6 +20,13 @@ sous build does not have any options yet`
 }
 
 func Build(packs []*build.Pack, args []string) {
+
+	git.RequireVersion(version.Range(">=2.0.0"))
+	git.RequireRepo()
+	git.RequireCleanWorkingTree()
+	docker.RequireVersion(version.Range(">=1.8.2"))
+	docker.RequireDaemon()
+
 	context := build.GetContext()
 	pack := build.DetectProjectType(packs)
 	if pack == nil {

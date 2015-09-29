@@ -6,7 +6,25 @@ import (
 
 	. "github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cmd"
+	"github.com/opentable/sous/tools/dir"
+	"github.com/opentable/sous/tools/version"
 )
+
+func RequireVersion(r *version.R) {
+	if c := cmd.ExitCode("git", "--version"); c != 0 {
+		Dief("git required")
+	}
+	v := version.Version(cmd.Table("git", "--version")[0][2])
+	if !r.IsSatisfiedBy(v) {
+		Dief("you have git version %s; want %s", v, r)
+	}
+}
+
+func RequireRepo() {
+	if !dir.Exists(".git") {
+		Dief("you must be in the base of a git repository")
+	}
+}
 
 type Info struct {
 	CommitSHA string
@@ -14,12 +32,15 @@ type Info struct {
 }
 
 func GetInfo() *Info {
-	if err := AssertCleanWorkingTree(); err != nil {
-		Dief("Unclean working tree: %s; please commit your changes", err)
-	}
 	return &Info{
 		CommitSHA: cmd.Stdout("git", "rev-parse", "HEAD"),
 		OriginURL: getOriginURL(),
+	}
+}
+
+func RequireCleanWorkingTree() {
+	if err := AssertCleanWorkingTree(); err != nil {
+		Dief("Unclean working tree: %s; please commit your changes", err)
 	}
 }
 

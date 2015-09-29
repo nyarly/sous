@@ -6,7 +6,7 @@ import (
 
 	. "github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/docker"
-	"github.com/wmark/semver"
+	"github.com/opentable/sous/tools/version"
 )
 
 type NodePackage struct {
@@ -22,30 +22,21 @@ type NodePackageScripts struct {
 	Start, Test string
 }
 
-var availableNodeVersions = []string{
-	"0.12.7",
-	"0.10.40",
-}
-
-func mustVersion(v *semver.Version, err error) *semver.Version {
-	if err != nil {
-		Dief("Unable to parse version; %s", err)
-	}
-	return v
-}
+var availableNodeVersions = version.VersionList("0.12.7", "0.10.40")
 
 func bestSupportedNodeVersion(np *NodePackage) string {
-	var nodeVersion string
+	var nodeVersion *version.V
 	if np.Engines.Node == "" {
 		nodeVersion = availableNodeVersions[0]
 		Logf("WARNING: No NodeJS version specified in package.json; using latest available version (%s)", nodeVersion)
 	} else {
-		nodeVersion = selectBestVersion(np.Engines.Node, availableNodeVersions)
-		if nodeVersion == "" {
-			Dief("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s", np.Engines.Node, strings.Join(availableNodeVersions, ", "))
+		nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(availableNodeVersions)
+		if nodeVersion == nil {
+			Dief("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
+				np.Engines.Node, strings.Join(availableNodeVersions.Strings(), ", "))
 		}
 	}
-	return nodeVersion
+	return nodeVersion.String()
 }
 
 func dockerFrom(np *NodePackage, nodeVersion string) string {
@@ -82,18 +73,4 @@ func testNodeJS(np *NodePackage) *docker.Dockerfile {
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
 	df.AddLabel("com.opentable.tests", "true")
 	return df
-}
-
-func selectBestVersion(rangeSpecifier string, from []string) string {
-	r, err := semver.NewRange(rangeSpecifier)
-	if err != nil {
-		Dief("Unable to parse version range '%s' from package.json engines directive", rangeSpecifier)
-	}
-	for _, vs := range from {
-		v := mustVersion(semver.NewVersion(vs))
-		if r.IsSatisfiedBy(v) {
-			return vs
-		}
-	}
-	return ""
 }
