@@ -5,6 +5,8 @@ import (
 	. "github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/git"
+	"github.com/opentable/sous/tools/version"
 )
 
 func TestHelp() string {
@@ -16,6 +18,12 @@ sous build does not have any options yet`
 }
 
 func Test(packs []*build.Pack, args []string) {
+
+	git.RequireVersion(version.Range(">=2.0.0"))
+	git.RequireRepo()
+	docker.RequireVersion(version.Range(">=1.8.2"))
+	docker.RequireDaemon()
+
 	context := build.GetContext()
 	pack := build.DetectProjectType(packs)
 	if pack == nil {
@@ -33,7 +41,7 @@ func Test(packs []*build.Pack, args []string) {
 	addMetadata(df, context)
 	file.Write(df.Render(), "Dockerfile")
 
-	tag := dockerTag(context, appInfo, "test")
+	tag := dockerTag(context, appInfo, "-tests")
 
 	docker.Build(tag)
 

@@ -51,7 +51,7 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 		From:    from,
 		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
 		Workdir: "/srv/app",
-		Run:     []string{"npm install --production; ls -la /srv/app"},
+		Run:     []string{"npm install --registry=http://artifactory.otenv.com/artifactory/api/npm/npm-virtual --production; ls -la /srv/app"},
 		CMD:     Whitespace.Split(np.Scripts.Start, -1),
 	}
 	df.AddLabel("com.opentable.stack", "NodeJS")
@@ -66,7 +66,7 @@ func testNodeJS(np *NodePackage) *docker.Dockerfile {
 		From:    from,
 		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
 		Workdir: "/srv/app",
-		Run:     []string{"npm install; ls -la /srv/app"},
+		Run:     []string{"npm install --registry=http://artifactory.otenv.com/artifactory/api/npm/npm-virtual; ls -la /srv/app"},
 		CMD:     []string{"/usr/local/bin/npm", "test"},
 	}
 	df.AddLabel("com.opentable.stack", "NodeJS")
