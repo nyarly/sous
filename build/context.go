@@ -58,7 +58,7 @@ func getUser() string {
 	if buildingInCI() {
 		return "ci"
 	}
-	return cmd.Stdout("whoami")
+	return cmd.Stdout("id", "-un")
 }
 
 func getBuildNumberFromHomeDirectory(git *git.Info) int {
