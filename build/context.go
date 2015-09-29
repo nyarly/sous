@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
@@ -29,8 +30,8 @@ func GetContext() *Context {
 		Git:            gitInfo,
 		BuildNumber:    getBuildNumber(gitInfo),
 		DockerRegistry: "docker.otenv.com",
-		Host:           Cmd("hostname"),
-		FullHost:       Cmd("hostname", "-f"),
+		Host:           cmd.Stdout("hostname"),
+		FullHost:       cmd.Stdout("hostname", "-f"),
 		User:           getUser(),
 	}
 }
@@ -57,7 +58,7 @@ func getUser() string {
 	if buildingInCI() {
 		return "ci"
 	}
-	return Cmd("whoami")
+	return cmd.Stdout("whoami")
 }
 
 func getBuildNumberFromHomeDirectory(git *git.Info) int {

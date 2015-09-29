@@ -76,7 +76,7 @@ func testNodeJS(np *NodePackage) *docker.Dockerfile {
 		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
 		Workdir: "/srv/app",
 		Run:     []string{"npm install; ls -la /srv/app"},
-		CMD:     []string{"npm test"},
+		CMD:     []string{"/usr/local/bin/npm", "test"},
 	}
 	df.AddLabel("com.opentable.stack", "NodeJS")
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)

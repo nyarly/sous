@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cmd"
 )
 
 type Info struct {
@@ -17,7 +18,7 @@ func GetInfo() *Info {
 		Dief("Unclean working tree: %s; please commit your changes", err)
 	}
 	return &Info{
-		CommitSHA: Cmd("git", "rev-parse", "HEAD"),
+		CommitSHA: cmd.Stdout("git", "rev-parse", "HEAD"),
 		OriginURL: getOriginURL(),
 	}
 }
@@ -27,7 +28,7 @@ func (g *Info) CanonicalName() string {
 }
 
 func getOriginURL() *url.URL {
-	table := CmdTable("git", "remote", "-v")
+	table := cmd.Table("git", "remote", "-v")
 	if len(table) == 0 {
 		Dief("no git remotes set up")
 	}
@@ -56,7 +57,7 @@ func AssertCleanWorkingTree() error {
 }
 
 func IndexIsDirty() bool {
-	code := CmdExitCode("git", "diff-index", "--quiet", "HEAD")
+	code := cmd.ExitCode("git", "diff-index", "--quiet", "HEAD")
 	if code > 1 || code < 0 {
 		Dief("Unable to determine if git index is dirty; Got exit code %d; want 0-1")
 	}
@@ -64,5 +65,5 @@ func IndexIsDirty() bool {
 }
 
 func UntrackedUnignoredFiles() []string {
-	return CmdLines("git", "ls-files", "--exclude-standard", "--others")
+	return cmd.New("git", "ls-files", "--exclude-standard", "--others").OutLines()
 }

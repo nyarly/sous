@@ -1,13 +1,13 @@
 package docker
 
 import (
-	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cmd"
 )
 
 func Build(tag string) {
-	Cmd("docker", "build", "-t", tag, ".")
+	cmd.EchoAll("docker", "build", "-t", tag, ".")
 }
 
 func Run(tag string) {
-	Cmd("docker", "run", "tag")
+	cmd.EchoAll("docker", "run", tag)
 }
