@@ -11,6 +11,7 @@ import (
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dir"
+	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
 	"github.com/opentable/sous/tools/path"
@@ -90,14 +91,7 @@ func (c *Context) NeedsBuild() bool {
 }
 
 func (c *Context) LastBuildImageExists() bool {
-	rows := cmd.Table("docker", "images")
-	for _, r := range rows {
-		comp := r[0] + ":" + r[1]
-		if comp == c.PrevDockerTag() {
-			return true
-		}
-	}
-	return false
+	return docker.ImageExists(c.PrevDockerTag())
 }
 
 func (s *BuildState) CurrentCommit() *Commit {

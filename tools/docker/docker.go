@@ -24,18 +24,34 @@ func RequireDaemon() {
 	}
 }
 
+func dockerCmd(args ...string) *cmd.CMD {
+	c := cmd.New("docker", args...)
+	c.EchoStdout = true
+	c.EchoStderr = true
+	return c
+}
+
 // Build builds the dockerfile in the specified directory and returns the image ID
 func Build(dir, tag string) string {
 	dir = path.Resolve(dir)
-	c := cmd.New("docker", "build", "-t", tag, dir)
-	c.EchoStdout = true
-	c.EchoStderr = true
-	return c.Out()
+	return dockerCmd("build", "-t", tag, dir).Out()
 }
 
 func Run(tag string) int {
-	c := cmd.New("docker", "run", tag)
-	c.EchoStdout = true
-	c.EchoStderr = true
-	return c.ExitCode()
+	return dockerCmd("run", tag).ExitCode()
+}
+
+func Push(tag string) {
+	cmd.EchoAll("docker", "push", tag)
+}
+
+func ImageExists(tag string) bool {
+	rows := cmd.Table("docker", "images")
+	for _, r := range rows {
+		comp := r[0] + ":" + r[1]
+		if comp == tag {
+			return true
+		}
+	}
+	return false
 }
