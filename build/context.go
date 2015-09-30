@@ -188,7 +188,19 @@ func CalculateHash() string {
 		return "-"
 	}
 	h := sha1.New()
-	io.WriteString(h, cmd.Stdout("git", "diff-tree", "HEAD"))
+	indexDiffs := cmd.Stdout("git", "diff-index", "HEAD")
+	if len(indexDiffs) != 0 {
+		io.WriteString(h, indexDiffs)
+	}
+	newFiles := git.UntrackedUnignoredFiles()
+	if len(newFiles) != 0 {
+		for _, f := range newFiles {
+			io.WriteString(h, f)
+			if content, ok := file.ReadString(f); ok {
+				io.WriteString(h, content)
+			}
+		}
+	}
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
