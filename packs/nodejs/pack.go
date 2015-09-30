@@ -18,6 +18,9 @@ var Pack = &build.Pack{
 				if !file.ReadJSON(&np, "package.json") {
 					return nil, fmt.Errorf("no file named package.json")
 				}
+				if len(np.Scripts.Start) == 0 {
+					return nil, fmt.Errorf("package.json does not specify a start script")
+				}
 				return &build.AppInfo{
 					Version: np.Version,
 					Data:    np,
@@ -32,6 +35,9 @@ var Pack = &build.Pack{
 				var np *NodePackage
 				if !file.ReadJSON(&np, "package.json") {
 					return nil, fmt.Errorf("no file named package.json")
+				}
+				if len(np.Scripts.Test) == 0 {
+					return nil, fmt.Errorf("package.json does not specify a test script")
 				}
 				return &build.AppInfo{
 					Version: np.Version,

@@ -22,6 +22,7 @@ var Sous = struct {
 	map[string]SousCommand{
 		"build":      SousCommand{commands.Build, commands.BuildHelp, "build your project"},
 		"push":       SousCommand{commands.Push, commands.PushHelp, "push your project"},
+		"run":        SousCommand{commands.Run, commands.RunHelp, "run your project"},
 		"dockerfile": SousCommand{commands.Dockerfile, commands.DockerfileHelp, "print current dockerfile"},
 		"detect":     SousCommand{commands.Detect, commands.DetectHelp, "detect available actions"},
 		"test":       SousCommand{commands.Test, commands.TestHelp, "test your project"},
