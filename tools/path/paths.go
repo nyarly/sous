@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cli"
 )
 
 func Resolve(pathFormat string, a ...interface{}) string {
@@ -12,7 +12,7 @@ func Resolve(pathFormat string, a ...interface{}) string {
 	if path[0:2] == "~/" {
 		home := os.Getenv("HOME")
 		if home == "" {
-			Dief("unable to resolve path beginning ~/; $HOME not set")
+			cli.Fatalf("unable to resolve path beginning ~/; $HOME not set")
 		}
 		path = home + "/" + path[2:]
 	}

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/version"
 )
@@ -28,11 +29,11 @@ func bestSupportedNodeVersion(np *NodePackage) string {
 	var nodeVersion *version.V
 	if np.Engines.Node == "" {
 		nodeVersion = availableNodeVersions[0]
-		Logf("WARNING: No NodeJS version specified in package.json; using latest available version (%s)", nodeVersion)
+		cli.Logf("WARNING: No NodeJS version specified in package.json; using latest available version (%s)", nodeVersion)
 	} else {
 		nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(availableNodeVersions)
 		if nodeVersion == nil {
-			Dief("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
+			cli.Fatalf("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
 				np.Engines.Node, strings.Join(availableNodeVersions.Strings(), ", "))
 		}
 	}
@@ -52,7 +53,7 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
 		Workdir: "/srv/app",
 		Run:     []string{"npm install --registry=http://artifactory.otenv.com/artifactory/api/npm/npm-virtual --production; ls -la /srv/app"},
-		CMD:     Whitespace.Split(np.Scripts.Start, -1),
+		CMD:     tools.Whitespace.Split(np.Scripts.Start, -1),
 	}
 	df.AddLabel("com.opentable.stack", "NodeJS")
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)

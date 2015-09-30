@@ -7,7 +7,7 @@ import (
 
 	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/commands"
-	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cli"
 )
 
 type SousCommand struct {
@@ -35,9 +35,9 @@ func main() {
 	command := os.Args[1]
 	if c, ok := Sous.Commands[command]; ok {
 		c.Func(buildPacks, os.Args[2:])
-		Dief("Command did not complete correctly")
+		cli.Fatalf("Command did not complete correctly")
 	}
-	Dief("Command %s not recognised; try `sous help`", command)
+	cli.Fatalf("Command %s not recognised; try `sous help`", command)
 }
 
 func usage() {
@@ -53,7 +53,7 @@ func help(packs []*build.Pack, args []string) {
 				fmt.Println(c.HelpFunc())
 				os.Exit(0)
 			}
-			Dief("Command %s does not have any help yet.", command)
+			cli.Fatalf("Command %s does not have any help yet.", command)
 		}
 		fmt.Printf("There is no command called %s; try `sous help`\n", command)
 		os.Exit(1)

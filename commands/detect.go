@@ -14,7 +14,7 @@ func Detect(packs []*build.Pack, args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("Detected a %s project\n", pack.Name)
-	context := build.GetContext()
+	context := build.GetContext("detect")
 	for name, feature := range pack.Features {
 		if _, err := feature.Detect(context); err != nil {
 			continue

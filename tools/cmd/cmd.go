@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cli"
 )
 
 type CMD struct {
@@ -34,7 +35,7 @@ func (C *CMD) execute() (code int, err error) {
 		c.Stderr = io.MultiWriter(os.Stderr, c.Stderr)
 	}
 	if err := c.Start(); err != nil {
-		Dief("Unable to begin command execution; %s", err)
+		cli.Fatalf("Unable to begin command execution; %s", err)
 	}
 	if err := c.Wait(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
@@ -42,7 +43,7 @@ func (C *CMD) execute() (code int, err error) {
 				return status.ExitStatus(), err
 			}
 		}
-		Dief("Command failed, unable to get exit code: %s", C)
+		cli.Fatalf("Command failed, unable to get exit code: %s", C)
 	}
 	return 0, nil
 }
@@ -71,7 +72,7 @@ func (c *CMD) Run() {
 
 func (c *CMD) Out() string {
 	if _, err := c.execute(); err != nil {
-		Dief("Error running %s; %s", c, err)
+		cli.Fatalf("Error running %s; %s", c, err)
 	}
 	return TrimWhitespace(c.Stdout.String())
 }

@@ -3,7 +3,7 @@ package dir
 import (
 	"os"
 
-	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/path"
 )
 
@@ -18,7 +18,7 @@ func Exists(pathFormat string, a ...interface{}) bool {
 		}
 	}
 	if !os.IsNotExist(err) {
-		Dief("unable to stat path %s", path)
+		cli.Fatalf("unable to stat path %s", path)
 	}
 	return false
 }
@@ -30,14 +30,14 @@ func EnsureExists(pathFormat string, a ...interface{}) {
 		if s.IsDir() {
 			return
 		} else {
-			Dief("%s exists and is not a directory", path)
+			cli.Fatalf("%s exists and is not a directory", path)
 		}
 	}
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(path, 0777); err != nil {
-			Dief("unable to make directory %s; %s", path, err)
+			cli.Fatalf("unable to make directory %s; %s", path, err)
 		}
 		return
 	}
-	Dief("unable to stat or create directory %s", path)
+	cli.Fatalf("unable to stat or create directory %s", path)
 }

@@ -2,9 +2,8 @@ package commands
 
 import (
 	"github.com/opentable/sous/build"
-	. "github.com/opentable/sous/tools"
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
-	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
 	"github.com/opentable/sous/tools/version"
 )
@@ -24,29 +23,32 @@ func Test(packs []*build.Pack, args []string) {
 	docker.RequireVersion(version.Range(">=1.8.2"))
 	docker.RequireDaemon()
 
-	context := build.GetContext()
+	context := build.GetContext("test")
 	pack := build.DetectProjectType(packs)
 	if pack == nil {
-		Dief("no testable project detected")
+		cli.Fatalf("no testable project detected")
 	}
 	buildFeature, ok := pack.Features["test"]
 	if !ok {
-		Dief("The %s build pack does not support test", pack.Name)
+		cli.Fatalf("The %s build pack does not support test", pack.Name)
 	}
 	appInfo, err := buildFeature.Detect(context)
+	context.AppVersion = appInfo.Version
 	if err != nil {
-		Dief("unable to test %s project: %s", pack.Name, err)
+		cli.Fatalf("unable to test %s project: %s", pack.Name, err)
 	}
 	df := buildFeature.MakeDockerfile(appInfo)
 	addMetadata(df, context)
-	file.Write(df.Render(), "Dockerfile")
 
-	tag := dockerTag(context, appInfo, "-tests")
-
-	docker.Build(tag)
+	tag := context.PrevDockerTag()
+	if context.NeedsBuild() {
+		tag = context.NextDockerTag()
+		docker.Build(context.BaseDir(), tag)
+		context.Commit()
+	}
 
 	docker.Run(tag)
 
-	ExitSuccessf("Successfully built %s v%s as %s",
+	cli.Successf("Successfully built %s v%s as %s",
 		context.CanonicalPackageName(), appInfo.Version, tag)
 }
