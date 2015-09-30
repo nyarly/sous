@@ -16,11 +16,8 @@ func Detect(packs []*build.Pack, args []string) {
 	}
 	incompatabilities := pack.CheckCompatibility()
 	if len(incompatabilities) != 0 {
-		cli.Outf("Detected a %s project\n", pack.Name)
-		cli.Logf("You need to fix a few things before you can build this project..")
-		for _, message := range incompatabilities {
-			cli.Logf("\t%s", message)
-		}
+		cli.Outf("Detected a %s project with some issues...", pack.Name)
+		cli.LogBulletList("-", incompatabilities)
 		cli.Fatal()
 	}
 	desc := pack.CompatibleProjectDesc()

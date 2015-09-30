@@ -45,3 +45,9 @@ func Successf(format string, a ...interface{}) {
 func Success() {
 	os.Exit(0)
 }
+
+func LogBulletList(bullet string, list []string) {
+	for _, item := range list {
+		Logf("%s %s", bullet, item)
+	}
+}

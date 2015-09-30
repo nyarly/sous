@@ -29,12 +29,12 @@ var Pack = &build.Pack{
 			cli.Fatalf("no file named package.json")
 		}
 		if np.Engines.Node == "" {
-			c = append(c, "no node version specified in package.json:engines.node")
+			c = append(c, "unable to determine NodeJS version, missing engines.node in package.json")
 		} else {
 			r := version.Range(np.Engines.Node)
 			if v := r.BestMatchFrom(availableNodeVersions); v == nil {
-				f := "unable to satisfy node version %s (from package.json:engines.node); avialable versions are: %s"
-				m := fmt.Sprintf(f, r.Original, strings.Join(availableNodeVersions.Strings(), " "))
+				f := "node version range (%s) not supported (pick from %s)"
+				m := fmt.Sprintf(f, r.Original, strings.Join(availableNodeVersions.Strings(), ", "))
 				c = append(c, m)
 			}
 		}
