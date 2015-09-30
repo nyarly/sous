@@ -15,11 +15,17 @@ sous build does not have any options yet`
 }
 
 func Build(packs []*build.Pack, args []string) {
+	target := "build"
+	if len(args) != 0 {
+		target = args[0]
+	}
 	RequireGit()
 	RequireDocker()
-	git.RequireCleanWorkingTree()
+	if err := git.AssertCleanWorkingTree(); err != nil {
+		cli.Logf("WARNING: Dirty working tree: %s", err)
+	}
 
-	feature, context, appInfo := AssembleFeatureContext("build", packs)
+	feature, context, appInfo := AssembleFeatureContext(target, packs)
 	if !BuildIfNecessary(feature, context, appInfo) {
 		cli.Successf("Already built: %s", context.DockerTag())
 	}
