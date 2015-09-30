@@ -16,7 +16,7 @@ on the OpenTable Mesos Platform.
 
 Sous is designed to work with existing projects, using data already contained
 to determine how to properly build Docker images. It is designed to ease migrating
-exiting projects onto The Mesos Platform, using sensible defaults and stack-centric
+existing projects onto The Mesos Platform, using sensible defaults and stack-centric
 conventions. It is also designed with operations in mind, tagging Docker images
 with lots of metadata to ease discovery and cleaunup of images.
 
@@ -52,7 +52,7 @@ Docker Toolbox available at https://www.docker.com/toolbox
 
 Sous works by interrogating your Git repo to sniff out what kind of project it is
 and some other info like its name, version, what runtime version it needs etc.
-Using this data, it is able to create sensible Dockerfiles to perform verious tasks
+Using this data, it is able to create sensible Dockerfiles to perform various tasks
 like building and testing your project. It also applies labels to the Dockerfile
 which propagate through to the image, and finally the running containers, with data
 such as which Git commit was built, what stack is running inside it, which user and
