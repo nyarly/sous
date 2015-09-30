@@ -17,6 +17,16 @@ func AssembleFeatureContext(name string, packs []*build.Pack) (*build.Feature, *
 	if !ok {
 		cli.Fatalf("The %s build pack does not support %s", pack.Name, name)
 	}
+	// Now we know that the user was asking for something possible with the detected build pack,
+	// let's make sure that build pack is properly compatible with this project
+	incompatabilities := pack.CheckCompatibility()
+	if len(incompatabilities) != 0 {
+		cli.Logf("You need to fix a few things before you can build this project..")
+		for _, message := range incompatabilities {
+			cli.Logf("\t%s", message)
+		}
+		cli.Fatalf("")
+	}
 	context := build.GetContext(name)
 	appInfo, err := buildFeature.Detect(context)
 	if err != nil {

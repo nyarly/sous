@@ -29,6 +29,10 @@ func Outf(format string, a ...interface{}) {
 // Fatalf prints a formatted message to stderr and exits with exit code 1
 func Fatalf(format string, a ...interface{}) {
 	Logf(format, a...)
+	Fatal()
+}
+
+func Fatal() {
 	os.Exit(1)
 }
 

@@ -2,15 +2,47 @@ package nodejs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/version"
 )
 
 var Pack = &build.Pack{
 	Name:   "NodeJS",
 	Detect: detect,
+	CompatibleProjectDesc: func() string {
+		var np *NodePackage
+		if !file.ReadJSON(&np, "package.json") {
+			cli.Fatalf("no file named package.json")
+		}
+		return fmt.Sprintf("a NodeJS %s project named %s v%s",
+			np.Engines.Node, np.Name, np.Version)
+	},
+	CheckCompatibility: func() []string {
+		c := []string{}
+		var np *NodePackage
+		if !file.ReadJSON(&np, "package.json") {
+			cli.Fatalf("no file named package.json")
+		}
+		if np.Engines.Node == "" {
+			c = append(c, "no node version specified in package.json:engines.node")
+		} else {
+			r := version.Range(np.Engines.Node)
+			if v := r.BestMatchFrom(availableNodeVersions); v == nil {
+				f := "unable to satisfy node version %s (from package.json:engines.node); avialable versions are: %s"
+				m := fmt.Sprintf(f, r.Original, strings.Join(availableNodeVersions.Strings(), " "))
+				c = append(c, m)
+			}
+		}
+		if np.Version == "" {
+			c = append(c, "no version specified in package.json:version")
+		}
+		return c
+	},
 	Features: map[string]*build.Feature{
 		"build": &build.Feature{
 			Detect: func(c *build.Context) (*build.AppInfo, error) {
@@ -52,7 +84,8 @@ var Pack = &build.Pack{
 }
 
 func detect() error {
-	if !file.Exists("package.json") {
+	var np *NodePackage
+	if !file.ReadJSON(np, "package.json") {
 		return fmt.Errorf("no package.json file found")
 	}
 	return nil

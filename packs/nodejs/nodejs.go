@@ -23,7 +23,7 @@ type NodePackageScripts struct {
 	Start, Test string
 }
 
-var availableNodeVersions = version.VersionList("0.12.7", "0.10.40")
+var availableNodeVersions = version.VersionList("4.1.0", "4.0.0", "0.12.7", "0.10.40")
 
 func bestSupportedNodeVersion(np *NodePackage) string {
 	var nodeVersion *version.V

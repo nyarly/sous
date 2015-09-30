@@ -14,7 +14,17 @@ func Detect(packs []*build.Pack, args []string) {
 		fmt.Println("no sous-compatible project detected")
 		os.Exit(1)
 	}
-	fmt.Printf("Detected a %s project\n", pack.Name)
+	incompatabilities := pack.CheckCompatibility()
+	if len(incompatabilities) != 0 {
+		cli.Outf("Detected a %s project\n", pack.Name)
+		cli.Logf("You need to fix a few things before you can build this project..")
+		for _, message := range incompatabilities {
+			cli.Logf("\t%s", message)
+		}
+		cli.Fatal()
+	}
+	desc := pack.CompatibleProjectDesc()
+	cli.Outf("Detected %s; target support...", desc)
 	context := build.GetContext("detect")
 	for name, feature := range pack.Features {
 		if _, err := feature.Detect(context); err != nil {
