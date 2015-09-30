@@ -37,7 +37,11 @@ func (C *CMD) execute() (code int, err error) {
 	if err := c.Start(); err != nil {
 		cli.Fatalf("Unable to begin command execution; %s", err)
 	}
-	if err := c.Wait(); err != nil {
+	if C.EchoStdout || C.EchoStderr {
+		cli.Logf("shell> %s", C)
+	}
+	err = c.Wait()
+	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				return status.ExitStatus(), err

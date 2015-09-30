@@ -5,6 +5,7 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
+	"github.com/opentable/sous/tools/path"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -25,12 +26,16 @@ func RequireDaemon() {
 
 // Build builds the dockerfile in the specified directory and returns the image ID
 func Build(dir, tag string) string {
+	dir = path.Resolve(dir)
 	c := cmd.New("docker", "build", "-t", tag, dir)
 	c.EchoStdout = true
 	c.EchoStderr = true
 	return c.Out()
 }
 
-func Run(tag string) {
-	cmd.EchoAll("docker", "run", tag)
+func Run(tag string) int {
+	c := cmd.New("docker", "run", tag)
+	c.EchoStdout = true
+	c.EchoStderr = true
+	return c.ExitCode()
 }

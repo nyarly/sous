@@ -7,14 +7,16 @@ import (
 	"os"
 
 	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/path"
 )
 
 func Write(data []byte, pathFormat string, a ...interface{}) {
-	path := path.Resolve(pathFormat, a...)
-	err := ioutil.WriteFile(path, data, 0777)
+	p := path.Resolve(pathFormat, a...)
+	dir.EnsureExists(path.BaseDir(p))
+	err := ioutil.WriteFile(p, data, 0777)
 	if err != nil {
-		cli.Fatalf("unable to write file %s; %s", path, err)
+		cli.Fatalf("unable to write file %s; %s", p, err)
 	}
 }
 
@@ -65,9 +67,6 @@ func Read(pathFormat string, a ...interface{}) ([]byte, bool, string) {
 	path := path.Resolve(pathFormat, a...)
 	contents, err := ioutil.ReadFile(path)
 	if err == nil {
-		if len(contents) == 0 {
-			cli.Fatalf("%s is zero-length", path)
-		}
 		return contents, true, path
 	}
 	if os.IsNotExist(err) {

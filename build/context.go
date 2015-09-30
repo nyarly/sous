@@ -13,12 +13,12 @@ import (
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
+	"github.com/opentable/sous/tools/path"
 )
 
 type Context struct {
 	Git                  *git.Info
 	Action               string
-	BuildNumber          int
 	DockerRegistry       string
 	Host, FullHost, User string
 	BuildState           *BuildState
@@ -35,7 +35,6 @@ func GetContext(action string) *Context {
 	return &Context{
 		Git:            gitInfo,
 		Action:         action,
-		BuildNumber:    bs.CurrentCommit().BuildNumber,
 		DockerRegistry: "docker.otenv.com",
 		Host:           cmd.Stdout("hostname"),
 		FullHost:       cmd.Stdout("hostname", "-f"),
@@ -44,12 +43,16 @@ func GetContext(action string) *Context {
 	}
 }
 
-func (c *Context) NextDockerTag() string {
-	return c.DockerTagForBuildNumber(c.BuildNumber)
+func (c *Context) DockerTag() string {
+	return c.DockerTagForBuildNumber(c.BuildNumber())
+}
+
+func (c *Context) BuildNumber() int {
+	return c.BuildState.CurrentCommit().BuildNumber
 }
 
 func (c *Context) PrevDockerTag() string {
-	return c.DockerTagForBuildNumber(c.BuildNumber - 1)
+	return c.DockerTagForBuildNumber(c.BuildNumber() - 1)
 }
 
 func (c *Context) DockerTagForBuildNumber(n int) string {
@@ -159,12 +162,16 @@ func GetBuildState(action string, g *git.Info) *BuildState {
 			cli.Fatalf("unable to get build number from $BUILD_NUMBER TeamCity")
 		}
 		c.BuildNumber = bn
-	} else {
-		c.BuildNumber++
 	}
 	c.OldHash = c.Hash
 	c.Hash = CalculateHash()
 	return state
+}
+
+func (c *Context) IncrementBuildNumber() {
+	if !buildingInCI() {
+		c.BuildState.CurrentCommit().BuildNumber++
+	}
 }
 
 func (s *BuildState) Commit() {
@@ -180,7 +187,7 @@ func (c *Context) FilePath(name string) string {
 }
 
 func (c *Context) BaseDir() string {
-	return c.BuildState.path
+	return path.BaseDir(c.BuildState.path)
 }
 
 func CalculateHash() string {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	. "path"
+
 	"github.com/opentable/sous/tools/cli"
 )
 
@@ -17,4 +19,8 @@ func Resolve(pathFormat string, a ...interface{}) string {
 		path = home + "/" + path[2:]
 	}
 	return path
+}
+
+func BaseDir(path string) string {
+	return Dir(path)
 }
