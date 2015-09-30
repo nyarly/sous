@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
@@ -18,6 +19,11 @@ func init() {
 // Logf prints a formatted message to stderr
 func Logf(format string, a ...interface{}) {
 	_log.Printf(format, a...)
+}
+
+// Outf prints a formatted message to stdout
+func Outf(format string, a ...interface{}) {
+	fmt.Println(fmt.Sprintf(format, a...))
 }
 
 // Fatalf prints a formatted message to stderr and exits with exit code 1

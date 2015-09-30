@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/tools/cli"
 )
 
 func Detect(packs []*build.Pack, args []string) {
@@ -17,9 +18,10 @@ func Detect(packs []*build.Pack, args []string) {
 	context := build.GetContext("detect")
 	for name, feature := range pack.Features {
 		if _, err := feature.Detect(context); err != nil {
+			cli.Outf("\t%s \t✘ %s", name, err)
 			continue
 		}
-		fmt.Println("this project supports", name)
+		cli.Outf("\t%s \t✔︎", name)
 	}
 	os.Exit(0)
 }
