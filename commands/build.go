@@ -21,7 +21,7 @@ func Build(packs []*build.Pack, args []string) {
 
 	feature, context, appInfo := AssembleFeatureContext("build", packs)
 	if !BuildIfNecessary(feature, context, appInfo) {
-		cli.Successf("Already built: %s", context.PrevDockerTag())
+		cli.Successf("Already built: %s", context.DockerTag())
 	}
 	name := context.CanonicalPackageName()
 	cli.Successf("Successfully built %s v%s as %s", name, appInfo.Version, context.DockerTag())
