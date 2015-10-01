@@ -11,8 +11,13 @@ elif [[ "$1" == "self" ]]; then
 	REQUESTED_TARGETS=($GOOS/$GOARCH)
 fi
 
-log "Building for ${REQUESTED_TARGETS[@]}"
+if ! command -v godep 2>&1>/dev/null; then
+	if ! go get github.com/tools/godep; then
+		die "Unable to install missing dependency godep"
+	fi
+fi
 
+log "Building for ${REQUESTED_TARGETS[@]}"
 
 # Try to get the SHA that's being built
 if ! SHA=$(git rev-parse HEAD); then
@@ -26,7 +31,7 @@ if [ -z "$BUILD_NUMBER" ]; then
 	BUILD_NUMBER="unknown"
 fi
 # Try to get version number from branch name (TeamCity checks out tags as branches)
-VERSION="unknown"
+VERSION="HEAD"
 if BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"; then
 	# Look for a branch name starting vN.N.N
 	if (echo $BRANCH | grep '^v\d\+\.\d\+\.\d\+'); then
@@ -44,9 +49,17 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		-X main.Branch=$BRANCH \
 		-X main.BuildTimestamp=$TIMESTAMP \
 		-X main.OS=$GOOS -X main.Arch=$GOARCH"
-	if ! go build -ldflags="$flags" -o "artifacts/$T/sous"; then
+	if ! godep go build -ldflags="$flags" -o "artifacts/$VERSION/$T/sous"; then
 		log "Build failed for $T"
 		((BUILDS_FAILED++))
 		continue
 	fi
 done
+
+if [[ "$BUILDS_FAILED" == 1 ]]; then
+	die "1 build failed."
+elif [[ "$BUILDS_FAILED" != 0 ]]; then
+	die "$BUILDS_FAILED builds failed"
+fi
+
+log "All done successfully."
