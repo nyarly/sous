@@ -17,7 +17,7 @@ func RequireVersion(r *version.R) {
 	}
 	v := version.Version(cmd.Table("git", "--version")[0][2])
 	if !r.IsSatisfiedBy(v) {
-		cli.Fatalf("you have git version %s; want %s", v, r)
+		cli.Fatalf("you have git version %s; want %s", v, r.Original)
 	}
 }
 

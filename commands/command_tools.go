@@ -62,7 +62,7 @@ func RequireDocker() {
 }
 
 func RequireGit() {
-	git.RequireVersion(version.Range(">=2.0.0"))
+	git.RequireVersion(version.Range(">=1.9.1"))
 	git.RequireRepo()
 }
 
