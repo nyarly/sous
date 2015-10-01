@@ -20,12 +20,17 @@ fi
 
 log "Building for ${REQUESTED_TARGETS[@]}"
 
-# Try to get the SHA that's being built
-if ! SHA=$(git rev-parse HEAD); then
-	SHA="unknown"
-fi
-if ! git diff-index --quiet HEAD; then
-	SHA="dirty-$SHA"
+# Try to get the SHA that's being built from TeamCity first...
+SHA="$BUILD_VCS_NUMBER"
+# If that didn't work, sniff out the local git repo SHA
+if [ -z "$SHA" ]; then
+	if ! SHA=$(git rev-parse HEAD); then
+		SHA="unknown"
+	fi
+	# Mark the build as dirty if any indexed files are modified
+	if ! git diff-index --quiet HEAD; then
+		SHA="dirty-$SHA"
+	fi
 fi
 
 if [ -z "$BUILD_NUMBER" ]; then
@@ -33,11 +38,12 @@ if [ -z "$BUILD_NUMBER" ]; then
 fi
 # Try to get version number from branch name (TeamCity checks out tags as branches)
 VERSION="HEAD"
-if BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"; then
-	# Look for a branch name starting vN.N.N
-	if (echo $BRANCH | grep '^v\d\+\.\d\+\.\d\+'); then
-		VERSION="$BRANCH"
-	fi
+if [ -z "$BRANCH" ]; then
+	BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"
+fi
+# Look for a branch name starting vN.N.N
+if (echo "$BRANCH" | grep '^v\d\+\.\d\+\.\d\+'); then
+	VERSION="$BRANCH"
 fi
 TIMESTAMP="$(date +%s)"
 
