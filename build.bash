@@ -37,7 +37,6 @@ if [ -z "$BUILD_NUMBER" ]; then
 	BUILD_NUMBER="unknown"
 fi
 # Try to get version number from branch name (TeamCity checks out tags as branches)
-VERSION="HEAD"
 if [ -z "$BRANCH" ]; then
 	BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"
 fi
@@ -45,6 +44,7 @@ fi
 #if (echo "$BRANCH" | grep '^v\d\+\.\d\+\.\d\+'); then
 #	VERSION="$BRANCH"
 #fi
+VERSION="$BRANCH"
 TIMESTAMP="$(date +%s)"
 
 BUILDS_FAILED=0
