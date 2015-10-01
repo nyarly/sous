@@ -42,9 +42,9 @@ if [ -z "$BRANCH" ]; then
 	BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"
 fi
 # Look for a branch name starting vN.N.N
-if (echo "$BRANCH" | grep '^v\d\+\.\d\+\.\d\+'); then
-	VERSION="$BRANCH"
-fi
+#if (echo "$BRANCH" | grep '^v\d\+\.\d\+\.\d\+'); then
+#	VERSION="$BRANCH"
+#fi
 TIMESTAMP="$(date +%s)"
 
 BUILDS_FAILED=0
