@@ -49,10 +49,19 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		-X main.Branch=$BRANCH \
 		-X main.BuildTimestamp=$TIMESTAMP \
 		-X main.OS=$GOOS -X main.Arch=$GOARCH"
-	if ! godep go build -ldflags="$flags" -o "artifacts/$VERSION/$T/sous"; then
+	ART_BASEDIR="$(pwd)/artifacts"
+	ART_PATH="$ART_BASEDIR/$VERSION/$GOOS/$GOARCH"
+	
+	if ! godep go build -ldflags="$flags" -o "$ART_PATH/sous"; then
 		log "Build failed for $T"
 		((BUILDS_FAILED++))
 		continue
+	fi
+	ARCHIVE_PATH="$ART_BASEDIR/sous-$VERSION-$GOOS-$GOARCH.tar.gz"
+	# Create the archive
+	if ! (cd $ART_PATH && tar czf "$ARCHIVE_PATH" sous); then
+		log "Failed to create archive for $V"
+		((BUILDS_FAILED++))
 	fi
 done
 
