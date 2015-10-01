@@ -1,3 +1,4 @@
+#/usr/bin/env bash
 log() { echo "$@" 1>&2; }
 die() { log "$@"; exit 1; }
 if [ -z "$1" ]; then
