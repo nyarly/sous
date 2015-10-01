@@ -6,7 +6,6 @@ import (
 	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/file"
-	"github.com/opentable/sous/tools/git"
 	"github.com/opentable/sous/tools/path"
 )
 
@@ -19,14 +18,15 @@ func Dockerfile(packs []*build.Pack, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	RequireGit()
-	RequireDocker()
-	git.RequireCleanWorkingTree()
-
 	feature, context, appInfo := AssembleFeatureContext(target, packs)
 	BuildDockerfileIfNecessary(feature, context, appInfo)
-	fmt.Println(file.ReadString(context.FilePath("Dockerfile")))
-	cli.Successf("")
+	fp := context.FilePath("Dockerfile")
+	df, ok := file.ReadString(fp)
+	if !ok {
+		cli.Fatalf("Unable to read %s", fp)
+	}
+	cli.Outf(df)
+	cli.Success()
 }
 
 func BuildPathHelp() string {

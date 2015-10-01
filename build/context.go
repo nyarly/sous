@@ -185,10 +185,9 @@ func (c *Context) BaseDir() string {
 }
 
 func CalculateHash() string {
-	if err := git.AssertCleanWorkingTree(); err == nil {
-		return "-"
-	}
 	h := sha1.New()
+	toolVersion := cmd.Stdout("sous", "version")
+	io.WriteString(h, toolVersion)
 	indexDiffs := cmd.Stdout("git", "diff-index", "HEAD")
 	if len(indexDiffs) != 0 {
 		io.WriteString(h, indexDiffs)
@@ -214,6 +213,7 @@ type BuildState struct {
 type Commit struct {
 	Hash, OldHash string
 	BuildNumber   int
+	ToolVersion   string
 }
 
 func tryGetBuildNumberFromEnv() (int, bool) {

@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 )
 
@@ -29,6 +30,10 @@ func (d *Dockerfile) AddLabel(name, value string) {
 		d.Labels = map[string]string{}
 	}
 	d.Labels[name] = value
+}
+
+func (d *Dockerfile) AddRun(format string, a ...interface{}) {
+	d.Run = append(d.Run, fmt.Sprintf(format, a...))
 }
 
 var dockerfileTemplate = `

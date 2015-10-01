@@ -45,33 +45,42 @@ func dockerFrom(np *NodePackage, nodeVersion string) string {
 	return fmt.Sprintf("docker.otenv.com/ot-node-base-%s:%s", nodeVersion, baseImageTag)
 }
 
-func buildNodeJS(np *NodePackage) *docker.Dockerfile {
+var npmVersions = version.VersionList("3.3.4", "2.4.15")
+var defaultNPMVersion = version.Version("2.4.15")
+var npmRegistry = "http://artifactory.otenv.com/artifactory/api/npm/npm-virtual"
+
+func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 	nodeVersion := bestSupportedNodeVersion(np)
 	from := dockerFrom(np, nodeVersion)
+	npmVer := defaultNPMVersion
+	if np.Engines.NPM != "" {
+		npmVer = version.Range(np.Engines.NPM).BestMatchFrom(npmVersions)
+	}
 	df := &docker.Dockerfile{
 		From:    from,
 		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
 		Workdir: "/srv/app",
-		Run:     []string{"npm install --registry=http://artifactory.otenv.com/artifactory/api/npm/npm-virtual --production; ls -la /srv/app"},
-		CMD:     tools.Whitespace.Split(np.Scripts.Start, -1),
 	}
+	df.AddRun("npm install npm@%s", npmVer)
 	df.AddLabel("com.opentable.stack", "NodeJS")
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
 	return df
 }
 
+func buildNodeJS(np *NodePackage) *docker.Dockerfile {
+	df := baseDockerfile(np)
+	// Pick out the contents of NPM start to invoke directly (using npm start in
+	// production shields the app from signals, which are required to be handled by
+	// the app itself to do graceful shutdown.
+	df.CMD = tools.Whitespace.Split(np.Scripts.Start, -1)
+	df.AddRun("npm install --registry=%s --production", npmRegistry)
+	return df
+}
+
 func testNodeJS(np *NodePackage) *docker.Dockerfile {
-	nodeVersion := bestSupportedNodeVersion(np)
-	from := dockerFrom(np, nodeVersion)
-	df := &docker.Dockerfile{
-		From:    from,
-		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
-		Workdir: "/srv/app",
-		Run:     []string{"npm install --registry=http://artifactory.otenv.com/artifactory/api/npm/npm-virtual; ls -la /srv/app"},
-		CMD:     []string{"/usr/local/bin/npm", "test"},
-	}
-	df.AddLabel("com.opentable.stack", "NodeJS")
-	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
+	df := baseDockerfile(np)
+	df.CMD = []string{"npm", "test"}
+	df.AddRun("npm install --registry=%s", npmRegistry)
 	df.AddLabel("com.opentable.tests", "true")
 	return df
 }
