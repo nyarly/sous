@@ -48,6 +48,13 @@ VERSION="$BRANCH"
 VERSION="$(basename $BRANCH)"
 TIMESTAMP="$(date +%s)"
 
+# Empty the artifacts dir...
+if [ -d ./artifacts ]; then
+	rm -rf ./artifacts
+	mkdir ./artifacts
+	echo "Do not check in this directory, it is used for ephemeral build artifacts." > ./artifacts/README.md
+fi
+
 BUILDS_FAILED=0
 for T in ${REQUESTED_TARGETS[@]}; do
 	IFS='/' read -ra PARTS <<< "$T"
