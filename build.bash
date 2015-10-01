@@ -45,6 +45,7 @@ fi
 #	VERSION="$BRANCH"
 #fi
 VERSION="$BRANCH"
+VERSION="$(basename $BRANCH)"
 TIMESTAMP="$(date +%s)"
 
 BUILDS_FAILED=0
