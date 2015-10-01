@@ -16,6 +16,9 @@ type SousCommand struct {
 	ShortDesc string
 }
 
+// These values are set at build time using -ldflags "-X main.Name=Value"
+var Version, Branch, CommitSHA, BuildNumber, BuildTimestamp, OS, Arch string
+
 var Sous = struct {
 	Commands map[string]SousCommand
 }{
@@ -33,6 +36,7 @@ var Sous = struct {
 func main() {
 	// this line avoids initialisation loop
 	Sous.Commands["help"] = SousCommand{help, helphelp, "show this help"}
+	Sous.Commands["version"] = SousCommand{version, versionHelp, "show version info"}
 	if len(os.Args) < 2 {
 		usage()
 	}
@@ -47,6 +51,16 @@ func main() {
 func usage() {
 	fmt.Println("usage: sous COMMAND; try `sous help`")
 	os.Exit(1)
+}
+
+func version(packs []*build.Pack, args []string) {
+	cli.Outf("sous version %s %s/%s", Version, OS, Arch)
+	cli.Outf("Built commit SHA: %s", CommitSHA)
+	cli.Success()
+}
+
+func versionHelp() string {
+	return "Sous version information"
 }
 
 func help(packs []*build.Pack, args []string) {
