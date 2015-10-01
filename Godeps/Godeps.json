@@ -1,0 +1,10 @@
+{
+	"ImportPath": "github.com/opentable/sous",
+	"GoVersion": "go1.5.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/wmark/semver",
+			"Rev": "461c06b538be53cc0339815001a398e29ace025b"
+		}
+	]
+}
