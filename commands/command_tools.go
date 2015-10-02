@@ -35,25 +35,20 @@ func AssembleFeatureContext(name string, packs []*build.Pack) (*build.Feature, *
 }
 
 func BuildIfNecessary(feature *build.Feature, context *build.Context, appInfo *build.AppInfo) bool {
-	if !BuildDockerfileIfNecessary(feature, context, appInfo) {
-		return false
-	}
-	docker.Build(context.BaseDir(), context.DockerTag())
-	return true
-}
-
-func BuildDockerfileIfNecessary(feature *build.Feature, context *build.Context, appInfo *build.AppInfo) bool {
 	if !context.NeedsBuild() {
 		return false
 	}
-
 	context.IncrementBuildNumber()
+	BuildDockerfile(feature, context, appInfo)
+	docker.Build(context.BaseDir(), context.DockerTag())
+	context.Commit()
+	return true
+}
 
+func BuildDockerfile(feature *build.Feature, context *build.Context, appInfo *build.AppInfo) {
 	df := feature.MakeDockerfile(appInfo)
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
-	context.Commit()
-	return true
 }
 
 func RequireDocker() {
