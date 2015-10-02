@@ -1,6 +1,15 @@
 package main
 
-import "github.com/opentable/sous/commands"
+import (
+	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/commands"
+)
+
+type SousCommand struct {
+	Func      func(packs []*build.Pack, args []string)
+	HelpFunc  func() string
+	ShortDesc string
+}
 
 var Sous = struct {
 	Commands map[string]SousCommand

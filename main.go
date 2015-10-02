@@ -9,15 +9,6 @@ import (
 	"github.com/opentable/sous/tools/cli"
 )
 
-type SousCommand struct {
-	Func      func(packs []*build.Pack, args []string)
-	HelpFunc  func() string
-	ShortDesc string
-}
-
-// These values are set at build time using -ldflags "-X main.Name=Value"
-var Version, Branch, CommitSHA, BuildNumber, BuildTimestamp, OS, Arch string
-
 func main() {
 	loadCommands()
 	// this line avoids initialisation loop
@@ -37,12 +28,6 @@ func usage() {
 	os.Exit(1)
 }
 
-func version(packs []*build.Pack, args []string) {
-	cli.Outf("sous version %s %s/%s", Version, OS, Arch)
-	cli.Outf("Built commit SHA: %s", CommitSHA)
-	cli.Success()
-}
-
 func versionHelp() string {
 	return "Sous version information"
 }
@@ -57,19 +42,18 @@ func help(packs []*build.Pack, args []string) {
 			}
 			cli.Fatalf("Command %s does not have any help yet.", command)
 		}
-		fmt.Printf("There is no command called %s; try `sous help`\n", command)
-		os.Exit(1)
+		cli.Fatalf("There is no command called %s; try `sous help`\n", command)
 	}
-	fmt.Println(`Sous is your personal sous chef for engineering tasks.
+	cli.Outf(`Sous is your personal sous chef for engineering tasks.
 It can help with building, configuring, and deploying
 your code for OpenTable's Mesos Platform.
 
 Commands:`)
 
 	printCommands()
-	fmt.Println()
-	fmt.Println("Tip: for help with any command, use `sous help <COMMAND>`")
-	os.Exit(0)
+	cli.Outf("")
+	cli.Outf("Tip: for help with any command, use `sous help <COMMAND>`")
+	cli.Success()
 }
 
 func printCommands() {
