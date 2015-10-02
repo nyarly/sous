@@ -81,7 +81,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 	# Write homebrew bottles
 	if [[ "$GOOS" == "darwin" ]]; then
 		for OSX_VERSION in el_capitan yosemite mavericks mountain_lion; do
-			cp "$ARCHIVE_PATH" "$ART_BASEDIR/sous-${VERSION}.${OSX_VERSION}.bottle.1.tar.gz"
+			cp "$ARCHIVE_PATH" "$ART_BASEDIR/sous${VERSION%v}.${OSX_VERSION}.bottle.1.tar.gz"
 		done
 		log "Bottles built for $VERSION; sha256 digest below..."
 		openssl dgst -sha256 "$ARCHIVE_PATH"
