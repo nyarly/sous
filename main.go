@@ -29,7 +29,7 @@ var Sous = struct {
 		"dockerfile": SousCommand{commands.Dockerfile, commands.DockerfileHelp, "print current dockerfile"},
 		"detect":     SousCommand{commands.Detect, commands.DetectHelp, "detect available actions"},
 		"test":       SousCommand{commands.Test, commands.TestHelp, "test your project"},
-		"build-path": SousCommand{commands.BuildPath, commands.BuildPathHelp, "test your project"},
+		"build-path": SousCommand{commands.BuildPath, commands.BuildPathHelp, "build state directory"},
 	},
 }
 
