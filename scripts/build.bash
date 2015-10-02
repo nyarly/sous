@@ -88,7 +88,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		continue
 	fi
 	set -x
-	if ! (cd $ART_PATH && tar czf "$ARCHIVE_PATH" sous); then
+	if ! (cd $ART_PATH && tar -czvf "$ARCHIVE_PATH" .); then
 		set +x
 		log "Failed to create archive for $V"
 		((BUILDS_FAILED++))
