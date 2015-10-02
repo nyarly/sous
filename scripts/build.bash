@@ -121,3 +121,9 @@ log "========================= END"
 
 
 log "All $BUILDS_SUCCEEDED of $BUILDS_SUCCEEDED builds were successful."
+
+log "Sleeping for 10s"
+sleep 10
+log "Done."
+exit 0
+
