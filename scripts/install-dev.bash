@@ -25,6 +25,6 @@ if ! go install -ldflags "$FLAGS"; then
 	echo "Build failed."
 	exit 1
 else
-	echo "Done!"
 	sous version
+	echo "Build OK!"
 fi
