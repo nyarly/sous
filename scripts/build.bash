@@ -45,9 +45,10 @@ fi
 #if (echo "$BRANCH" | grep '^v\d\+\.\d\+\.\d\+'); then
 #	VERSION="$BRANCH"
 #fi
-VERSION="$BRANCH"
 VERSION="$(basename $BRANCH)"
 TIMESTAMP="$(date +%s)"
+
+log "Building sous version $VERSION; branch: $BRANCH; build number: $BUILD_NUMBER; Revision: $SHA"
 
 # Empty the artifacts dir...
 if [ -d ./artifacts ]; then
@@ -56,8 +57,12 @@ if [ -d ./artifacts ]; then
 	echo "Do not check in this directory, it is used for ephemeral build artifacts." > ./artifacts/README.md
 fi
 
+log "Cleaned artifacts directory."
+
 BUILDS_FAILED=0
+BUILDS_SUCCEEDED=0
 for T in ${REQUESTED_TARGETS[@]}; do
+	log "Starting compile for $T"
 	IFS='/' read -ra PARTS <<< "$T"
 	export GOOS="${PARTS[0]}" GOARCH="${PARTS[1]}"
 	flags="-X main.CommitSHA=$SHA -X main.BuildNumber=$BUILD_NUMBER \
@@ -73,27 +78,33 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		((BUILDS_FAILED++))
 		continue
 	fi
+	log "Compile successful."
 	ARCHIVE_PATH="$ART_BASEDIR/sous-$VERSION-$GOOS-$GOARCH.tar.gz"
 	# Create the archive
+	log "Archiving $ART_PATH as $ARCHIVE_PATH"
 	if ! (cd $ART_PATH && tar czf "$ARCHIVE_PATH" sous); then
 		log "Failed to create archive for $V"
 		((BUILDS_FAILED++))
+		continue
 	fi
 	# Write homebrew bottles
 	if [[ "$GOOS" == "darwin" ]]; then
+		log "Detected darwin (Mac OS X) build; generating Homebrew bottles..."
 		for OSX_VERSION in el_capitan yosemite mavericks mountain_lion; do
 			BOTTLE_PATH="$ART_BASEDIR/sous${VERSION%v}.${OSX_VERSION}.bottle.1.tar.gz"
+			log "Bottling $VERSION for $OSX_VERSION..."
 			cp "$ARCHIVE_PATH" "$BOTTLE_PATH"
 			openssl dgst -sha256 "$BOTTLE_PATH"
 		done
-		log "Bottles built for $VERSION, see digests above."
+		log "Bottles built, see digests above."
 	fi
+	((BUILDS_SUCCEEDED++))
 done
-
+TOTAL_BUILDS=$((BUILDS_SUCCEEDED+BUILDS_FAILED))
 if [[ "$BUILDS_FAILED" == 1 ]]; then
-	die "1 build failed."
+	die "1 build of $TOTAL_BUILDS failed."
 elif [[ "$BUILDS_FAILED" != 0 ]]; then
-	die "$BUILDS_FAILED builds failed"
+	die "$BUILDS_FAILED of $TOTAL_BUILDS builds failed"
 fi
 
-log "All done successfully."
+log "All $BUILDS_SUCCEEDED of $BUILDS_SUCCEEDED builds were successful."
