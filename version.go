@@ -13,3 +13,7 @@ func version(packs []*build.Pack, args []string) {
 	cli.Outf("Built commit SHA: %s", CommitSHA)
 	cli.Success()
 }
+
+func versionHelp() string {
+	return "Sous version information"
+}
