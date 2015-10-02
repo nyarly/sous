@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -euo pipefail
 log() { echo "$@" 1>&2; }
 die() { log "$@"; exit 1; }
 if [ -z "$1" ]; then
@@ -106,7 +106,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		done
 		log "Bottles built, see digests above."
 	fi
-	((BUILDS_SUCCEEDED++))
+	BUILDS_SUCCEEDED=$((BUILDS_SUCCEEDED+1))
 done
 TOTAL_BUILDS=$((BUILDS_SUCCEEDED+BUILDS_FAILED))
 if [[ "$BUILDS_FAILED" == 1 ]]; then
