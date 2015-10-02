@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/opentable/sous/build"
-	"github.com/opentable/sous/commands"
 	"github.com/opentable/sous/tools/cli"
 )
 
@@ -19,24 +18,9 @@ type SousCommand struct {
 // These values are set at build time using -ldflags "-X main.Name=Value"
 var Version, Branch, CommitSHA, BuildNumber, BuildTimestamp, OS, Arch string
 
-var Sous = struct {
-	Commands map[string]SousCommand
-}{
-	map[string]SousCommand{
-		"build":      SousCommand{commands.Build, commands.BuildHelp, "build your project"},
-		"push":       SousCommand{commands.Push, commands.PushHelp, "push your project"},
-		"run":        SousCommand{commands.Run, commands.RunHelp, "run your project"},
-		"dockerfile": SousCommand{commands.Dockerfile, commands.DockerfileHelp, "print current dockerfile"},
-		"detect":     SousCommand{commands.Detect, commands.DetectHelp, "detect available actions"},
-		"test":       SousCommand{commands.Test, commands.TestHelp, "test your project"},
-		"build-path": SousCommand{commands.BuildPath, commands.BuildPathHelp, "build state directory"},
-	},
-}
-
 func main() {
+	loadCommands()
 	// this line avoids initialisation loop
-	Sous.Commands["help"] = SousCommand{help, helphelp, "show this help"}
-	Sous.Commands["version"] = SousCommand{version, versionHelp, "show version info"}
 	if len(os.Args) < 2 {
 		usage()
 	}
