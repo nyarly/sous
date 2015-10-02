@@ -109,6 +109,10 @@ func Table(command string, args ...string) [][]string {
 	return New(command, args...).OutTable()
 }
 
+func Lines(command string, args ...string) []string {
+	return New(command, args...).OutLines()
+}
+
 func (c *CMD) ExitCode() int {
 	code, _ := c.execute()
 	return code

@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/opentable/sous/tools/cli"
@@ -20,7 +21,24 @@ func RequireVersion(r *version.R) {
 
 func RequireDaemon() {
 	if c := cmd.ExitCode("docker", "ps"); c != 0 {
-		cli.Fatalf("`docker ps` exited with code %d", c)
+		cli.Logf("`docker ps` exited with code %d", c)
+		if c := cmd.ExitCode("docker-machine"); c == 0 {
+			vms := cmd.Lines("docker-machine", "ls", "-q")
+			switch len(vms) {
+			case 0:
+				cli.Logf("Tip: you should create a machine using docker-machine")
+			case 1:
+				start := ""
+				if cmd.Stdout("docker-machine", "status", vms[0]) != "Running" {
+					start = fmt.Sprintf("docker-machine start %s && ", vms[0])
+				}
+				cli.Logf(`Tip: %seval "$(docker-machine env %s)"`, start, vms[0])
+			default:
+				cli.Logf("Tip: start one of your docker machines (%s)",
+					strings.Join(vms, ", "))
+			}
+		}
+		cli.Fatal()
 	}
 }
 
