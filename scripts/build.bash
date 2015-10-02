@@ -22,7 +22,9 @@ fi
 log "Building for ${REQUESTED_TARGETS[@]}"
 
 # Try to get the SHA that's being built from TeamCity first...
+set +u
 SHA="$BUILD_VCS_NUMBER"
+set -u
 # If that didn't work, sniff out the local git repo SHA
 if [ -z "$SHA" ]; then
 	if ! SHA=$(git rev-parse HEAD); then
@@ -33,7 +35,7 @@ if [ -z "$SHA" ]; then
 		SHA="dirty-$SHA"
 	fi
 fi
-
+set +u
 if [ -z "$BUILD_NUMBER" ]; then
 	BUILD_NUMBER="unknown"
 fi
@@ -41,6 +43,7 @@ fi
 if [ -z "$BRANCH" ]; then
 	BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"
 fi
+set -u
 # Look for a branch name starting vN.N.N
 #if (echo "$BRANCH" | grep '^v\d\+\.\d\+\.\d\+'); then
 #	VERSION="$BRANCH"
@@ -87,14 +90,11 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		((BUILDS_FAILED++))
 		continue
 	fi
-	set -x
 	if ! (cd $ART_PATH && tar -czvf "$ARCHIVE_PATH" .); then
-		set +x
 		log "Failed to create archive for $V"
 		((BUILDS_FAILED++))
 		continue
 	fi
-	set +x
 	# Write homebrew bottles
 	if [[ "$GOOS" == "darwin" ]]; then
 		log "Detected darwin (Mac OS X) build; generating Homebrew bottles..."
@@ -106,7 +106,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		done
 		log "Bottles built, see digests above."
 	fi
-	BUILDS_SUCCEEDED=$((BUILDS_SUCCEEDED+1))
+	((BUILDS_SUCCEEDED++))
 done
 TOTAL_BUILDS=$((BUILDS_SUCCEEDED+BUILDS_FAILED))
 if [[ "$BUILDS_FAILED" == 1 ]]; then
@@ -114,5 +114,10 @@ if [[ "$BUILDS_FAILED" == 1 ]]; then
 elif [[ "$BUILDS_FAILED" != 0 ]]; then
 	die "$BUILDS_FAILED of $TOTAL_BUILDS builds failed"
 fi
+
+log "========================= Contents of $ART_BASEDIR:"
+ls -lah "$ART_BASEDIR"
+log "========================= END"
+
 
 log "All $BUILDS_SUCCEEDED of $BUILDS_SUCCEEDED builds were successful."
