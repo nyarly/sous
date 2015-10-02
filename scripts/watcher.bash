@@ -2,7 +2,7 @@
 s() { say -v Daniel "$@" & }
 fin() { s "Bye!"; exit 0; }
 build() {
-	result=$(./install-dev.bash)
+	result=$(./scripts/install-dev.bash)
 	s $(echo "$result" | tail -n1)
 	echo "$result"
 }
