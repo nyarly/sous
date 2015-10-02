@@ -87,12 +87,12 @@ for T in ${REQUESTED_TARGETS[@]}; do
 	log "Archiving $ART_PATH as $ARCHIVE_PATH"
 	if ! [ -d "$ART_PATH" ]; then
 		log "Archive path does not exist: $ART_PATH"
-		((BUILDS_FAILED++))
+		$BUILDS_FAILED=$((BUILDS_FAILED+1))
 		continue
 	fi
 	if ! (cd $ART_PATH && tar -czvf "$ARCHIVE_PATH" .); then
 		log "Failed to create archive for $V"
-		((BUILDS_FAILED++))
+		$BUILDS_FAILED=$((BUILDS_FAILED+1))
 		continue
 	fi
 	# Write homebrew bottles
@@ -106,7 +106,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		done
 		log "Bottles built, see digests above."
 	fi
-	((BUILDS_SUCCEEDED++))
+	BUILDS_SUCCEEDED=$((BUILDS_SUCCEEDED+1))
 done
 TOTAL_BUILDS=$((BUILDS_SUCCEEDED+BUILDS_FAILED))
 if [[ "$BUILDS_FAILED" == 1 ]]; then
