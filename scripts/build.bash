@@ -82,11 +82,19 @@ for T in ${REQUESTED_TARGETS[@]}; do
 	ARCHIVE_PATH="$ART_BASEDIR/sous-$VERSION-$GOOS-$GOARCH.tar.gz"
 	# Create the archive
 	log "Archiving $ART_PATH as $ARCHIVE_PATH"
+	if ! [ -d "$ART_PATH" ]; then
+		log "Archive path does not exist: $ART_PATH"
+		((BUILDS_FAILED++))
+		continue
+	fi
+	set -x
 	if ! (cd $ART_PATH && tar czf "$ARCHIVE_PATH" sous); then
+		set +x
 		log "Failed to create archive for $V"
 		((BUILDS_FAILED++))
 		continue
 	fi
+	set +x
 	# Write homebrew bottles
 	if [[ "$GOOS" == "darwin" ]]; then
 		log "Detected darwin (Mac OS X) build; generating Homebrew bottles..."
