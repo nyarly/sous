@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -eo pipefail
 log() { echo "$@" 1>&2; }
 die() { log "$@"; exit 1; }
 if [ -z "$1" ]; then
@@ -85,7 +86,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 			cp "$ARCHIVE_PATH" "$BOTTLE_PATH"
 			openssl dgst -sha256 "$BOTTLE_PATH"
 		done
-		log "Bottles built for $VERSION; sha256 digest below..."
+		log "Bottles built for $VERSION, see digests above."
 	fi
 done
 
