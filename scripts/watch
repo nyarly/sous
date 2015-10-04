@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# This script relies on fswatch (you can get that using homebrew)
+#
+# It watches the local working directory for changes, and invokes
+# scripts/install-dev on each change to enable rapid development.
+#
+# So you don't need to look, it verbally announces the last line
+# of the invoked script; turn your sound on ;)
+
+s() { say -v Amelie "$@" & }
+fin() { s "Au revoire!"; exit 0; }
+say -v Amelie "Bon jour!" 
+build() {
+	afplay -v 0.5 /System/Library/Sounds/Glass.aiff &
+	if result=$(./scripts/install-dev); then
+		s "Sous OK!"
+	else
+		s "Non!"
+	fi
+	#s $(echo "$result" | tail -n1)
+	echo "$result"
+}
+trap fin SIGINT SIGTERM
+while true; do
+	fswatch -roi *.go -e .git/* . | build
+done
+

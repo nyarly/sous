@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# This script removes the local go-installed version if it exists, and
+# uninstalls any homebrew-installed version. It then compiles and installs
+# the local working tree to $GOPATH/bin ready for system-wide use.
+# 
+# The local version is tagged with the SHA and the time built, you can
+# check this with `sous version`.
+
 if SOUSPATH="$(command -v sous)"; then
 	if [[ "$SOUSPATH" == "$GOPATH/bin/sous" ]]; then
 		rm "$SOUSPATH"
