@@ -41,7 +41,7 @@ if [ -z "$BUILD_NUMBER" ]; then
 fi
 # Try to get version number from branch name (TeamCity checks out tags as branches)
 if [ -z "$BRANCH" ]; then
-	BRANCH="$(git branch | grep '^\*' | cut -d' ' -f2)"
+	BRANCH=$(git rev-parse --abbrev-ref HEAD)
 fi
 set -u
 # Look for a branch name starting vN.N.N
@@ -94,17 +94,6 @@ for T in ${REQUESTED_TARGETS[@]}; do
 		log "Failed to create archive for $V"
 		$BUILDS_FAILED=$((BUILDS_FAILED+1))
 		continue
-	fi
-	# Write homebrew bottles
-	if [[ "$GOOS" == "darwin" ]]; then
-		log "Detected darwin (Mac OS X) build; generating Homebrew bottles..."
-		for OSX_VERSION in el_capitan yosemite mavericks mountain_lion; do
-			BOTTLE_PATH="$ART_BASEDIR/sous-$VERSION.$OSX_VERSION.bottle.tar.gz"
-			log "Bottling $VERSION for $OSX_VERSION..."
-			cp "$ARCHIVE_PATH" "$BOTTLE_PATH"
-			openssl dgst -sha256 "$BOTTLE_PATH"
-		done
-		log "Bottles built, see digests above."
 	fi
 	BUILDS_SUCCEEDED=$((BUILDS_SUCCEEDED+1))
 done
