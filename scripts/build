@@ -39,9 +39,12 @@ set +u
 if [ -z "$BUILD_NUMBER" ]; then
 	BUILD_NUMBER="unknown"
 fi
-# Try to get version number from branch name (TeamCity checks out tags as branches)
+# Try to get version number from tag first, if that fails, then use the
+# branch name (TeamCity checks out tags as branches, homebrew uses tags)
 if [ -z "$BRANCH" ]; then
-	BRANCH=$(git rev-parse --abbrev-ref HEAD)
+	if ! BRANCH=$(git describe --exact-match --abbrev=0 --tags); then
+		BRANCH=$(git rev-parse --abbrev-ref HEAD)
+	fi
 fi
 set -u
 # Look for a branch name starting vN.N.N
@@ -76,6 +79,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 	ART_BASEDIR="$(pwd)/artifacts"
 	ART_PATH="$ART_BASEDIR/$VERSION/$GOOS/$GOARCH"
 	
+	# Compile
 	if ! godep go build -ldflags="$flags" -o "$ART_PATH/sous"; then
 		log "Build failed for $T"
 		((BUILDS_FAILED++))
