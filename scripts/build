@@ -99,7 +99,7 @@ for T in ${REQUESTED_TARGETS[@]}; do
 	if [[ "$GOOS" == "darwin" ]]; then
 		log "Detected darwin (Mac OS X) build; generating Homebrew bottles..."
 		for OSX_VERSION in el_capitan yosemite mavericks mountain_lion; do
-			BOTTLE_PATH="$ART_BASEDIR/sous${VERSION%v}.${OSX_VERSION}.bottle.1.tar.gz"
+			BOTTLE_PATH="$ART_BASEDIR/sous-$VERSION.$OSX_VERSION.bottle.1.tar.gz"
 			log "Bottling $VERSION for $OSX_VERSION..."
 			cp "$ARCHIVE_PATH" "$BOTTLE_PATH"
 			openssl dgst -sha256 "$BOTTLE_PATH"
