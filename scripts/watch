@@ -9,7 +9,7 @@
 # of the invoked script; turn your sound on ;)
 
 s() { say -v Amelie "$@" & }
-fin() { s "Au revoire!"; exit 0; }
+fin() { s "Bye!"; echo; exit 0; }
 say -v Amelie "Bon jour!" 
 build() {
 	afplay -v 0.5 /System/Library/Sounds/Glass.aiff &
@@ -22,7 +22,13 @@ build() {
 	echo "$result"
 }
 trap fin SIGINT SIGTERM
+echo "Building current version..."
+build
+echo
 while true; do
-	fswatch -roi *.go -e .git/* . | build
+	echo "Waiting for changes..."
+	fswatch -1ri '\.go$' -e '.*' . | while read x; do echo "Changed: ${x#$PWD/}"; done
+	build
+	echo
 done
 
