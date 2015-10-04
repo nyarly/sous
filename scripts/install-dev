@@ -31,7 +31,5 @@ FLAGS="$FLAGS  -X main.CommitSHA=$(git rev-parse HEAD)"
 if ! go install -ldflags "$FLAGS"; then
 	echo "Build failed."
 	exit 1
-else
-	sous version
-	echo "Build OK!"
 fi
+sous version
