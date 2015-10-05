@@ -49,6 +49,8 @@ var npmVersions = version.VersionList("3.3.4", "2.4.15")
 var defaultNPMVersion = version.Version("2.4.15")
 var npmRegistry = "http://artifactory.otenv.com/artifactory/api/npm/npm-virtual"
 
+var wd = "/srv/app/"
+
 func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 	nodeVersion := bestSupportedNodeVersion(np)
 	from := dockerFrom(np, nodeVersion)
@@ -58,10 +60,11 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 	}
 	df := &docker.Dockerfile{
 		From:    from,
-		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: "/srv/app"}},
-		Workdir: "/srv/app",
+		Add:     []docker.Add{docker.Add{Files: []string{"*"}, Dest: wd}},
+		Workdir: wd,
 	}
-	df.AddRun("npm install npm@%s", npmVer)
+	npmMajorVer := npmVer.String()[0:1]
+	df.AddRun("cd "+wd+" && npm install -g npm@%s", npmMajorVer)
 	df.AddLabel("com.opentable.stack", "NodeJS")
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
 	return df
@@ -72,15 +75,15 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.
+	df.AddRun("cd "+wd+" && npm install --registry=%s --production", npmRegistry)
 	df.CMD = tools.Whitespace.Split(np.Scripts.Start, -1)
-	df.AddRun("npm install --registry=%s --production", npmRegistry)
 	return df
 }
 
 func testNodeJS(np *NodePackage) *docker.Dockerfile {
 	df := baseDockerfile(np)
-	df.CMD = []string{"npm", "test"}
-	df.AddRun("npm install --registry=%s", npmRegistry)
+	df.AddRun("cd "+wd+" && npm install --registry=%s", npmRegistry)
 	df.AddLabel("com.opentable.tests", "true")
+	df.CMD = []string{"npm", "test"}
 	return df
 }
