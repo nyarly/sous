@@ -60,7 +60,7 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 	}
 	df := &docker.Dockerfile{
 		From:    from,
-		Add:     []docker.Add{docker.Add{Files: []string{"*"}, Dest: wd}},
+		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: wd}},
 		Workdir: wd,
 	}
 	npmMajorVer := npmVer.String()[0:1]
