@@ -11,6 +11,9 @@ import (
 
 func Resolve(pathFormat string, a ...interface{}) string {
 	path := fmt.Sprintf(pathFormat, a...)
+	if len(path) < 2 {
+		return path
+	}
 	if path[0:2] == "~/" {
 		home := os.Getenv("HOME")
 		if home == "" {
