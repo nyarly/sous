@@ -2,6 +2,7 @@ package version
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/wmark/semver"
@@ -18,6 +19,8 @@ type R struct {
 }
 
 func Version(s string) *V {
+	s = strings.Replace(s, "x", "0", -1)
+	s = strings.Replace(s, "X", "0", -1)
 	v, err := semver.NewVersion(s)
 	if err != nil {
 		cli.Fatalf("unable to parse version string '%s'; %s", s, err)
@@ -44,6 +47,8 @@ func (l VL) Strings() []string {
 }
 
 func Range(s string) *R {
+	s = strings.Replace(s, "x", "0", -1)
+	s = strings.Replace(s, "X", "0", -1)
 	r, err := semver.NewRange(s)
 	if err != nil {
 		cli.Fatalf("unable to parse version range string '%s'; %s", s, err)
