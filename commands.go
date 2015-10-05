@@ -33,6 +33,10 @@ func loadCommands() {
 			commands.Dockerfile, commands.DockerfileHelp,
 			"print current dockerfile"},
 
+		"image": SousCommand{
+			commands.Image, commands.ImageHelp,
+			"print last built docker image tag"},
+
 		"detect": SousCommand{
 			commands.Detect, commands.DetectHelp,
 			"detect available actions"},
