@@ -23,7 +23,7 @@ func Test(packs []*build.Pack, args []string) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 
-	testRunExitCode := docker.Run(context.DockerTag())
+	testRunExitCode := docker.NewRun(context.DockerTag()).ExitCode()
 
 	if testRunExitCode == 0 {
 		name, version := context.CanonicalPackageName(), appInfo.Version

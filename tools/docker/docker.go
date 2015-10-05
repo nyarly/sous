@@ -55,10 +55,6 @@ func Build(dir, tag string) string {
 	return dockerCmd("build", "-t", tag, dir).Out()
 }
 
-func Run(tag string) int {
-	return dockerCmd("run", tag).ExitCode()
-}
-
 func Push(tag string) {
 	cmd.EchoAll("docker", "push", tag)
 }
