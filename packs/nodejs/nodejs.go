@@ -64,7 +64,7 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 		Workdir: wd,
 	}
 	npmMajorVer := npmVer.String()[0:1]
-	df.AddRun("cd "+wd+" && npm install -g npm@%s", npmMajorVer)
+	df.AddRun("npm install -g npm@%s", npmMajorVer)
 	df.AddLabel("com.opentable.stack", "NodeJS")
 	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
 	return df
@@ -75,7 +75,7 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.
-	df.AddRun("cd "+wd+" && npm install --registry=%s --production", npmRegistry)
+	df.AddRun("npm install --registry=%s --production", npmRegistry)
 	df.CMD = tools.Whitespace.Split(np.Scripts.Start, -1)
 	return df
 }
