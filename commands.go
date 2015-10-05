@@ -29,6 +29,11 @@ func loadCommands() {
 			commands.Run, commands.RunHelp,
 			"run your project"},
 
+		"contracts": SousCommand{
+			commands.Contracts, commands.ContractsHelp,
+			"check project against platform contracts",
+		},
+
 		"dockerfile": SousCommand{
 			commands.Dockerfile, commands.DockerfileHelp,
 			"print current dockerfile"},

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -58,6 +59,10 @@ func Stdout(command string, args ...string) string {
 
 func ExitCode(command string, args ...string) int {
 	return New(command, args...).ExitCode()
+}
+
+func JSON(v interface{}, command string, args ...string) {
+	New(command, args...).JSON(v)
 }
 
 func (c *CMD) EchoAll() {
@@ -125,4 +130,14 @@ func (c *CMD) String() string {
 		env = env + " "
 	}
 	return fmt.Sprintf("%s%s %s", env, c.Name, args)
+}
+
+func (c *CMD) JSON(v interface{}) {
+	o := c.Out()
+	if err := json.Unmarshal([]byte(o), &v); err != nil {
+		cli.Fatalf("Unable to parse JSON from %s as %T: %s", c, v, err)
+	}
+	if v == nil {
+		cli.Fatalf("Unmarshalled nil")
+	}
 }
