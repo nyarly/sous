@@ -36,6 +36,10 @@ echo
 while true; do
 	CHANGES=""
 	echo "Waiting for changes..."
+	# The { ... } section is calles "command grouping" it creates a subshell
+	# which means the while loop isn't directly part of a pipeline and
+	# therefore doesn't create its own subshell, allowing the CHANGES var
+	# to be shared inside and outside the loop. This is POSIX-compatible.
 	fswatch -1ri '\.go$' -e '.*' . |
 	{
 		while read x; do
