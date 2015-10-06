@@ -11,12 +11,20 @@
 s() { say -v Amelie "$@" & }
 fin() { s "Bye!"; echo; exit 0; }
 say -v Amelie "Bon jour!" 
+#declare -g CHANGES
 build() {
 	afplay -v 0.5 /System/Library/Sounds/Glass.aiff &
+	if [ -z "$1" ]; then
+		CHANGED_FILES="No changes."
+	else
+		CHANGED_FILES="Changed files: $1"
+	fi
 	if result=$(./scripts/install-dev); then
 		s "Sous OK!"
+		terminal-notifier -title "Sous OK" -message "$CHANGED_FILES" &
 	else
 		s "Non!"
+		terminal-notifier -title "Sous Build Failed!" -message "$CHANGED_FILES" &
 	fi
 	#s $(echo "$result" | tail -n1)
 	echo "$result"
@@ -26,9 +34,18 @@ echo "Building current version..."
 build
 echo
 while true; do
+	CHANGES=""
 	echo "Waiting for changes..."
-	fswatch -1ri '\.go$' -e '.*' . | while read x; do echo "Changed: ${x#$PWD/}"; done
-	build
-	echo
+	fswatch -1ri '\.go$' -e '.*' . |
+	{
+		while read x; do
+			CF="${x#$PWD/}"
+			echo "Changed: $CF"
+			CHANGES="$CHANGES$CF "
+		done
+		echo "CHANGES: $CHANGES"
+		build "$CHANGES"
+		echo
+	}
 done
 
