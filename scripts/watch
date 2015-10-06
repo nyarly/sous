@@ -11,7 +11,7 @@
 s() { say -v Amelie "$@" & }
 fin() { s "Bye!"; echo; exit 0; }
 say -v Amelie "Bon jour!" 
-#declare -g CHANGES
+n() { terminal-notifier -title "$1" -message "$2" -group "sous-build"; }
 build() {
 	afplay -v 0.5 /System/Library/Sounds/Glass.aiff &
 	if [ -z "$1" ]; then
@@ -21,10 +21,10 @@ build() {
 	fi
 	if result=$(./scripts/install-dev); then
 		s "Sous OK!"
-		terminal-notifier -title "Sous OK" -message "$CHANGED_FILES" &
+		n "Sous OK" "$CHANGED_FILES"
 	else
 		s "Non!"
-		terminal-notifier -title "Sous Build Failed!" -message "$CHANGED_FILES" &
+		n "Sous Build Failed!" "$CHANGED_FILES" &
 	fi
 	#s $(echo "$result" | tail -n1)
 	echo "$result"
