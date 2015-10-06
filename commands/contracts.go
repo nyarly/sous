@@ -69,16 +69,33 @@ func Contracts(packs []*build.Pack, args []string) {
 		dr.ExitCode()
 	}()
 
-	var result *http.Response
-	for i := 0; i < 10; i++ {
-		result, err = http.Get(fmt.Sprintf("http://%s:%d/health"))
-		if err == nil {
-			if result.StatusCode == 200 {
-				cli.Successf("Success! /health endpoint returned 200")
-			}
+	d := 60 * time.Second
+	timeout(d, fmt.Sprintf("listens on PORT0 (=%d) - Must respond to :%d/ with any HTTP response", port0, port0), func() bool {
+		_, err := http.Get(fmt.Sprintf("http://%s:%d/", ip, port0))
+		return err == nil
+	})
+	timeout(d, "GET /health returns 200", func() bool {
+		result, err := http.Get(fmt.Sprintf("http://%s:%d/health", ip, port0))
+		return err == nil && result.StatusCode == 200
+	})
+	cli.Success()
+}
+
+func timeout(d time.Duration, what string, f func() bool) bool {
+	start := time.Now()
+	end := start.Add(d)
+	p := cli.BeginProgress(fmt.Sprintf("Checking it %s", what))
+	for {
+		if f() {
+			p.Done("Success!")
+			return true
 		}
+		if time.Now().After(end) {
+			break
+		}
+		p.Increment()
 		time.Sleep(time.Second)
 	}
-
-	cli.Fatalf("Contract failed: Service did not responde to HTTP GET /health on port %d within 10 seconds", port0)
+	p.Done(fmt.Sprintf("Timeout; failed to %s within %s", what, d))
+	return false
 }
