@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dir"
@@ -31,12 +32,17 @@ func (bc *Context) IsCI() bool {
 }
 
 func GetContext(action string) *Context {
+	c := config.Load()
+	registry := c["docker-registry"]
+	if registry == "" {
+		cli.Fatalf("Missing config: Please set your docker registry using `sous config docker-registry <registry>`")
+	}
 	gitInfo := git.GetInfo()
 	bs := GetBuildState(action, gitInfo)
 	return &Context{
 		Git:            gitInfo,
 		Action:         action,
-		DockerRegistry: "docker.otenv.com",
+		DockerRegistry: registry,
 		Host:           cmd.Stdout("hostname"),
 		FullHost:       cmd.Stdout("hostname", "-f"),
 		User:           getUser(),
@@ -72,7 +78,7 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	tag := fmt.Sprintf("v%s-%s-%s",
 		c.AppVersion, c.Git.CommitSHA[0:8], buildNumber)
 	// e.g. on local dev machine:
-	//   docker.otenv.com/username/widget-factory:v0.12.1-912eeeab-host-1
+	//   some.registry.com/username/widget-factory:v0.12.1-912eeeab-host-1
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
 }
 

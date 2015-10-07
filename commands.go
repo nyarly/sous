@@ -61,5 +61,9 @@ func loadCommands() {
 		"version": SousCommand{
 			version, versionHelp,
 			"show version info"},
+
+		"config": SousCommand{
+			commands.Config, commands.ConfigHelp,
+			"get/set config properties"},
 	}
 }
