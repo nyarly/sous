@@ -1,9 +1,9 @@
 package nodejs
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
@@ -23,31 +23,36 @@ type NodePackageScripts struct {
 	Start, Test string
 }
 
-var availableNodeVersions = version.VersionList("4.1.0", "4.0.0", "0.12.7", "0.10.40")
+func keys(m map[string]string) []string {
+	ks := make([]string, len(m))
+	i := 0
+	for k := range m {
+		ks[i] = k
+		i++
+	}
+	return ks
+}
 
 func bestSupportedNodeVersion(np *NodePackage) string {
 	var nodeVersion *version.V
-	if np.Engines.Node == "" {
-		nodeVersion = availableNodeVersions[0]
-		cli.Logf("WARNING: No NodeJS version specified in package.json; using latest available version (%s)", nodeVersion)
-	} else {
-		nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(availableNodeVersions)
-		if nodeVersion == nil {
-			cli.Fatalf("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
-				np.Engines.Node, strings.Join(availableNodeVersions.Strings(), ", "))
-		}
+	c := config.Load()
+	availableNodeVersions := version.VersionList(strings.Join(keys(c.Packs.NodeJS.NodeVersionsToDockerBaseImages), ","))
+	nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(availableNodeVersions)
+	if nodeVersion == nil {
+		cli.Fatalf("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
+			np.Engines.Node, strings.Join(availableNodeVersions.Strings(), ", "))
 	}
 	return nodeVersion.String()
 }
 
 func dockerFrom(np *NodePackage, nodeVersion string) string {
-	baseImageTag := "latest"
-	return fmt.Sprintf("docker.otenv.com/ot-node-base-%s:%s", nodeVersion, baseImageTag)
+	c := config.Load()
+	return c.Packs.NodeJS.NodeVersionsToDockerBaseImages[nodeVersion]
 }
 
 var npmVersions = version.VersionList("3.3.4", "2.4.15")
 var defaultNPMVersion = version.Version("2.4.15")
-var npmRegistry = "http://artifactory.otenv.com/artifactory/api/npm/npm-virtual"
+var npmRegistry = config.Load().Packs.NodeJS.NPMMirrorURL
 
 var wd = "/srv/app/"
 
