@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"net"
+	"net/url"
+	"os"
 	"strconv"
 
 	"github.com/opentable/sous/build"
@@ -32,9 +35,29 @@ func Run(packs []*build.Pack, args []string) {
 		cli.Fatalf("Unable to get free port: %s", err)
 	}
 	dr.AddEnv("PORT0", strconv.Itoa(port0))
-	dr.AddEnv("TASK_HOST", "localhost")
+	dr.AddEnv("TASK_HOST", divineTaskHost())
 	if code := dr.ExitCode(); code != 0 {
 		cli.Fatalf("Run failed with exit code %d", code)
 	}
 	cli.Success()
+}
+
+func divineTaskHost() string {
+	taskHost := os.Getenv("TASK_HOST")
+	if taskHost != "" {
+		return taskHost
+	}
+	dockerHost := os.Getenv("DOCKER_HOST")
+	if dockerHost == "" {
+		return "localhost"
+	}
+	u, err := url.Parse(dockerHost)
+	if err != nil {
+		return "localhost" // Giving up
+	}
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return "localhost"
+	}
+	return host
 }
