@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,11 +15,18 @@ import (
 	"github.com/opentable/sous/tools/ports"
 )
 
+var flags = flag.NewFlagSet("contracts", flag.ContinueOnError)
+
+var timeoutFlag = flags.Duration("timeout", 10*time.Second, "per-contract timeout")
+
 func ContractsHelp() string {
 	return `sous contracts tests your project conforms to necessary contracts to run successfully on the OpenTable Mesos platform.`
 }
 
 func Contracts(packs []*build.Pack, args []string) {
+	flags.Parse(args)
+	args = flags.Args()
+	timeout := *timeoutFlag
 	target := "build"
 	if len(args) != 0 {
 		target = args[0]
@@ -69,19 +77,18 @@ func Contracts(packs []*build.Pack, args []string) {
 		dr.ExitCode()
 	}()
 
-	d := 60 * time.Second
-	timeout(d, fmt.Sprintf("listens on PORT0 (=%d) - Must respond to :%d/ with any HTTP response", port0, port0), func() bool {
+	within(timeout, fmt.Sprintf("listens on PORT0 (=%d) - Must respond to :%d/ with any HTTP response", port0, port0), func() bool {
 		_, err := http.Get(fmt.Sprintf("http://%s:%d/", ip, port0))
 		return err == nil
 	})
-	timeout(d, "GET /health returns 200", func() bool {
+	within(timeout, "GET /health returns 200", func() bool {
 		result, err := http.Get(fmt.Sprintf("http://%s:%d/health", ip, port0))
 		return err == nil && result.StatusCode == 200
 	})
 	cli.Success()
 }
 
-func timeout(d time.Duration, what string, f func() bool) bool {
+func within(d time.Duration, what string, f func() bool) bool {
 	start := time.Now()
 	end := start.Add(d)
 	p := cli.BeginProgress(fmt.Sprintf("Checking it %s", what))
