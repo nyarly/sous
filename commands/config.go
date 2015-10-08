@@ -7,7 +7,7 @@ import (
 )
 
 func ConfigHelp() string {
-	return `sous image prints the last built image tag for this project`
+	return "sous config gets and sets config properties for your sous installation"
 }
 
 func Config(packs []*build.Pack, args []string) {
@@ -15,7 +15,7 @@ func Config(packs []*build.Pack, args []string) {
 		cli.Fatalf("usage: sous config <key> [<new-value>]")
 	}
 	if len(args) == 1 {
-		if v, ok := config.Load()[args[0]]; ok {
+		if v, ok := config.Properties()[args[0]]; ok {
 			cli.Outf(v)
 			cli.Success()
 		}

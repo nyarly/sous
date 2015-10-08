@@ -32,7 +32,7 @@ func (bc *Context) IsCI() bool {
 }
 
 func GetContext(action string) *Context {
-	c := config.Load()
+	c := config.Properties()
 	registry := c["docker-registry"]
 	if registry == "" {
 		cli.Fatalf("Missing config: Please set your docker registry using `sous config docker-registry <registry>`")

@@ -26,7 +26,7 @@ func WriteString(data interface{}, pathFormat string, a ...interface{}) {
 }
 
 func WriteJSON(data interface{}, pathFormat string, a ...interface{}) {
-	b, err := json.Marshal(data)
+	b, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		cli.Fatalf("Unable to marshal %T object to JSON: %s", data, err)
 	}
