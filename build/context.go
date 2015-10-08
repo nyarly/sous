@@ -31,12 +31,10 @@ func (bc *Context) IsCI() bool {
 	return bc.User == "ci"
 }
 
+var Config = config.Load()
+
 func GetContext(action string) *Context {
-	c := config.Properties()
-	registry := c["docker-registry"]
-	if registry == "" {
-		cli.Fatalf("Missing config: Please set your docker registry using `sous config docker-registry <registry>`")
-	}
+	registry := Config.DockerRegistry
 	gitInfo := git.GetInfo()
 	bs := GetBuildState(action, gitInfo)
 	return &Context{
