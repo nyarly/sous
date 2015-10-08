@@ -11,6 +11,7 @@ type Dockerfile struct {
 	Labels                    map[string]string
 	Add                       []Add
 	Run, Entrypoint, CMD      []string
+	LabelPrefix               string
 }
 
 type Add struct {
@@ -26,6 +27,9 @@ func (d *Dockerfile) Render() string {
 }
 
 func (d *Dockerfile) AddLabel(name, value string) {
+	if d.LabelPrefix != "" {
+		name = fmt.Sprintf("%s.%s", d.LabelPrefix, name)
+	}
 	if d.Labels == nil {
 		d.Labels = map[string]string{}
 	}

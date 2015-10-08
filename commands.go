@@ -42,6 +42,11 @@ func loadCommands() {
 			commands.Image, commands.ImageHelp,
 			"print last built docker image tag"},
 
+		"update": SousCommand{
+			commands.Update, commands.UpdateHelp,
+			"update sous config",
+		},
+
 		"detect": SousCommand{
 			commands.Detect, commands.DetectHelp,
 			"detect available actions"},

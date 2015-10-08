@@ -75,11 +75,10 @@ func RequireGit() {
 
 func AddMetadata(d *docker.Dockerfile, c *build.Context) {
 	d.Maintainer = c.User
-	prefix := "com.opentable.build"
-	d.AddLabel(prefix+".builder.app", "sous")
-	d.AddLabel(prefix+".builder.host", c.Host)
-	d.AddLabel(prefix+".builder.fullhost", c.FullHost)
-	d.AddLabel(prefix+".builder.user", c.User)
-	d.AddLabel(prefix+".source.git.repo", c.Git.CanonicalName())
-	d.AddLabel(prefix+".source.git.commit-sha", c.Git.CommitSHA)
+	d.AddLabel("builder.app", "sous")
+	d.AddLabel("builder.host", c.Host)
+	d.AddLabel("builder.fullhost", c.FullHost)
+	d.AddLabel("builder.user", c.User)
+	d.AddLabel("source.git.repo", c.Git.CanonicalName())
+	d.AddLabel("source.git.revision", c.Git.CommitSHA)
 }

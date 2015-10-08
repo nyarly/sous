@@ -33,10 +33,13 @@ func keys(m map[string]string) []string {
 	return ks
 }
 
+var Config = config.Load()
+
+var availableNodeVersions = version.VersionList(
+	keys(Config.Packs.NodeJS.NodeVersionsToDockerBaseImages)...)
+
 func bestSupportedNodeVersion(np *NodePackage) string {
 	var nodeVersion *version.V
-	c := config.Load()
-	availableNodeVersions := version.VersionList(strings.Join(keys(c.Packs.NodeJS.NodeVersionsToDockerBaseImages), ","))
 	nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(availableNodeVersions)
 	if nodeVersion == nil {
 		cli.Fatalf("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
@@ -64,14 +67,16 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 		npmVer = version.Range(np.Engines.NPM).BestMatchFrom(npmVersions)
 	}
 	df := &docker.Dockerfile{
-		From:    from,
-		Add:     []docker.Add{docker.Add{Files: []string{"."}, Dest: wd}},
-		Workdir: wd,
+		From:        from,
+		Add:         []docker.Add{docker.Add{Files: []string{"."}, Dest: wd}},
+		Workdir:     wd,
+		LabelPrefix: Config.DockerLabelPrefix,
 	}
 	npmMajorVer := npmVer.String()[0:1]
 	df.AddRun("npm install -g npm@%s", npmMajorVer)
-	df.AddLabel("com.opentable.stack", "NodeJS")
-	df.AddLabel("com.opentable.stack.nodejs.version", nodeVersion)
+	df.AddLabel("stack.name", "NodeJS")
+	df.AddLabel("stack.id", "nodejs")
+	df.AddLabel("stack.nodejs.version", nodeVersion)
 	return df
 }
 
