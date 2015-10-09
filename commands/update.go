@@ -14,12 +14,9 @@ func UpdateHelp() string {
 
 func Update(packs []*build.Pack, args []string) {
 	key := "last-update-check"
-	p := cli.BeginProgress("Updating")
 	if err := config.Update(); err != nil {
-		p.Done("Failed: " + err.Error())
 		cli.Fatal()
 	}
 	config.Set(key, time.Now().Format(time.RFC3339))
-	p.Done("Done")
 	cli.Success()
 }
