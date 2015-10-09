@@ -44,6 +44,36 @@ func Exists(path string) bool {
 	return false
 }
 
+func Move(path, newpath string) bool {
+	if !Exists(path) {
+		return false
+	}
+	if err := os.Rename(path, newpath); err != nil {
+		cli.Fatalf("Unable to rename file: %s", err)
+	}
+	return true
+}
+
+func Link(path, newPath string) bool {
+	if !Exists(path) {
+		return false
+	}
+	if err := os.Link(path, newPath); err != nil {
+		cli.Fatalf("Unable to link file: %s", err)
+	}
+	return true
+}
+
+func Remove(path string) bool {
+	if !Exists(path) {
+		return false
+	}
+	if err := os.Remove(path); err != nil {
+		cli.Fatalf("Unable to remove file: %s", err)
+	}
+	return true
+}
+
 func ReadString(pathFormat string, a ...interface{}) (string, bool) {
 	b, err, _ := Read(pathFormat, a...)
 	return string(b), err

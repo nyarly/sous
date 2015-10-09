@@ -7,6 +7,7 @@ import (
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dockermachine"
+	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/path"
 	"github.com/opentable/sous/tools/version"
 )
@@ -58,6 +59,22 @@ func dockerCmd(args ...string) *cmd.CMD {
 func Build(dir, tag string) string {
 	dir = path.Resolve(dir)
 	return dockerCmd("build", "-t", tag, dir).Out()
+}
+
+// BuildFile builds the specified docker file in the context of the specified
+// directory.
+func BuildFile(dockerfile, dir, tag string) string {
+	if !file.Exists(dockerfile) {
+		cli.Fatalf("File does not exist: %s")
+	}
+	dir = path.Resolve(dir)
+	dfLocal := ".SousDockerfile"
+	if file.Exists(dfLocal) {
+		file.Remove(dfLocal)
+	}
+	file.Link(dockerfile, dfLocal)
+	defer file.Remove(dfLocal)
+	return dockerCmd("build", "-f", dfLocal, "-t", tag, dir).Out()
 }
 
 func Push(tag string) {
