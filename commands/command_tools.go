@@ -1,11 +1,10 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
+	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
 	"github.com/opentable/sous/tools/path"
 	"github.com/opentable/sous/tools/version"
@@ -43,16 +42,11 @@ func BuildIfNecessary(feature *build.Feature, context *build.Context, appInfo *b
 	}
 	context.IncrementBuildNumber()
 	BuildDockerfile(feature, context, appInfo)
-	localDF, err := os.Getwd()
-	if err != nil {
-		cli.Fatalf("unable to get working directory: %s", err)
+	if file.Exists("Dockerfile") {
+		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
 	}
-	localDF += "/Dockerfile"
-	if err := os.Link(path.Resolve(context.FilePath("Dockerfile")), localDF); err != nil {
-		cli.Fatalf("unable to link dockerfile: %s", err)
-	}
-	defer os.Remove(localDF)
-	docker.Build(".", context.DockerTag())
+	df := path.Resolve(context.FilePath("Dockerfile"))
+	docker.BuildFile(df, ".", context.DockerTag())
 	context.Commit()
 	return true
 }
