@@ -20,6 +20,14 @@ func Write(data []byte, pathFormat string, a ...interface{}) {
 	}
 }
 
+func Create(path string) *os.File {
+	f, err := os.Create(path)
+	if err != nil {
+		cli.Fatalf("Unable to write to file: %s", err)
+	}
+	return f
+}
+
 func WriteString(data interface{}, pathFormat string, a ...interface{}) {
 	s := fmt.Sprint(data)
 	Write([]byte(s), pathFormat, a...)

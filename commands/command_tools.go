@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"os"
+
 	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
@@ -75,4 +77,12 @@ func AddMetadata(d *docker.Dockerfile, c *build.Context) {
 	d.AddLabel("builder.user", c.User)
 	d.AddLabel("source.git.repo", c.Git.CanonicalName())
 	d.AddLabel("source.git.revision", c.Git.CommitSHA)
+}
+
+func divineTaskHost() string {
+	taskHost := os.Getenv("TASK_HOST")
+	if taskHost != "" {
+		return taskHost
+	}
+	return docker.GetDockerHost()
 }

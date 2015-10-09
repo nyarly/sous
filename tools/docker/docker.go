@@ -2,6 +2,9 @@ package docker
 
 import (
 	"fmt"
+	"net"
+	"net/url"
+	"os"
 	"strings"
 
 	"github.com/opentable/sous/tools/cli"
@@ -19,6 +22,22 @@ func RequireVersion(r *version.R) {
 	if !r.IsSatisfiedBy(v) {
 		cli.Fatalf("got docker version %s; want %s", v, r)
 	}
+}
+
+func GetDockerHost() string {
+	dockerHost := os.Getenv("DOCKER_HOST")
+	if dockerHost == "" {
+		return "localhost"
+	}
+	u, err := url.Parse(dockerHost)
+	if err != nil {
+		return "localhost" // Giving up
+	}
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return "localhost"
+	}
+	return host
 }
 
 func RequireDaemon() {

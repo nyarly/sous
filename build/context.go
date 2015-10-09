@@ -181,7 +181,7 @@ func (c *Context) SaveFile(content, name string) {
 }
 
 func (c *Context) FilePath(name string) string {
-	return c.BaseDir() + "/" + name
+	return path.Resolve(c.BaseDir() + "/" + name)
 }
 
 func (c *Context) BaseDir() string {

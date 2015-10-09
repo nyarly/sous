@@ -1,11 +1,20 @@
 package docker
 
-import "fmt"
+import (
+	"fmt"
+	"os/exec"
+
+	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/cmd"
+	"github.com/opentable/sous/tools/file"
+)
 
 type Run struct {
-	Image, Name string
-	Env         []string
-	Net         string
+	Image, Name            string
+	Env                    []string
+	Net                    string
+	StdoutFile, StderrFile string
+	inBackground           bool
 }
 
 func NewRun(image string) *Run {
@@ -20,8 +29,16 @@ func (r *Run) AddEnv(key, value string) {
 	r.Env = append(r.Env, fmt.Sprintf("%s=%s", key, value))
 }
 
-func (r *Run) ExitCode() int {
+func (r *Run) Background() *Run {
+	r.inBackground = true
+	return r
+}
+
+func (r *Run) prepareCommand() *cmd.CMD {
 	args := []string{"run"}
+	if r.inBackground {
+		args = append(args, "-d")
+	}
 	if r.Name != "" {
 		args = append(args, "--name", r.Name)
 	}
@@ -32,5 +49,45 @@ func (r *Run) ExitCode() int {
 		args = append(args, "--net="+r.Net)
 	}
 	args = append(args, r.Image)
-	return dockerCmd(args...).ExitCode()
+	c := dockerCmd(args...)
+	//if r.StdoutFile != "" {
+	//	c.WriteStdout = file.Create(r.StderrFile)
+	//}
+	//if r.StderrFile != "" {
+	//	c.WriteStderr = file.Create(r.StderrFile)
+	//}
+	if r.inBackground {
+		c.EchoStdout = false
+		c.EchoStderr = false
+	}
+	return c
+}
+
+func (r *Run) ExitCode() int {
+	return r.prepareCommand().ExitCode()
+}
+
+func (r *Run) Start() (*Container, error) {
+	r.inBackground = true
+	c := r.prepareCommand()
+	cid := c.Out()
+	tailLogs := exec.Command("docker", "logs", "-f", cid)
+	tailLogs.Stdout = file.Create(r.StdoutFile)
+	tailLogs.Stderr = file.Create(r.StderrFile)
+	err := tailLogs.Start()
+	if err != nil {
+		cli.Fatalf("Unable to tail logs: %s", err)
+	}
+	return &Container{cid}, nil
+}
+
+type Container struct {
+	CID string
+}
+
+func (c *Container) Kill() error {
+	if ex := cmd.ExitCode("docker", "kill", c.CID); ex != 0 {
+		return fmt.Errorf("exit code %d", ex)
+	}
+	return nil
 }

@@ -15,14 +15,20 @@ import (
 )
 
 type CMD struct {
-	Name                   string
-	Args, Env              []string
-	EchoStdout, EchoStderr bool
-	Stdout, Stderr         *bytes.Buffer
+	Name                     string
+	Args, Env                []string
+	EchoStdout, EchoStderr   bool
+	Stdout, Stderr           *bytes.Buffer
+	WriteStdout, WriteStderr io.Writer
 }
 
 func New(name string, args ...string) *CMD {
-	return &CMD{name, args, nil, false, false, &bytes.Buffer{}, &bytes.Buffer{}}
+	return &CMD{
+		Name:   name,
+		Args:   args,
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
 }
 
 func (C *CMD) execute() (code int, err error) {
@@ -34,6 +40,12 @@ func (C *CMD) execute() (code int, err error) {
 	}
 	if C.EchoStderr {
 		c.Stderr = io.MultiWriter(os.Stderr, c.Stderr)
+	}
+	if C.WriteStdout != nil {
+		c.Stdout = io.MultiWriter(C.WriteStdout, c.Stdout)
+	}
+	if C.WriteStderr != nil {
+		c.Stderr = io.MultiWriter(C.WriteStderr, c.Stderr)
 	}
 	if err := c.Start(); err != nil {
 		cli.Fatalf("Unable to begin command execution; %s", err)
