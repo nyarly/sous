@@ -22,10 +22,10 @@ func help(packs []*build.Pack, args []string) {
 		cli.Fatalf("There is no command called %s; try `sous help`\n", command)
 	}
 	cli.Outf(`Sous is your personal sous chef for engineering tasks.
-																																It can help with building, configuring, and deploying
-																																your code for OpenTable's Mesos Platform.
+It can help with building, configuring, and deploying
+your code for OpenTable's Mesos Platform.
 
-																																Commands:`)
+Commands:`)
 
 	printCommands()
 	cli.Outf("")
