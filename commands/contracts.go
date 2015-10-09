@@ -77,7 +77,7 @@ func Contracts(packs []*build.Pack, args []string) {
 		dr.ExitCode()
 	}()
 
-	within(timeout, fmt.Sprintf("listens on PORT0 (=%d) - Must respond to :%d/ with any HTTP response", port0, port0), func() bool {
+	within(timeout, fmt.Sprintf("listens on http://$TASK_HOST:$PORT0 (=http://%s:%d) - Must respond with any HTTP response", ip, port0), func() bool {
 		_, err := http.Get(fmt.Sprintf("http://%s:%d/", ip, port0))
 		return err == nil
 	})
