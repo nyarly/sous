@@ -34,6 +34,11 @@ func loadCommands() {
 			"check project against platform contracts",
 		},
 
+		"logs": SousCommand{
+			commands.Logs, commands.LogsHelp,
+			"view stdout and stderr from containers",
+		},
+
 		"dockerfile": SousCommand{
 			commands.Dockerfile, commands.DockerfileHelp,
 			"print current dockerfile"},

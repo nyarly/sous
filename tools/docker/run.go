@@ -11,7 +11,7 @@ import (
 
 type Run struct {
 	Image, Name            string
-	Env                    []string
+	Env                    map[string]string
 	Net                    string
 	StdoutFile, StderrFile string
 	inBackground           bool
@@ -21,12 +21,12 @@ func NewRun(image string) *Run {
 	return &Run{
 		Image: image,
 		Net:   "host",
-		Env:   []string{},
+		Env:   map[string]string{},
 	}
 }
 
 func (r *Run) AddEnv(key, value string) {
-	r.Env = append(r.Env, fmt.Sprintf("%s=%s", key, value))
+	r.Env[key] = value
 }
 
 func (r *Run) Background() *Run {
@@ -42,20 +42,14 @@ func (r *Run) prepareCommand() *cmd.CMD {
 	if r.Name != "" {
 		args = append(args, "--name", r.Name)
 	}
-	for _, e := range r.Env {
-		args = append(args, "-e", e)
+	for k, v := range r.Env {
+		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
 	if r.Net != "" {
 		args = append(args, "--net="+r.Net)
 	}
 	args = append(args, r.Image)
 	c := dockerCmd(args...)
-	//if r.StdoutFile != "" {
-	//	c.WriteStdout = file.Create(r.StderrFile)
-	//}
-	//if r.StderrFile != "" {
-	//	c.WriteStderr = file.Create(r.StderrFile)
-	//}
 	if r.inBackground {
 		c.EchoStdout = false
 		c.EchoStderr = false

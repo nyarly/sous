@@ -17,6 +17,7 @@ import (
 type CMD struct {
 	Name                     string
 	Args, Env                []string
+	rawEnv                   map[string]string
 	EchoStdout, EchoStderr   bool
 	Stdout, Stderr           *bytes.Buffer
 	WriteStdout, WriteStderr io.Writer

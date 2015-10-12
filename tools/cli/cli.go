@@ -9,11 +9,12 @@ import (
 var _log *log.Logger
 
 func init() {
-	flags := 0
+	flagss := 0
+	// On TeamCity timestamp the logs
 	if os.Getenv("TEAMCITY_VERSION") != "" {
-		flags = log.Ldate | log.Ltime | log.Lmicroseconds
+		flagss = log.Ldate | log.Ltime | log.Lmicroseconds
 	}
-	_log = log.New(os.Stderr, "", flags)
+	_log = log.New(os.Stderr, "", flagss)
 }
 
 // Logf prints a formatted message to stderr

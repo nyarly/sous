@@ -36,7 +36,7 @@ Commands:`)
 func printCommands() {
 	commandNames := make([]string, len(Sous.Commands))
 	i := 0
-	for n, _ := range Sous.Commands {
+	for n := range Sous.Commands {
 		commandNames[i] = n
 		i++
 	}
