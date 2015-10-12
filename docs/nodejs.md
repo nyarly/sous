@@ -1,4 +1,4 @@
-# Souss NodeJS Pack
+# Sous NodeJS Pack
 
 Please note that all builds performed by sous are based on Dockerfiles. At any point, you can use the command
 
