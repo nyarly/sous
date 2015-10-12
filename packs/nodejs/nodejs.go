@@ -20,7 +20,7 @@ type NodePackageEngines struct {
 	Node, NPM string
 }
 type NodePackageScripts struct {
-	Start, Test string
+	Start, Test, InstallProduction string
 }
 
 func keys(m map[string]string) []string {
@@ -82,10 +82,14 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 
 func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 	df := baseDockerfile(np)
+	if np.Scripts.InstallProduction != "" {
+		df.AddRun(np.Scripts.InstallProduction)
+	} else {
+		df.AddRun("npm install --registry=%s --production", npmRegistry)
+	}
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.
-	df.AddRun("npm install --registry=%s --production", npmRegistry)
 	df.CMD = tools.Whitespace.Split(np.Scripts.Start, -1)
 	return df
 }
