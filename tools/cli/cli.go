@@ -13,6 +13,11 @@ func init() {
 	// On TeamCity timestamp the logs
 	if os.Getenv("TEAMCITY_VERSION") != "" {
 		flagss = log.Ldate | log.Ltime | log.Lmicroseconds
+		_log = log.New(os.Stderr, "", flagss)
+	}
+	if os.Getenv("DEBUG") == "YES" {
+		flagss = log.LstdFlags | log.Lshortfile
+		_log = log.New(os.Stderr, "", flagss)
 	}
 	_log = log.New(os.Stderr, "", flagss)
 }

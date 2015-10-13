@@ -30,10 +30,9 @@ func (bc *Context) IsCI() bool {
 	return bc.User == "ci"
 }
 
-var Config = config.Load()
-
 func GetContext(action string) *Context {
-	registry := Config.DockerRegistry
+	var c = config.Load()
+	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
 	bs := GetBuildState(action, gitInfo)
 	return &Context{

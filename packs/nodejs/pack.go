@@ -32,9 +32,9 @@ var Pack = &build.Pack{
 			c = append(c, "unable to determine NodeJS version, missing engines.node in package.json")
 		} else {
 			r := version.Range(np.Engines.Node)
-			if v := r.BestMatchFrom(availableNodeVersions); v == nil {
+			if v := r.BestMatchFrom(AvailableNodeVersions()); v == nil {
 				f := "node version range (%s) not supported (pick from %s)"
-				m := fmt.Sprintf(f, r.Original, strings.Join(availableNodeVersions.Strings(), ", "))
+				m := fmt.Sprintf(f, r.Original, strings.Join(AvailableNodeVersions().Strings(), ", "))
 				c = append(c, m)
 			}
 		}

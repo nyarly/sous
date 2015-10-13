@@ -13,7 +13,6 @@ func TestCanonicalName(t *testing.T) {
 		"http://github.com/user/project",
 		"git@github.com:user/project.git",
 		"git@github.com:user/project",
-		"git@github.com:opentable/poi-tag.git",
 	}
 	expected := "github.com/user/project"
 	for _, s := range urls {

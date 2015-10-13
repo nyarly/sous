@@ -33,17 +33,24 @@ func keys(m map[string]string) []string {
 	return ks
 }
 
-var Config = config.Load()
+var _availableNodeVersions version.VL
 
-var availableNodeVersions = version.VersionList(
-	keys(Config.Packs.NodeJS.NodeVersionsToDockerBaseImages)...)
+func AvailableNodeVersions() version.VL {
+	c := config.Load()
+	if _availableNodeVersions == nil {
+		_availableNodeVersions = version.VersionList(
+			keys(c.Packs.NodeJS.NodeVersionsToDockerBaseImages)...)
+	}
+
+	return _availableNodeVersions
+}
 
 func bestSupportedNodeVersion(np *NodePackage) string {
 	var nodeVersion *version.V
-	nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(availableNodeVersions)
+	nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(AvailableNodeVersions())
 	if nodeVersion == nil {
 		cli.Fatalf("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
-			np.Engines.Node, strings.Join(availableNodeVersions.Strings(), ", "))
+			np.Engines.Node, strings.Join(AvailableNodeVersions().Strings(), ", "))
 	}
 	return nodeVersion.String()
 }
@@ -53,13 +60,26 @@ func dockerFrom(np *NodePackage, nodeVersion string) string {
 	return c.Packs.NodeJS.NodeVersionsToDockerBaseImages[nodeVersion]
 }
 
+var _config *config.Config
+
+func Config() *config.Config {
+	if _config == nil {
+		_config = config.Load()
+	}
+	return _config
+}
+
 var npmVersions = version.VersionList("3.3.4", "2.4.15")
 var defaultNPMVersion = version.Version("2.4.15")
-var npmRegistry = config.Load().Packs.NodeJS.NPMMirrorURL
+
+func npmRegistry() string {
+	return Config().Packs.NodeJS.NPMMirrorURL
+}
 
 var wd = "/srv/app/"
 
 func baseDockerfile(np *NodePackage) *docker.Dockerfile {
+	var Config = config.Load()
 	nodeVersion := bestSupportedNodeVersion(np)
 	from := dockerFrom(np, nodeVersion)
 	npmVer := defaultNPMVersion
@@ -85,7 +105,7 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 	if np.Scripts.InstallProduction != "" {
 		df.AddRun(np.Scripts.InstallProduction)
 	} else {
-		df.AddRun("npm install --registry=%s --production", npmRegistry)
+		df.AddRun("npm install --registry=%s --production", npmRegistry())
 	}
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
@@ -96,7 +116,7 @@ func buildNodeJS(np *NodePackage) *docker.Dockerfile {
 
 func testNodeJS(np *NodePackage) *docker.Dockerfile {
 	df := baseDockerfile(np)
-	df.AddRun("cd "+wd+" && npm install --registry=%s", npmRegistry)
+	df.AddRun("cd "+wd+" && npm install --registry=%s", npmRegistry())
 	df.AddLabel("com.opentable.tests", "true")
 	df.CMD = []string{"npm", "test"}
 	return df

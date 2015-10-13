@@ -3,7 +3,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/opentable/sous/tools/cli"
@@ -36,6 +38,8 @@ func Load() *Config {
 }
 
 func Update() error {
+	debug.PrintStack()
+	log.Fatal("WOT")
 	p := cli.BeginProgress("Updating config")
 	Set("last-update-check", time.Now().Format(time.RFC3339))
 	props := Properties()
