@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-	updateHourly()
 	if len(os.Args) < 2 {
 		usage()
 	}
@@ -18,6 +17,9 @@ func main() {
 	c, ok := Sous.Commands[command]
 	if !ok {
 		cli.Fatalf("Command %s not recognised; try `sous help`", command)
+	}
+	if command != "config" {
+		updateHourly()
 	}
 	// It is the responsibility of the command to exit with an appropriate
 	// error code...
