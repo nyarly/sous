@@ -46,7 +46,21 @@ func RequireCleanWorkingTree() {
 }
 
 func (g *Info) CanonicalName() string {
-	return g.OriginURL.Host + g.OriginURL.Path
+	host := g.OriginURL.Host
+	path := g.OriginURL.Path
+	if host == "" {
+		if !strings.ContainsRune(path, ':') {
+			cli.Fatalf("git origin URL not recognised: %s", g.OriginURL)
+		}
+		p := strings.SplitN(path, ":", 2)
+		host = p[0]
+		path = "/" + p[1]
+	}
+	if strings.ContainsRune(host, '@') {
+		p := strings.SplitN(host, "@", 2)
+		host = p[1]
+	}
+	return host + strings.TrimSuffix(path, ".git")
 }
 
 func getOriginURL() *url.URL {
@@ -56,20 +70,13 @@ func getOriginURL() *url.URL {
 	}
 	for _, row := range table {
 		if row[0] == "origin" {
-			rawURL := strings.TrimSuffix(row[1], ".git")
-			parts := strings.SplitN(rawURL, "@", 2)
-			if len(parts) == 2 {
-				rawURL = parts[1]
-			}
-			rawURL = strings.Replace(rawURL, ":", "/", -1)
-			url, err := url.Parse(rawURL)
+			u, err := url.Parse(row[1])
 			if err != nil {
 				cli.Fatalf("unable to parse origin (%s) as URL; %s", row[1], err)
 			}
-			return url
+			return u
 		}
 	}
-	cli.Fatalf("unable to find remote named 'origin'")
 	return nil
 }
 
