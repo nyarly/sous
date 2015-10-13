@@ -32,4 +32,8 @@ if ! go install -ldflags "$FLAGS"; then
 	echo "Build failed."
 	exit 1
 fi
+if ! go test ./...; then
+	echo "Tests failed."
+fi
+# Finally, make sure we can still execute sous version
 sous version
