@@ -13,19 +13,31 @@ import (
 	"github.com/opentable/sous/tools/ports"
 )
 
-var flags = flag.NewFlagSet("contracts", flag.ContinueOnError)
+var flags = flag.NewFlagSet("contracts", flag.ExitOnError)
 
 var timeoutFlag = flags.Duration("timeout", 10*time.Second, "per-contract timeout")
 
 type Contract struct {
-	Name, Desc string
-	Premise    func(*docker.Run) bool
+	Name    string
+	Desc    func(*docker.Run) string
+	Tips    func(*docker.Run) []string
+	Premise func(*docker.Run) bool
 }
 
 var theContracts = []Contract{
 	{
-		Name: "Listening",
-		Desc: "listens for HTTP traffic at http://$TASK_HOST:$PORT0 where $TASK_HOST and $PORT0 are environment variables containing a valid hostname and a valid, free TCP port number; responds to GET / with any HTTP response code",
+		Name: "Listening on http://TASK_HOST:PORT0",
+		Desc: func(run *docker.Run) string {
+			return fmt.Sprintf("Your app should respond to GET http://TASK_HOST:PORT0/ with any HTTP response code")
+		},
+		Tips: func(run *docker.Run) []string {
+			host, port0 := run.Env["TASK_HOST"], run.Env["PORT0"]
+			return []string{
+				fmt.Sprintf("TASK_HOST and PORT0 are environment variables set by the docker run command."),
+				fmt.Sprintf("For this particular run they are set as: TASK_HOST=%s and PORT0=%s", host, port0),
+				fmt.Sprintf("So your app should be listening on http://%s:%s/", host, port0),
+			}
+		},
 		Premise: func(run *docker.Run) bool {
 			taskHost := run.Env["TASK_HOST"]
 			port0 := run.Env["PORT0"]
@@ -35,7 +47,9 @@ var theContracts = []Contract{
 	},
 	{
 		Name: "Health Endpoint",
-		Desc: "responds to HTTP GET /health with HTTP Status Code 200",
+		Desc: func(run *docker.Run) string {
+			return "responds to GET /health with HTTP Status Code 200"
+		},
 		Premise: func(run *docker.Run) bool {
 			taskHost := run.Env["TASK_HOST"]
 			port0 := run.Env["PORT0"]
@@ -66,7 +80,7 @@ func Contracts(packs []*build.Pack, args []string) {
 	}
 
 	cli.Logf("=> Running Contracts")
-	cli.Logf(`=> TIP: Open another terminal in this directory and type "sous logs -f"`)
+	cli.Logf(`=> **TIP:** Open another terminal in this directory and type **sous logs -f**`)
 
 	taskHost := divineTaskHost()
 	port0, err := ports.GetFreePort()
@@ -86,8 +100,12 @@ func Contracts(packs []*build.Pack, args []string) {
 
 	failed := 0
 	for _, c := range theContracts {
-		cli.Logf(`=> Checking Contract "%s"`, c.Name)
-		cli.Logf(`Description: %s`, c.Desc)
+		cli.Logf(`===> CHECKING CONTRACT: "%s"`, c.Name)
+		cli.Logf(`===> Description: %s`, c.Desc(dr))
+		if c.Tips != nil {
+			cli.Logf("===> **TIPS for this contract:**")
+			cli.LogBulletList("     -", c.Tips(dr))
+		}
 		failed += within(timeout, func() bool {
 			return c.Premise(dr)
 		})
