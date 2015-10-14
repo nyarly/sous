@@ -85,6 +85,10 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 	npmVer := defaultNPMVersion
 	if np.Engines.NPM != "" {
 		npmVer = version.Range(np.Engines.NPM).BestMatchFrom(npmVersions)
+		if npmVer == nil {
+			cli.Logf("NPM version %s not supported, try using a range instead.", np.Engines.NPM)
+			cli.Fatalf("Available NPM version ranges are: '^3' and '^2'")
+		}
 	}
 	df := &docker.Dockerfile{
 		From:        from,
