@@ -24,7 +24,7 @@ func init() {
 
 // Logf prints a formatted message to stderr
 func Logf(format string, a ...interface{}) {
-	_log.Printf(format, a...)
+	_log.Print(ApplyStyles(fmt.Sprintf(format, a...)))
 }
 
 // Outf prints a formatted message to stdout
