@@ -43,3 +43,7 @@ func (s *Sous) Cleanup() []error {
 	}
 	return errors
 }
+
+func (s *Sous) NeedsCleanup() bool {
+	return len(s.cleanupTasks) != 0
+}

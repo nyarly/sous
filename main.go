@@ -2,6 +2,8 @@ package main
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/opentable/sous/config"
@@ -9,15 +11,12 @@ import (
 	"github.com/opentable/sous/tools/cli"
 )
 
-var (
-	sous *core.Sous
-)
-
 func main() {
+	sous := core.NewSous(Version, Revision, OS, Arch, loadCommands(), buildPacks)
+	cleanupOnExit(sous)
 	if len(os.Args) < 2 {
 		usage()
 	}
-	sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), buildPacks)
 	command := os.Args[1]
 	c, ok := sous.Commands[command]
 	if !ok {
@@ -35,6 +34,25 @@ func main() {
 
 func usage() {
 	cli.Fatalf("usage: sous COMMAND; try `sous help`")
+}
+
+func cleanupOnExit(sous *core.Sous) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		if sous.NeedsCleanup() {
+			cli.Logf("Cleaning up...")
+			errs := sous.Cleanup()
+			if len(errs) == 0 {
+				cli.Success()
+			}
+			for _, e := range errs {
+				cli.Logf("=> %s", e)
+			}
+			cli.Fatalf("Errors cleaning up, see above.")
+		}
+	}()
 }
 
 func updateHourly() {
