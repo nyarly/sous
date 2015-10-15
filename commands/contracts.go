@@ -97,6 +97,10 @@ func Contracts(sous *core.Sous, args []string) {
 	if err != nil {
 		cli.Fatalf("Unable to start container: %s", err)
 	}
+	sous.AddCleanupTask(func() error {
+		cli.Logf("Killing contracts container %s", container)
+		return container.Kill()
+	})
 
 	failed := 0
 	for _, c := range theContracts {

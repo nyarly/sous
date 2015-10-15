@@ -14,6 +14,7 @@ import (
 func main() {
 	sous := core.NewSous(Version, Revision, OS, Arch, loadCommands(), buildPacks)
 	cleanupOnExit(sous)
+	defer cleanup(sous)
 	if len(os.Args) < 2 {
 		usage()
 	}
@@ -41,18 +42,22 @@ func cleanupOnExit(sous *core.Sous) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		if sous.NeedsCleanup() {
-			cli.Logf("Cleaning up...")
-			errs := sous.Cleanup()
-			if len(errs) == 0 {
-				cli.Success()
-			}
-			for _, e := range errs {
-				cli.Logf("=> %s", e)
-			}
-			cli.Fatalf("Errors cleaning up, see above.")
-		}
+		cleanup(sous)
 	}()
+}
+
+func cleanup(sous *core.Sous) {
+	if sous.NeedsCleanup() {
+		cli.Logf("\nCleaning up...")
+		errs := sous.Cleanup()
+		if len(errs) == 0 {
+			cli.Success()
+		}
+		for _, e := range errs {
+			cli.Logf("=> %s", e)
+		}
+		cli.Fatalf("Errors cleaning up, see above.")
+	}
 }
 
 func updateHourly() {
