@@ -1,18 +1,18 @@
-package main
+package commands
 
 import (
 	"fmt"
 	"os"
 	"sort"
 
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 )
 
-func help(packs []*build.Pack, args []string) {
+func Help(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		command := args[0]
-		if c, ok := Sous.Commands[command]; ok {
+		if c, ok := sous.Commands[command]; ok {
 			if c.HelpFunc != nil {
 				fmt.Println(c.HelpFunc())
 				os.Exit(0)
@@ -27,25 +27,25 @@ your code for OpenTable's Mesos Platform.
 
 Commands:`)
 
-	printCommands()
+	printCommands(sous)
 	cli.Outf("")
 	cli.Outf("Tip: for help with any command, use `sous help <COMMAND>`")
 	cli.Success()
 }
 
-func printCommands() {
-	commandNames := make([]string, len(Sous.Commands))
+func printCommands(sous *core.Sous) {
+	commandNames := make([]string, len(sous.Commands))
 	i := 0
-	for n := range Sous.Commands {
+	for n := range sous.Commands {
 		commandNames[i] = n
 		i++
 	}
 	sort.Strings(commandNames)
 	for _, name := range commandNames {
-		fmt.Printf("\t%s\t%s\n", name, Sous.Commands[name].ShortDesc)
+		fmt.Printf("\t%s\t%s\n", name, sous.Commands[name].ShortDesc)
 	}
 }
 
-func helphelp() string {
+func HelpHelp() string {
 	return "Help: /verb/ To give assistance to; aid"
 }

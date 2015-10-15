@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/ports"
@@ -63,7 +63,7 @@ func ContractsHelp() string {
 	return `sous contracts tests your project conforms to necessary contracts to run successfully on the OpenTable Mesos platform.`
 }
 
-func Contracts(packs []*build.Pack, args []string) {
+func Contracts(sous *core.Sous, args []string) {
 	flags.Parse(args)
 	args = flags.Args()
 	timeout := *timeoutFlag
@@ -74,7 +74,7 @@ func Contracts(packs []*build.Pack, args []string) {
 	RequireGit()
 	RequireDocker()
 
-	feature, context, appInfo := AssembleFeatureContext(target, packs)
+	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
 	if !BuildIfNecessary(feature, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}

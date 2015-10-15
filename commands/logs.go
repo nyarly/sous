@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 )
 
@@ -23,14 +23,14 @@ var logsFlags = flag.NewFlagSet("logs", flag.ExitOnError)
 var follow = logsFlags.Bool("f", false, "keep watching log output (similar to tail -f)")
 var lines = logsFlags.Int("n", 0, "number of lines to print")
 
-func Logs(packs []*build.Pack, args []string) {
+func Logs(sous *core.Sous, args []string) {
 	logsFlags.Parse(args)
 	args = logsFlags.Args()
 	target := "build"
 	if len(args) != 0 {
 		target = args[0]
 	}
-	_, context, _ := AssembleFeatureContext(target, packs)
+	_, context, _ := AssembleFeatureContext(target, sous.Packs)
 
 	out := makeTail(context.FilePath("stdout"), *follow, *lines, os.Stdout)
 	err := makeTail(context.FilePath("stderr"), *follow, *lines, os.Stderr)

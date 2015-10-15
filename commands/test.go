@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 )
@@ -14,11 +14,11 @@ projects. It builds a docker image, tagged and labelled correctly.
 sous build does not have any options yet`
 }
 
-func Test(packs []*build.Pack, args []string) {
+func Test(sous *core.Sous, args []string) {
 	RequireGit()
 	RequireDocker()
 
-	feature, context, appInfo := AssembleFeatureContext("test", packs)
+	feature, context, appInfo := AssembleFeatureContext("test", sous.Packs)
 	if !BuildIfNecessary(feature, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}

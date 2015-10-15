@@ -3,7 +3,7 @@ package commands
 import (
 	"strconv"
 
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/ports"
@@ -13,7 +13,7 @@ func RunHelp() string {
 	return `sous run your project (building first if necessary)`
 }
 
-func Run(packs []*build.Pack, args []string) {
+func Run(sous *core.Sous, args []string) {
 	target := "build"
 	if len(args) != 0 {
 		target = args[0]
@@ -21,7 +21,7 @@ func Run(packs []*build.Pack, args []string) {
 	RequireGit()
 	RequireDocker()
 
-	feature, context, appInfo := AssembleFeatureContext(target, packs)
+	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
 	if !BuildIfNecessary(feature, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}

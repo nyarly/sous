@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/git"
 )
@@ -14,7 +14,7 @@ projects. It builds a docker image, tagged and labelled correctly.
 sous build does not have any options yet`
 }
 
-func Build(packs []*build.Pack, args []string) {
+func Build(sous *core.Sous, args []string) {
 	target := "build"
 	if len(args) != 0 {
 		target = args[0]
@@ -25,7 +25,7 @@ func Build(packs []*build.Pack, args []string) {
 		cli.Logf("WARNING: Dirty working tree: %s", err)
 	}
 
-	feature, context, appInfo := AssembleFeatureContext(target, packs)
+	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
 	if !BuildIfNecessary(feature, context, appInfo) {
 		cli.Successf("Already built: %s", context.DockerTag())
 	}

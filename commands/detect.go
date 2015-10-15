@@ -5,11 +5,12 @@ import (
 	"os"
 
 	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 )
 
-func Detect(packs []*build.Pack, args []string) {
-	pack := build.DetectProjectType(packs)
+func Detect(sous *core.Sous, args []string) {
+	pack := build.DetectProjectType(sous.Packs)
 	if pack == nil {
 		fmt.Println("no sous-compatible project detected")
 		os.Exit(1)

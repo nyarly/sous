@@ -1,78 +1,68 @@
 package main
 
 import (
-	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/commands"
+	"github.com/opentable/sous/core"
 )
 
-type SousCommand struct {
-	Func      func(packs []*build.Pack, args []string)
-	HelpFunc  func() string
-	ShortDesc string
-}
-
-var Sous = struct {
-	Commands map[string]SousCommand
-}{}
-
-func loadCommands() {
-	Sous.Commands = map[string]SousCommand{
-		"build": SousCommand{
+func loadCommands() map[string]*core.Command {
+	return map[string]*core.Command{
+		"build": {
 			commands.Build, commands.BuildHelp,
 			"build your project"},
 
-		"push": SousCommand{
+		"push": {
 			commands.Push, commands.PushHelp,
 			"push your project"},
 
-		"run": SousCommand{
+		"run": {
 			commands.Run, commands.RunHelp,
 			"run your project"},
 
-		"contracts": SousCommand{
+		"contracts": {
 			commands.Contracts, commands.ContractsHelp,
 			"check project against platform contracts",
 		},
 
-		"logs": SousCommand{
+		"logs": {
 			commands.Logs, commands.LogsHelp,
 			"view stdout and stderr from containers",
 		},
 
-		"dockerfile": SousCommand{
+		"dockerfile": {
 			commands.Dockerfile, commands.DockerfileHelp,
 			"print current dockerfile"},
 
-		"image": SousCommand{
+		"image": {
 			commands.Image, commands.ImageHelp,
 			"print last built docker image tag"},
 
-		"update": SousCommand{
+		"update": {
 			commands.Update, commands.UpdateHelp,
 			"update sous config",
 		},
 
-		"detect": SousCommand{
+		"detect": {
 			commands.Detect, commands.DetectHelp,
 			"detect available actions"},
 
-		"test": SousCommand{
+		"test": {
 			commands.Test, commands.TestHelp,
 			"test your project"},
 
-		"build-path": SousCommand{
+		"build-path": {
 			commands.BuildPath, commands.BuildPathHelp,
 			"build state directory"},
 
-		"help": SousCommand{
-			help, helphelp,
+		"help": {
+			commands.Help, commands.HelpHelp,
 			"show this help"},
 
-		"version": SousCommand{
-			version, versionHelp,
+		"version": {
+			commands.Version, commands.VersionHelp,
 			"show version info"},
 
-		"config": SousCommand{
+		"config": {
 			commands.Config, commands.ConfigHelp,
 			"get/set config properties"},
 	}
