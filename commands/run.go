@@ -18,11 +18,11 @@ func Run(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	RequireGit()
-	RequireDocker()
+	core.RequireGit()
+	core.RequireDocker()
 
-	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
-	if !BuildIfNecessary(feature, context, appInfo) {
+	feature, context, appInfo := sous.AssembleFeatureContext(target)
+	if !sous.BuildIfNecessary(feature, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 
@@ -32,7 +32,7 @@ func Run(sous *core.Sous, args []string) {
 		cli.Fatalf("Unable to get free port: %s", err)
 	}
 	dr.AddEnv("PORT0", strconv.Itoa(port0))
-	dr.AddEnv("TASK_HOST", divineTaskHost())
+	dr.AddEnv("TASK_HOST", core.DivineTaskHost())
 	if code := dr.ExitCode(); code != 0 {
 		cli.Fatalf("Run failed with exit code %d", code)
 	}

@@ -1,9 +1,8 @@
-package commands
+package core
 
 import (
 	"os"
 
-	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
@@ -12,8 +11,9 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
-func AssembleFeatureContext(name string, packs []*build.Pack) (*build.Feature, *build.Context, *build.AppInfo) {
-	pack := build.DetectProjectType(packs)
+func (s *Sous) AssembleFeatureContext(name string) (*Feature, *Context, *AppInfo) {
+	packs := s.Packs
+	pack := DetectProjectType(packs)
 	if pack == nil {
 		cli.Fatalf("no buildable project detected")
 	}
@@ -29,7 +29,7 @@ func AssembleFeatureContext(name string, packs []*build.Pack) (*build.Feature, *
 		cli.LogBulletList("-", issues)
 		cli.Fatal()
 	}
-	context := build.GetContext(name)
+	context := GetContext(name)
 	appInfo, err := buildFeature.Detect(context)
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", name, pack.Name, err)
@@ -38,12 +38,12 @@ func AssembleFeatureContext(name string, packs []*build.Pack) (*build.Feature, *
 	return buildFeature, context, appInfo
 }
 
-func BuildIfNecessary(feature *build.Feature, context *build.Context, appInfo *build.AppInfo) bool {
+func (s *Sous) BuildIfNecessary(feature *Feature, context *Context, appInfo *AppInfo) bool {
 	if !context.NeedsBuild() {
 		return false
 	}
 	context.IncrementBuildNumber()
-	BuildDockerfile(feature, context, appInfo)
+	s.BuildDockerfile(feature, context, appInfo)
 	if file.Exists("Dockerfile") {
 		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
 	}
@@ -53,7 +53,7 @@ func BuildIfNecessary(feature *build.Feature, context *build.Context, appInfo *b
 	return true
 }
 
-func BuildDockerfile(feature *build.Feature, context *build.Context, appInfo *build.AppInfo) {
+func (s *Sous) BuildDockerfile(feature *Feature, context *Context, appInfo *AppInfo) {
 	df := feature.MakeDockerfile(appInfo)
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
@@ -69,7 +69,7 @@ func RequireGit() {
 	git.RequireRepo()
 }
 
-func AddMetadata(d *docker.Dockerfile, c *build.Context) {
+func AddMetadata(d *docker.Dockerfile, c *Context) {
 	d.Maintainer = c.User
 	d.AddLabel("builder.app", "sous")
 	d.AddLabel("builder.host", c.Host)
@@ -79,7 +79,7 @@ func AddMetadata(d *docker.Dockerfile, c *build.Context) {
 	d.AddLabel("source.git.revision", c.Git.CommitSHA)
 }
 
-func divineTaskHost() string {
+func DivineTaskHost() string {
 	taskHost := os.Getenv("TASK_HOST")
 	if taskHost != "" {
 		return taskHost

@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/opentable/sous/build"
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 )
 
 func Detect(sous *core.Sous, args []string) {
-	pack := build.DetectProjectType(sous.Packs)
+	pack := core.DetectProjectType(sous.Packs)
 	if pack == nil {
 		fmt.Println("no sous-compatible project detected")
 		os.Exit(1)
@@ -23,7 +22,7 @@ func Detect(sous *core.Sous, args []string) {
 	}
 	desc := pack.CompatibleProjectDesc()
 	cli.Outf("Detected %s; target support...", desc)
-	context := build.GetContext("detect")
+	context := core.GetContext("detect")
 	for name, feature := range pack.Features {
 		if _, err := feature.Detect(context); err != nil {
 			cli.Outf("\t%s \t✘ %s", name, err)

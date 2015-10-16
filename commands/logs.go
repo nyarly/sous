@@ -30,7 +30,7 @@ func Logs(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	_, context, _ := AssembleFeatureContext(target, sous.Packs)
+	_, context, _ := sous.AssembleFeatureContext(target)
 
 	out := makeTail(context.FilePath("stdout"), *follow, *lines, os.Stdout)
 	err := makeTail(context.FilePath("stderr"), *follow, *lines, os.Stderr)

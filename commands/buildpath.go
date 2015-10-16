@@ -13,7 +13,11 @@ func BuildPathHelp() string {
 }
 
 func BuildPath(sous *core.Sous, args []string) {
-	_, context, _ := AssembleFeatureContext("build", sous.Packs)
+	target := "build"
+	if len(args) != 0 {
+		target = args[0]
+	}
+	_, context, _ := sous.AssembleFeatureContext(target)
 	fmt.Println(path.Resolve(path.BaseDir(context.BaseDir())))
 	cli.Success()
 }

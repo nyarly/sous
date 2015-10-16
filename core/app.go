@@ -1,4 +1,4 @@
-package build
+package core
 
 type AppInfo struct {
 	Version string

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opentable/sous/build"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/version"
 )
 
-var Pack = &build.Pack{
+var Pack = &core.Pack{
 	Name:   "NodeJS",
 	Detect: detect,
 	CompatibleProjectDesc: func() string {
@@ -43,9 +43,9 @@ var Pack = &build.Pack{
 		}
 		return c
 	},
-	Features: map[string]*build.Feature{
-		"build": &build.Feature{
-			Detect: func(c *build.Context) (*build.AppInfo, error) {
+	Features: map[string]*core.Feature{
+		"build": &core.Feature{
+			Detect: func(c *core.Context) (*core.AppInfo, error) {
 				var np *NodePackage
 				if !file.ReadJSON(&np, "package.json") {
 					return nil, fmt.Errorf("no file named package.json")
@@ -53,17 +53,17 @@ var Pack = &build.Pack{
 				if len(np.Scripts.Start) == 0 {
 					return nil, fmt.Errorf("package.json does not specify a start script")
 				}
-				return &build.AppInfo{
+				return &core.AppInfo{
 					Version: np.Version,
 					Data:    np,
 				}, nil
 			},
-			MakeDockerfile: func(i *build.AppInfo) *docker.Dockerfile {
+			MakeDockerfile: func(i *core.AppInfo) *docker.Dockerfile {
 				return buildNodeJS(i.Data.(*NodePackage))
 			},
 		},
-		"test": &build.Feature{
-			Detect: func(c *build.Context) (*build.AppInfo, error) {
+		"test": &core.Feature{
+			Detect: func(c *core.Context) (*core.AppInfo, error) {
 				var np *NodePackage
 				if !file.ReadJSON(&np, "package.json") {
 					return nil, fmt.Errorf("no file named package.json")
@@ -71,12 +71,12 @@ var Pack = &build.Pack{
 				if len(np.Scripts.Test) == 0 {
 					return nil, fmt.Errorf("package.json does not specify a test script")
 				}
-				return &build.AppInfo{
+				return &core.AppInfo{
 					Version: np.Version,
 					Data:    np,
 				}, nil
 			},
-			MakeDockerfile: func(i *build.AppInfo) *docker.Dockerfile {
+			MakeDockerfile: func(i *core.AppInfo) *docker.Dockerfile {
 				return testNodeJS(i.Data.(*NodePackage))
 			},
 		},

@@ -15,11 +15,11 @@ sous build does not have any options yet`
 }
 
 func Test(sous *core.Sous, args []string) {
-	RequireGit()
-	RequireDocker()
+	core.RequireGit()
+	core.RequireDocker()
 
-	feature, context, appInfo := AssembleFeatureContext("test", sous.Packs)
-	if !BuildIfNecessary(feature, context, appInfo) {
+	feature, context, appInfo := sous.AssembleFeatureContext("test")
+	if !sous.BuildIfNecessary(feature, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 

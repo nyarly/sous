@@ -16,13 +16,13 @@ func Push(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	RequireGit()
-	RequireDocker()
+	core.RequireGit()
+	core.RequireDocker()
 	if err := git.AssertCleanWorkingTree(); err != nil {
 		cli.Logf("WARNING: Dirty working tree: %s", err)
 	}
 
-	_, context, appInfo := AssembleFeatureContext(target, sous.Packs)
+	_, context, appInfo := sous.AssembleFeatureContext(target)
 
 	lastBuildTag := context.PrevDockerTag()
 	if !docker.ImageExists(lastBuildTag) {

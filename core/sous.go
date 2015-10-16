@@ -1,10 +1,8 @@
 package core
 
-import "github.com/opentable/sous/build"
-
 type Sous struct {
 	Version, Revision, OS, Arch string
-	Packs                       []*build.Pack
+	Packs                       []*Pack
 	Commands                    map[string]*Command
 	cleanupTasks                []func() error
 }
@@ -15,7 +13,7 @@ type Command struct {
 	ShortDesc string
 }
 
-func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []*build.Pack) *Sous {
+func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []*Pack) *Sous {
 	return &Sous{
 		Version:      version,
 		Revision:     revision,

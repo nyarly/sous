@@ -19,14 +19,14 @@ func Build(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	RequireGit()
-	RequireDocker()
+	core.RequireGit()
+	core.RequireDocker()
 	if err := git.AssertCleanWorkingTree(); err != nil {
 		cli.Logf("WARNING: Dirty working tree: %s", err)
 	}
 
-	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
-	if !BuildIfNecessary(feature, context, appInfo) {
+	feature, context, appInfo := sous.AssembleFeatureContext(target)
+	if !sous.BuildIfNecessary(feature, context, appInfo) {
 		cli.Successf("Already built: %s", context.DockerTag())
 	}
 	name := context.CanonicalPackageName()

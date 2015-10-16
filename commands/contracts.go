@@ -71,18 +71,18 @@ func Contracts(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	RequireGit()
-	RequireDocker()
+	core.RequireGit()
+	core.RequireDocker()
 
-	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
-	if !BuildIfNecessary(feature, context, appInfo) {
+	feature, context, appInfo := sous.AssembleFeatureContext(target)
+	if !sous.BuildIfNecessary(feature, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 
 	cli.Logf("=> Running Contracts")
 	cli.Logf(`=> **TIP:** Open another terminal in this directory and type **sous logs -f**`)
 
-	taskHost := divineTaskHost()
+	taskHost := core.DivineTaskHost()
 	port0, err := ports.GetFreePort()
 	if err != nil {
 		cli.Fatalf("Unable to get free port: %s", err)

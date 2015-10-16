@@ -15,8 +15,8 @@ func Dockerfile(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	feature, context, appInfo := AssembleFeatureContext(target, sous.Packs)
-	BuildDockerfile(feature, context, appInfo)
+	feature, context, appInfo := sous.AssembleFeatureContext(target)
+	sous.BuildDockerfile(feature, context, appInfo)
 	fp := context.FilePath("Dockerfile")
 	df, ok := file.ReadString(fp)
 	if !ok {
