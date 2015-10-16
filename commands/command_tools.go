@@ -48,7 +48,7 @@ func BuildIfNecessary(feature *build.Feature, context *build.Context, appInfo *b
 		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
 	}
 	df := path.Resolve(context.FilePath("Dockerfile"))
-	docker.BuildFile(df, ".", context.DockerTag())
+	docker.BuildFile(df, ".SousDockerfile", context.DockerTag())
 	context.Commit()
 	return true
 }
