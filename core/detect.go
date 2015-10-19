@@ -1,8 +1,9 @@
 package core
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/opentable/sous/tools/cli"
 )
 
 func DetectProjectType(packs []*Pack) *Pack {
@@ -15,12 +16,11 @@ func DetectProjectType(packs []*Pack) *Pack {
 		availablePacks = append(availablePacks, p)
 	}
 	if len(availablePacks) == 0 {
-		fmt.Println("no project detected")
-		os.Exit(0)
+		return nil
 	}
 	if len(availablePacks) > 1 {
-		fmt.Println("multiple project types detected")
-		os.Exit(0)
+		cli.Fatalf("multiple project types detected")
+		os.Exit(1)
 	}
 	return availablePacks[0]
 }
