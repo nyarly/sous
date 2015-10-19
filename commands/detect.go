@@ -8,6 +8,13 @@ import (
 	"github.com/opentable/sous/tools/cli"
 )
 
+func DetectHelp() string {
+	return `detect detects available actions for your project, and
+tells you how to enable those features.
+
+A note on exit codes: Detect returns a success exit code if any project is detected, whether or not it supports any targets.`
+}
+
 func Detect(sous *core.Sous, args []string) {
 	pack := core.DetectProjectType(sous.Packs)
 	if pack == nil {
@@ -31,9 +38,4 @@ func Detect(sous *core.Sous, args []string) {
 		cli.Outf("\t%s \t✔︎", name)
 	}
 	os.Exit(0)
-}
-
-func DetectHelp() string {
-	return `detect detects available actions for your project, and
-tells you how to enable those features`
 }
