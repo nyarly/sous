@@ -30,12 +30,19 @@ Once you have installed sous, following the instructions in the readme, the best
 Sous is not magic, and doesn't pretend to be, it is designed solely to take the tedium out of doingitrite. As such, it follows a few design principles:
 
 - It logs most of the shell commands it is executing to screen prefixed by `shell>`. This means if someehing goes wrong during a sous operation, you should be able to scroll up and see what it was trying to do, which may be helpful in fixing said issues.
-- `Dockerfiles` that sous would build for a given target are always available by issuing `sous dockerfile <target>` inside your project directory. If you omit `target` then `app` is always used as the default.
-- If you prefer to invoke docker yourself for some reason, you can add the `-command` flag to the `build`, `test`, `smoke`, `run` commands to see what command sous would issue, but without issuing it directly.
+- Taking this further, you can add the `-commands-only` flag to most sous commands to see what shell commands sous would issue for that operation.
+- You can always see up-front what `Dockerfile` sous would build for a given target by issuing `sous dockerfile <target>` inside your project directory. If you omit `target` then `app` is always used as the default.
 
 ### How do I add support for target X?
 
-Sous very deliberately does not require any special files (imagine a "Sousfile") or anything else specific to Sous in your project. One of its key design principles is that a project that works well with Sous will also be a model project in the language/framework in which it was built. To say it another way, the complexity of building projects as Docker images to run on the Mesos Platform is the responsibility of Sous. Your responsibility should be limited to expressing in a way idiomatic to your chosen stack all of your project's dependencies (in the generic sense, including build-time libs, the runtime, any run-time modules, etc.).
+Sous very deliberately does not require any special files (imagine a "Sousfile") or anything else specific to Sous in your project. One of its key design principles is that a project that works well with Sous will also be a model project in the language/framework in which it was built. To say it another way, the complexity of building projects as Docker images to run on the Mesos Platform is the responsibility of Sous. Your responsibility should be limited to expressing in a way idiomatic to your chosen stack all of your project's dependencies (in the generic sense, including build-time tools and libs, the runtime itself, any run-time modules, etc.). Sous must parse and understand your project in order to generate correct Docker images.
+
+When Sous does not have enough information about an aspect of your project to support a particular target, it will let you know by
+
+a) giving you an error message and exiting when you try to build that target, and
+b) listing all targets and their supportedness when you issue a `sous detect`
+
+If you want to add support for a specific target, you can issue a `sous detect <target>` to get specialised help on adding support for that target in your specific project.
 
 Therefore, for each target supported in your stack, there is online help available telling you how to add support for that target. You can issue a `sous detect` to check what targets your project currently supports.
 
