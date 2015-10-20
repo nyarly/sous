@@ -18,8 +18,8 @@ func Test(sous *core.Sous, args []string) {
 	core.RequireGit()
 	core.RequireDocker()
 
-	feature, context, appInfo := sous.AssembleFeatureContext("test")
-	if !sous.BuildIfNecessary(feature, context, appInfo) {
+	target, context, appInfo := sous.AssembleTargetContext("test")
+	if !sous.BuildIfNecessary(target, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 

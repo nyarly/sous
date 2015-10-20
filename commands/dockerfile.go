@@ -11,12 +11,12 @@ func DockerfileHelp() string {
 }
 
 func Dockerfile(sous *core.Sous, args []string) {
-	target := "build"
+	targetName := "build"
 	if len(args) != 0 {
-		target = args[0]
+		targetName = args[0]
 	}
-	feature, context, appInfo := sous.AssembleFeatureContext(target)
-	sous.BuildDockerfile(feature, context, appInfo)
+	target, context, appInfo := sous.AssembleTargetContext(targetName)
+	sous.BuildDockerfile(target, context, appInfo)
 	fp := context.FilePath("Dockerfile")
 	df, ok := file.ReadString(fp)
 	if !ok {

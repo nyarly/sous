@@ -9,8 +9,7 @@ import (
 )
 
 func DetectHelp() string {
-	return `detect detects available actions for your project, and
-tells you how to enable those features.
+	return `detect detects available targets for your project, and tells you how to enable those targets.
 
 A note on exit codes: Detect returns a success exit code if any project is detected, whether or not it supports any targets.`
 }
@@ -30,8 +29,8 @@ func Detect(sous *core.Sous, args []string) {
 	desc := pack.CompatibleProjectDesc()
 	cli.Outf("Detected %s; target support...", desc)
 	context := core.GetContext("detect")
-	for name, feature := range pack.Features {
-		if _, err := feature.Detect(context); err != nil {
+	for name, target := range pack.Targets {
+		if _, err := target.Detect(context); err != nil {
 			cli.Outf("\t%s \t✘ %s", name, err)
 			continue
 		}

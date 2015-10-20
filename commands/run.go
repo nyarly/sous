@@ -14,15 +14,15 @@ func RunHelp() string {
 }
 
 func Run(sous *core.Sous, args []string) {
-	target := "build"
+	targetName := "build"
 	if len(args) != 0 {
-		target = args[0]
+		targetName = args[0]
 	}
 	core.RequireGit()
 	core.RequireDocker()
 
-	feature, context, appInfo := sous.AssembleFeatureContext(target)
-	if !sous.BuildIfNecessary(feature, context, appInfo) {
+	target, context, appInfo := sous.AssembleTargetContext(targetName)
+	if !sous.BuildIfNecessary(target, context, appInfo) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 

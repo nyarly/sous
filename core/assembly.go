@@ -12,13 +12,13 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
-func (s *Sous) AssembleFeatureContext(name string) (*Feature, *Context, *AppInfo) {
+func (s *Sous) AssembleTargetContext(name string) (*Target, *Context, *AppInfo) {
 	packs := s.Packs
 	pack := DetectProjectType(packs)
 	if pack == nil {
 		cli.Fatalf("no buildable project detected")
 	}
-	buildFeature, ok := pack.Features[name]
+	target, ok := pack.Targets[name]
 	if !ok {
 		cli.Fatalf("The %s build pack does not support %s", pack.Name, name)
 	}
@@ -31,20 +31,20 @@ func (s *Sous) AssembleFeatureContext(name string) (*Feature, *Context, *AppInfo
 		cli.Fatal()
 	}
 	context := GetContext(name)
-	appInfo, err := buildFeature.Detect(context)
+	appInfo, err := target.Detect(context)
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", name, pack.Name, err)
 	}
 	context.AppVersion = appInfo.Version
-	return buildFeature, context, appInfo
+	return target, context, appInfo
 }
 
-func (s *Sous) BuildIfNecessary(feature *Feature, context *Context, appInfo *AppInfo) bool {
+func (s *Sous) BuildIfNecessary(target *Target, context *Context, appInfo *AppInfo) bool {
 	if !context.NeedsBuild() {
 		return false
 	}
 	context.IncrementBuildNumber()
-	s.BuildDockerfile(feature, context, appInfo)
+	s.BuildDockerfile(target, context, appInfo)
 	if file.Exists("Dockerfile") {
 		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
 	}
@@ -62,8 +62,8 @@ func (s *Sous) BuildIfNecessary(feature *Feature, context *Context, appInfo *App
 	return true
 }
 
-func (s *Sous) BuildDockerfile(feature *Feature, context *Context, appInfo *AppInfo) {
-	df := feature.MakeDockerfile(appInfo)
+func (s *Sous) BuildDockerfile(target *Target, context *Context, appInfo *AppInfo) {
+	df := target.MakeDockerfile(appInfo)
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
 }

@@ -22,7 +22,7 @@ func Push(sous *core.Sous, args []string) {
 		cli.Logf("WARNING: Dirty working tree: %s", err)
 	}
 
-	_, context, appInfo := sous.AssembleFeatureContext(target)
+	_, context, appInfo := sous.AssembleTargetContext(target)
 
 	lastBuildTag := context.PrevDockerTag()
 	if !docker.ImageExists(lastBuildTag) {

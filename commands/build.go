@@ -15,9 +15,9 @@ sous build does not have any options yet`
 }
 
 func Build(sous *core.Sous, args []string) {
-	target := "build"
+	targetName := "build"
 	if len(args) != 0 {
-		target = args[0]
+		targetName = args[0]
 	}
 	core.RequireGit()
 	core.RequireDocker()
@@ -25,8 +25,8 @@ func Build(sous *core.Sous, args []string) {
 		cli.Logf("WARNING: Dirty working tree: %s", err)
 	}
 
-	feature, context, appInfo := sous.AssembleFeatureContext(target)
-	if !sous.BuildIfNecessary(feature, context, appInfo) {
+	target, context, appInfo := sous.AssembleTargetContext(targetName)
+	if !sous.BuildIfNecessary(target, context, appInfo) {
 		cli.Successf("Already built: %s", context.DockerTag())
 	}
 	name := context.CanonicalPackageName()

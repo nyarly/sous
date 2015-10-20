@@ -43,8 +43,8 @@ var Pack = &core.Pack{
 		}
 		return c
 	},
-	Features: map[string]*core.Feature{
-		"build": &core.Feature{
+	Targets: map[string]*core.Target{
+		"build": &core.Target{
 			Detect: func(c *core.Context) (*core.AppInfo, error) {
 				var np *NodePackage
 				if !file.ReadJSON(&np, "package.json") {
@@ -62,7 +62,7 @@ var Pack = &core.Pack{
 				return buildNodeJS(i.Data.(*NodePackage))
 			},
 		},
-		"test": &core.Feature{
+		"test": &core.Target{
 			Detect: func(c *core.Context) (*core.AppInfo, error) {
 				var np *NodePackage
 				if !file.ReadJSON(&np, "package.json") {
