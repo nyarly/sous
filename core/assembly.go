@@ -12,13 +12,13 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
-func (s *Sous) AssembleTargetContext(name string) (*Target, *Context, *AppInfo) {
+func (s *Sous) AssembleTargetContext(name string) (Target, *Context, *AppInfo) {
 	packs := s.Packs
 	pack, packInfo := DetectProjectType(packs)
 	if pack == nil {
 		cli.Fatalf("no buildable project detected")
 	}
-	target, ok := pack.Targets[name]
+	target, ok := pack.GetTarget(name)
 	if !ok {
 		cli.Fatalf("The %s build pack does not support %s", pack.Name, name)
 	}
@@ -31,15 +31,15 @@ func (s *Sous) AssembleTargetContext(name string) (*Target, *Context, *AppInfo) 
 		cli.Fatal()
 	}
 	context := GetContext(name, packInfo)
-	appInfo, err := target.Detect(context, packInfo)
+	err := target.Check()
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", name, pack.Name, err)
 	}
-	context.AppVersion = appInfo.Version
-	return target, context, appInfo
+	//context.AppVersion = appInfo.Version
+	return target, context, nil
 }
 
-func (s *Sous) BuildIfNecessary(target *Target, context *Context, appInfo *AppInfo) bool {
+func (s *Sous) BuildIfNecessary(target Target, context *Context, appInfo *AppInfo) bool {
 	if !context.NeedsBuild() {
 		return false
 	}
@@ -62,8 +62,8 @@ func (s *Sous) BuildIfNecessary(target *Target, context *Context, appInfo *AppIn
 	return true
 }
 
-func (s *Sous) BuildDockerfile(target *Target, context *Context, appInfo *AppInfo) {
-	df := target.MakeDockerfile(appInfo, context.PackInfo)
+func (s *Sous) BuildDockerfile(target Target, context *Context, appInfo *AppInfo) {
+	df := target.Dockerfile()
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
 }

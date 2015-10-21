@@ -28,9 +28,9 @@ func Detect(sous *core.Sous, args []string) {
 	}
 	desc := pack.ProjectDesc(packInfo)
 	cli.Outf("Detected %s; target support...", desc)
-	context := core.GetContext("detect", packInfo)
-	for name, target := range pack.Targets {
-		if _, err := target.Detect(context, packInfo); err != nil {
+	//context := core.GetContext("detect", packInfo)
+	for name, target := range pack.Targets() {
+		if err := target.Check(); err != nil {
 			cli.Outf("\t%s \t✘ %s", name, err)
 			continue
 		}

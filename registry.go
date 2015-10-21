@@ -6,5 +6,5 @@ import (
 )
 
 var buildPacks = []*core.Pack{
-	nodejs.Pack,
+	nodejs.GetPack(),
 }

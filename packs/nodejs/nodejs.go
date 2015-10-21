@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/opentable/sous/config"
-	"github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/version"
@@ -101,27 +100,5 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 	df.AddLabel("stack.name", "NodeJS")
 	df.AddLabel("stack.id", "nodejs")
 	df.AddLabel("stack.nodejs.version", nodeVersion)
-	return df
-}
-
-func buildNodeJS(np *NodePackage) *docker.Dockerfile {
-	df := baseDockerfile(np)
-	if np.Scripts.InstallProduction != "" {
-		df.AddRun(np.Scripts.InstallProduction)
-	} else {
-		df.AddRun("npm install --registry=%s --production", npmRegistry())
-	}
-	// Pick out the contents of NPM start to invoke directly (using npm start in
-	// production shields the app from signals, which are required to be handled by
-	// the app itself to do graceful shutdown.
-	df.CMD = tools.Whitespace.Split(np.Scripts.Start, -1)
-	return df
-}
-
-func testNodeJS(np *NodePackage) *docker.Dockerfile {
-	df := baseDockerfile(np)
-	df.AddRun("cd "+wd+" && npm install --registry=%s", npmRegistry())
-	df.AddLabel("com.opentable.tests", "true")
-	df.CMD = []string{"npm", "test"}
 	return df
 }
