@@ -13,7 +13,7 @@ func BuildPathHelp() string {
 }
 
 func BuildPath(sous *core.Sous, args []string) {
-	target := "build"
+	target := "app"
 	if len(args) != 0 {
 		target = args[0]
 	}

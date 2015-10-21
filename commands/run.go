@@ -14,7 +14,7 @@ func RunHelp() string {
 }
 
 func Run(sous *core.Sous, args []string) {
-	targetName := "build"
+	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]
 	}

@@ -15,7 +15,7 @@ sous build does not have any options yet`
 }
 
 func Build(sous *core.Sous, args []string) {
-	targetName := "build"
+	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]
 	}

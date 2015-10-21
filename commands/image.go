@@ -10,7 +10,7 @@ func ImageHelp() string {
 }
 
 func Image(sous *core.Sous, args []string) {
-	target := "build"
+	target := "app"
 	if len(args) != 0 {
 		target = args[0]
 	}

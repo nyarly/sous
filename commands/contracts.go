@@ -67,7 +67,7 @@ func Contracts(sous *core.Sous, args []string) {
 	flags.Parse(args)
 	args = flags.Args()
 	timeout := *timeoutFlag
-	targetName := "build"
+	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]
 	}

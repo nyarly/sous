@@ -11,7 +11,7 @@ func DockerfileHelp() string {
 }
 
 func Dockerfile(sous *core.Sous, args []string) {
-	targetName := "build"
+	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]
 	}

@@ -26,7 +26,7 @@ var lines = logsFlags.Int("n", 0, "number of lines to print")
 func Logs(sous *core.Sous, args []string) {
 	logsFlags.Parse(args)
 	args = logsFlags.Args()
-	target := "build"
+	target := "app"
 	if len(args) != 0 {
 		target = args[0]
 	}
