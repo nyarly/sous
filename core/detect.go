@@ -1,26 +1,23 @@
 package core
 
-import (
-	"os"
+import "github.com/opentable/sous/tools/cli"
 
-	"github.com/opentable/sous/tools/cli"
-)
-
-func DetectProjectType(packs []*Pack) *Pack {
-	availablePacks := []*Pack{}
+// DetectProjectType invokes Detect() for each registered pack.
+//
+// If a single pack is found to match, it returns that pack along with
+// the object returned from its detect func. This object is subsequently
+// passed into the detect step for each target supported by the pack.
+func DetectProjectType(packs []*Pack) (pack *Pack, packInfo interface{}) {
+	var err error
 	for _, p := range packs {
-		err := p.Detect()
+		packInfo, err = p.Detect()
 		if err != nil {
 			continue
 		}
-		availablePacks = append(availablePacks, p)
+		if pack != nil {
+			cli.Fatalf("multiple project types detected")
+		}
+		pack = p
 	}
-	if len(availablePacks) == 0 {
-		return nil
-	}
-	if len(availablePacks) > 1 {
-		cli.Fatalf("multiple project types detected")
-		os.Exit(1)
-	}
-	return availablePacks[0]
+	return
 }

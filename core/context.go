@@ -24,13 +24,14 @@ type Context struct {
 	Host, FullHost, User string
 	BuildState           *BuildState
 	AppVersion           string
+	PackInfo             interface{}
 }
 
 func (bc *Context) IsCI() bool {
 	return bc.User == "ci"
 }
 
-func GetContext(action string) *Context {
+func GetContext(action string, packInfo interface{}) *Context {
 	var c = config.Load()
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
@@ -43,6 +44,7 @@ func GetContext(action string) *Context {
 		FullHost:       cmd.Stdout("hostname", "-f"),
 		User:           getUser(),
 		BuildState:     bs,
+		PackInfo:       packInfo,
 	}
 }
 

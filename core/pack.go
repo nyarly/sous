@@ -2,8 +2,8 @@ package core
 
 type Pack struct {
 	Name                  string
-	Detect                func() error
+	Detect                func() (packInfo interface{}, err error)
 	Targets               map[string]*Target
-	CompatibleProjectDesc func() string
-	CheckCompatibility    func() []string
+	CompatibleProjectDesc func(packinfo interface{}) string
+	CheckCompatibility    func(packInfo interface{}) []string
 }

@@ -5,29 +5,28 @@ import (
 	"strings"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/version"
 )
 
 var Pack = &core.Pack{
-	Name:   "NodeJS",
-	Detect: detect,
-	CompatibleProjectDesc: func() string {
+	Name: "NodeJS",
+	Detect: func() (packInfo interface{}, err error) {
 		var np *NodePackage
-		if !file.ReadJSON(&np, "package.json") {
-			cli.Fatalf("no file named package.json")
+		if !file.ReadJSON(np, "package.json") {
+			return fmt.Errorf("no package.json file found"), nil
 		}
+		return np, nil
+	},
+	CompatibleProjectDesc: func(packInfo interface{}) string {
+		np := packInfo.(*NodePackage)
 		return fmt.Sprintf("a NodeJS %s project named %s v%s",
 			np.Engines.Node, np.Name, np.Version)
 	},
-	CheckCompatibility: func() []string {
+	CheckCompatibility: func(packInfo interface{}) []string {
 		c := []string{}
-		var np *NodePackage
-		if !file.ReadJSON(&np, "package.json") {
-			cli.Fatalf("no file named package.json")
-		}
+		np := packInfo.(*NodePackage)
 		if np.Engines.Node == "" {
 			c = append(c, "unable to determine NodeJS version, missing engines.node in package.json")
 		} else {
@@ -45,11 +44,8 @@ var Pack = &core.Pack{
 	},
 	Targets: map[string]*core.Target{
 		"build": &core.Target{
-			Detect: func(c *core.Context) (*core.AppInfo, error) {
-				var np *NodePackage
-				if !file.ReadJSON(&np, "package.json") {
-					return nil, fmt.Errorf("no file named package.json")
-				}
+			Detect: func(c *core.Context, packInfo interface{}) (*core.AppInfo, error) {
+				np := packInfo.(*NodePackage)
 				if len(np.Scripts.Start) == 0 {
 					return nil, fmt.Errorf("package.json does not specify a start script")
 				}
@@ -58,16 +54,13 @@ var Pack = &core.Pack{
 					Data:    np,
 				}, nil
 			},
-			MakeDockerfile: func(i *core.AppInfo) *docker.Dockerfile {
+			MakeDockerfile: func(i *core.AppInfo, packInfo interface{}) *docker.Dockerfile {
 				return buildNodeJS(i.Data.(*NodePackage))
 			},
 		},
 		"test": &core.Target{
-			Detect: func(c *core.Context) (*core.AppInfo, error) {
-				var np *NodePackage
-				if !file.ReadJSON(&np, "package.json") {
-					return nil, fmt.Errorf("no file named package.json")
-				}
+			Detect: func(c *core.Context, packInfo interface{}) (*core.AppInfo, error) {
+				np := packInfo.(*NodePackage)
 				if len(np.Scripts.Test) == 0 {
 					return nil, fmt.Errorf("package.json does not specify a test script")
 				}
@@ -76,17 +69,9 @@ var Pack = &core.Pack{
 					Data:    np,
 				}, nil
 			},
-			MakeDockerfile: func(i *core.AppInfo) *docker.Dockerfile {
+			MakeDockerfile: func(i *core.AppInfo, packInfo interface{}) *docker.Dockerfile {
 				return testNodeJS(i.Data.(*NodePackage))
 			},
 		},
 	},
-}
-
-func detect() error {
-	var np *NodePackage
-	if !file.ReadJSON(np, "package.json") {
-		return fmt.Errorf("no package.json file found")
-	}
-	return nil
 }

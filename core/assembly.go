@@ -14,7 +14,7 @@ import (
 
 func (s *Sous) AssembleTargetContext(name string) (*Target, *Context, *AppInfo) {
 	packs := s.Packs
-	pack := DetectProjectType(packs)
+	pack, packInfo := DetectProjectType(packs)
 	if pack == nil {
 		cli.Fatalf("no buildable project detected")
 	}
@@ -24,14 +24,14 @@ func (s *Sous) AssembleTargetContext(name string) (*Target, *Context, *AppInfo) 
 	}
 	// Now we know that the user was asking for something possible with the detected build pack,
 	// let's make sure that build pack is properly compatible with this project
-	issues := pack.CheckCompatibility()
+	issues := pack.CheckCompatibility(packInfo)
 	if len(issues) != 0 {
 		cli.Logf("This %s project has some issues...", pack.Name)
 		cli.LogBulletList("-", issues)
 		cli.Fatal()
 	}
-	context := GetContext(name)
-	appInfo, err := target.Detect(context)
+	context := GetContext(name, packInfo)
+	appInfo, err := target.Detect(context, packInfo)
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", name, pack.Name, err)
 	}
@@ -63,7 +63,7 @@ func (s *Sous) BuildIfNecessary(target *Target, context *Context, appInfo *AppIn
 }
 
 func (s *Sous) BuildDockerfile(target *Target, context *Context, appInfo *AppInfo) {
-	df := target.MakeDockerfile(appInfo)
+	df := target.MakeDockerfile(appInfo, context.PackInfo)
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
 }

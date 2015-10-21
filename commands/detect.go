@@ -15,22 +15,22 @@ A note on exit codes: Detect returns a success exit code if any project is detec
 }
 
 func Detect(sous *core.Sous, args []string) {
-	pack := core.DetectProjectType(sous.Packs)
+	pack, packInfo := core.DetectProjectType(sous.Packs)
 	if pack == nil {
 		fmt.Println("no sous-compatible project detected")
 		os.Exit(1)
 	}
-	incompatabilities := pack.CheckCompatibility()
+	incompatabilities := pack.CheckCompatibility(packInfo)
 	if len(incompatabilities) != 0 {
 		cli.Outf("Detected a %s project with some issues...", pack.Name)
 		cli.LogBulletList("-", incompatabilities)
 		cli.Fatal()
 	}
-	desc := pack.CompatibleProjectDesc()
+	desc := pack.CompatibleProjectDesc(packInfo)
 	cli.Outf("Detected %s; target support...", desc)
-	context := core.GetContext("detect")
+	context := core.GetContext("detect", packInfo)
 	for name, target := range pack.Targets {
-		if _, err := target.Detect(context); err != nil {
+		if _, err := target.Detect(context, packInfo); err != nil {
 			cli.Outf("\t%s \t✘ %s", name, err)
 			continue
 		}
