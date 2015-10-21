@@ -31,7 +31,7 @@ func (bc *Context) IsCI() bool {
 	return bc.User == "ci"
 }
 
-func GetContext(action string, packInfo interface{}) *Context {
+func GetContext(action string) *Context {
 	var c = config.Load()
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
@@ -44,7 +44,6 @@ func GetContext(action string, packInfo interface{}) *Context {
 		FullHost:       cmd.Stdout("hostname", "-f"),
 		User:           getUser(),
 		BuildState:     bs,
-		PackInfo:       packInfo,
 	}
 }
 

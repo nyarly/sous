@@ -14,23 +14,24 @@ import (
 
 func (s *Sous) AssembleTargetContext(name string) (Target, *Context, *AppInfo) {
 	packs := s.Packs
-	pack, packInfo := DetectProjectType(packs)
-	if pack == nil {
+	p := DetectProjectType(packs)
+	if p == nil {
 		cli.Fatalf("no buildable project detected")
 	}
+	pack := CompiledPack{Pack: p}
 	target, ok := pack.GetTarget(name)
 	if !ok {
 		cli.Fatalf("The %s build pack does not support %s", pack.Name, name)
 	}
 	// Now we know that the user was asking for something possible with the detected build pack,
 	// let's make sure that build pack is properly compatible with this project
-	issues := pack.CheckCompatibility(packInfo)
+	issues := pack.Problems()
 	if len(issues) != 0 {
 		cli.Logf("This %s project has some issues...", pack.Name)
 		cli.LogBulletList("-", issues)
 		cli.Fatal()
 	}
-	context := GetContext(name, packInfo)
+	context := GetContext(name)
 	err := target.Check()
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", name, pack.Name, err)

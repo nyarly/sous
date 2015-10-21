@@ -4,7 +4,7 @@ import "github.com/opentable/sous/tools/cli"
 
 type Sous struct {
 	Version, Revision, OS, Arch string
-	Packs                       []*Pack
+	Packs                       []Pack
 	Commands                    map[string]*Command
 	cleanupTasks                []func() error
 }
@@ -17,7 +17,7 @@ type Command struct {
 
 var sous *Sous
 
-func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []*Pack) *Sous {
+func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack) *Sous {
 	if sous == nil {
 		sous = &Sous{
 			Version:      version,

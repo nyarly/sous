@@ -9,45 +9,56 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
-func GetPack() *core.Pack {
-	return &core.Pack{
-		Name: "NodeJS",
-		Detect: func() (packInfo interface{}, err error) {
-			var np *NodePackage
-			if !file.ReadJSON(np, "package.json") {
-				return fmt.Errorf("no package.json file found"), nil
-			}
-			return np, nil
-		},
-		ProjectDesc: func(packInfo interface{}) string {
-			np := packInfo.(*NodePackage)
-			return fmt.Sprintf("a NodeJS %s project named %s v%s",
-				np.Engines.Node, np.Name, np.Version)
-		},
-		CheckCompatibility: func(packInfo interface{}) []string {
-			c := []string{}
-			np := packInfo.(*NodePackage)
-			if np.Engines.Node == "" {
-				c = append(c, "unable to determine NodeJS version, missing engines.node in package.json")
-			} else {
-				r := version.Range(np.Engines.Node)
-				if v := r.BestMatchFrom(AvailableNodeVersions()); v == nil {
-					f := "node version range (%s) not supported (pick from %s)"
-					m := fmt.Sprintf(f, r.Original, strings.Join(AvailableNodeVersions().Strings(), ", "))
-					c = append(c, m)
-				}
-			}
-			if np.Version == "" {
-				c = append(c, "no version specified in package.json:version")
-			}
-			return c
-		},
-		MakeTargets: func(packInfo interface{}) []core.Target {
-			np := packInfo.(*NodePackage)
-			return []core.Target{
-				NewAppTarget(np),
-				NewTestTarget(np),
-			}
-		},
+type Pack struct {
+	PackageJSON *NodePackage
+}
+
+func (p *Pack) Name() string {
+	return "NodeJS"
+}
+
+func (p *Pack) Desc() string {
+	return "NodeJS Build Pack"
+}
+
+func (p *Pack) Detect() error {
+	if !file.ReadJSON(&p.PackageJSON, "package.json") {
+		return fmt.Errorf("no package.json file found")
+	}
+	return nil
+}
+
+func (p *Pack) Problems() []string {
+	if p.PackageJSON == nil {
+		panic("PackageJSON not set, detect must have failed.")
+	}
+	np := p.PackageJSON
+	c := []string{}
+	if np.Engines.Node == "" {
+		c = append(c, "unable to determine NodeJS version, missing engines.node in package.json")
+	} else {
+		r := version.Range(np.Engines.Node)
+		if v := r.BestMatchFrom(AvailableNodeVersions()); v == nil {
+			f := "node version range (%s) not supported (pick from %s)"
+			m := fmt.Sprintf(f, r.Original, strings.Join(AvailableNodeVersions().Strings(), ", "))
+			c = append(c, m)
+		}
+	}
+	if np.Version == "" {
+		c = append(c, "no version specified in package.json:version")
+	}
+	return c
+}
+
+func (p *Pack) ProjectDesc() string {
+	np := p.PackageJSON
+	return fmt.Sprintf("a NodeJS %s project named %s v%s",
+		np.Engines.Node, np.Name, np.Version)
+}
+
+func (p *Pack) Targets() []core.Target {
+	return []core.Target{
+		NewAppTarget(p.PackageJSON),
+		NewTestTarget(p.PackageJSON),
 	}
 }

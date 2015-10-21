@@ -43,14 +43,6 @@ func (t *TargetBase) GenericDesc() string {
 	return t.genericDesc
 }
 
-//type TargetManifest struct {
-//	Desc           string
-//	Applicable     bool
-//	Detect         func(c *Context, packInfo interface{}) (*AppInfo, error)
-//	MakeDockerfile func(a *AppInfo, packInfo interface{}) *docker.Dockerfile
-//	DependsOn      []Target
-//}
-
 type Targets map[string]Target
 
 func (ts Targets) Add(target Target) {

@@ -5,6 +5,6 @@ import (
 	"github.com/opentable/sous/packs/nodejs"
 )
 
-var buildPacks = []*core.Pack{
-	nodejs.GetPack(),
+var buildPacks = []core.Pack{
+	&nodejs.Pack{},
 }
