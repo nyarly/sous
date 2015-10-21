@@ -55,8 +55,7 @@ func (s *Sous) BuildIfNecessary(target Target, context *Context, appInfo *AppInf
 	}
 	df := path.Resolve(context.FilePath("Dockerfile"))
 	localDockerfile := ".SousDockerfile"
-	s.AddCleanupTask(func() error {
-		panic("CLEANING UP!!!!")
+	cli.AddCleanupTask(func() error {
 		file.Remove(localDockerfile)
 		if file.Exists(localDockerfile) {
 			return fmt.Errorf("Unable to remove temporary file %s", localDockerfile)

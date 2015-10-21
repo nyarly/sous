@@ -12,9 +12,9 @@ import (
 )
 
 func main() {
+	trapSignals()
 	sous := core.NewSous(Version, Revision, OS, Arch, loadCommands(), buildPacks)
-	cleanupOnExit(sous)
-	defer core.AttemptCleanup()
+	defer cli.Cleanup()
 	if len(os.Args) < 2 {
 		usage()
 	}
@@ -37,12 +37,14 @@ func usage() {
 	cli.Fatalf("usage: sous <command>; try `sous help`")
 }
 
-func cleanupOnExit(sous *core.Sous) {
+// trapSignals traps both SIGINT and SIGTERM and defers to cli.Exit
+// to do a graceful exit.
+func trapSignals() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-c
-		core.AttemptCleanup()
+		s := <-c
+		cli.Exit(128 + int(s.(syscall.Signal)))
 	}()
 }
 

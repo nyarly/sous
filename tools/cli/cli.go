@@ -39,7 +39,12 @@ func Fatalf(format string, a ...interface{}) {
 }
 
 func Fatal() {
-	os.Exit(1)
+	Exit(1)
+}
+
+func Exit(code int) {
+	Cleanup()
+	os.Exit(code)
 }
 
 // Successf prints a formatted message to stderr and exits with exit code 0
@@ -49,7 +54,7 @@ func Successf(format string, a ...interface{}) {
 }
 
 func Success() {
-	os.Exit(0)
+	Exit(0)
 }
 
 func LogBulletList(bullet string, list []string) {
