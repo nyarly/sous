@@ -34,7 +34,7 @@ func main() {
 }
 
 func usage() {
-	cli.Fatalf("usage: sous COMMAND; try `sous help`")
+	cli.Fatalf("usage: sous <command>; try `sous help`")
 }
 
 func cleanupOnExit(sous *core.Sous) {
