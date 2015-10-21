@@ -26,7 +26,7 @@ func Detect(sous *core.Sous, args []string) {
 		cli.LogBulletList("-", incompatabilities)
 		cli.Fatal()
 	}
-	desc := pack.CompatibleProjectDesc(packInfo)
+	desc := pack.ProjectDesc(packInfo)
 	cli.Outf("Detected %s; target support...", desc)
 	context := core.GetContext("detect", packInfo)
 	for name, target := range pack.Targets {

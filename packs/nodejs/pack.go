@@ -19,7 +19,7 @@ var Pack = &core.Pack{
 		}
 		return np, nil
 	},
-	CompatibleProjectDesc: func(packInfo interface{}) string {
+	ProjectDesc: func(packInfo interface{}) string {
 		np := packInfo.(*NodePackage)
 		return fmt.Sprintf("a NodeJS %s project named %s v%s",
 			np.Engines.Node, np.Name, np.Version)
