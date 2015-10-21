@@ -62,3 +62,7 @@ func (p *Pack) Targets() []core.Target {
 		NewTestTarget(p.PackageJSON),
 	}
 }
+
+func (p *Pack) String() string {
+	return p.Name()
+}

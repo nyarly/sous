@@ -1,11 +1,14 @@
 package core
 
+import "fmt"
+
 // Pack describes a project type based on a particular dev stack.
 // It is guaranteed that Detect() will be called before any of
 // Problems(), ProjectDesc(), and Targets(). Therefore you can
 // use the Detect() step to store internal state inside the pack
 // if that is useful.
 type Pack interface {
+	fmt.Stringer
 	// Name returns a short constant string naming the pack
 	Name() string
 	// Desc returns a longer constant string describing the pack

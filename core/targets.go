@@ -1,11 +1,14 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 )
 
 type Target interface {
+	fmt.Stringer
 	// Name of the target, as used in command-line operations.
 	Name() string
 	// GenericDesc is a generic description of the target, applicable to any pack. It is
@@ -41,6 +44,10 @@ func (t *TargetBase) Name() string {
 
 func (t *TargetBase) GenericDesc() string {
 	return t.genericDesc
+}
+
+func (t *TargetBase) String() string {
+	return t.Name()
 }
 
 type Targets map[string]Target

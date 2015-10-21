@@ -21,7 +21,7 @@ func (s *Sous) AssembleTargetContext(name string) (Target, *Context, *AppInfo) {
 	pack := CompiledPack{Pack: p}
 	target, ok := pack.GetTarget(name)
 	if !ok {
-		cli.Fatalf("The %s build pack does not support %s", pack.Name, name)
+		cli.Fatalf("The %s build pack does not support %s", pack, name)
 	}
 	// Now we know that the user was asking for something possible with the detected build pack,
 	// let's make sure that build pack is properly compatible with this project
