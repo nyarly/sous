@@ -22,11 +22,11 @@ func Detect(sous *core.Sous, args []string) {
 	}
 	problems := pack.Problems()
 	if len(problems) != 0 {
-		cli.Outf("Detected a %s project with some issues...", pack.Name)
+		cli.Outf("Detected a %s project with some issues...", pack)
 		cli.LogBulletList("-", problems)
 		cli.Fatal()
 	}
-	desc := pack.ProjectDesc()
+	desc := pack.AppDesc()
 	cli.Outf("Detected %s; target support...", desc)
 	for _, target := range pack.Targets() {
 		if err := target.Check(); err != nil {

@@ -50,7 +50,11 @@ func (p *Pack) Problems() []string {
 	return c
 }
 
-func (p *Pack) ProjectDesc() string {
+func (p *Pack) AppVersion() string {
+	return p.PackageJSON.Version
+}
+
+func (p *Pack) AppDesc() string {
 	np := p.PackageJSON
 	return fmt.Sprintf("a NodeJS %s project named %s v%s",
 		np.Engines.Node, np.Name, np.Version)

@@ -22,10 +22,15 @@ type Pack interface {
 	// current project to highlight any potential problems
 	// with running the various targets against it.
 	Problems() []string
+	// ProjectVersion returns a semver-compatible version string
+	// representing the version of the application described by
+	// the source code, or an empty string if that is not
+	// available.
+	AppVersion() string
 	// ProjectDesc returns a description of the current project.
 	// It should include important information such as stack
 	// name, runtime version, application version, etc.
-	ProjectDesc() string
+	AppDesc() string
 	// Targets returns a slice of all targets this pack is able
 	// to build.
 	Targets() []Target

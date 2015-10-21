@@ -12,31 +12,35 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
-func (s *Sous) AssembleTargetContext(name string) (Target, *Context, *AppInfo) {
+func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context, *AppInfo) {
 	packs := s.Packs
 	p := DetectProjectType(packs)
 	if p == nil {
 		cli.Fatalf("no buildable project detected")
 	}
 	pack := CompiledPack{Pack: p}
-	target, ok := pack.GetTarget(name)
+	target, ok := pack.GetTarget(targetName)
 	if !ok {
-		cli.Fatalf("The %s build pack does not support %s", pack, name)
+		cli.Fatalf("The %s build pack does not support %s", pack, targetName)
 	}
 	// Now we know that the user was asking for something possible with the detected build pack,
 	// let's make sure that build pack is properly compatible with this project
 	issues := pack.Problems()
 	if len(issues) != 0 {
-		cli.Logf("This %s project has some issues...", pack.Name)
+		cli.Logf("This %s project has some issues...", pack)
 		cli.LogBulletList("-", issues)
 		cli.Fatal()
 	}
-	context := GetContext(name)
+	appVersion := pack.AppVersion()
+	if appVersion == "" {
+		appVersion = "unversioned"
+	}
+	context := GetContext(targetName)
 	err := target.Check()
 	if err != nil {
-		cli.Fatalf("unable to %s %s project: %s", name, pack.Name, err)
+		cli.Fatalf("unable to %s %s project: %s", targetName, pack, err)
 	}
-	//context.AppVersion = appInfo.Version
+	context.AppVersion = appVersion
 	return target, context, nil
 }
 
@@ -51,14 +55,15 @@ func (s *Sous) BuildIfNecessary(target Target, context *Context, appInfo *AppInf
 	}
 	df := path.Resolve(context.FilePath("Dockerfile"))
 	localDockerfile := ".SousDockerfile"
-	docker.BuildFile(df, localDockerfile, context.DockerTag())
 	s.AddCleanupTask(func() error {
+		panic("CLEANING UP!!!!")
 		file.Remove(localDockerfile)
 		if file.Exists(localDockerfile) {
 			return fmt.Errorf("Unable to remove temporary file %s", localDockerfile)
 		}
 		return nil
 	})
+	docker.BuildFile(df, localDockerfile, ".", context.DockerTag())
 	context.Commit()
 	return true
 }

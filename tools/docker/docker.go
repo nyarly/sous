@@ -82,12 +82,11 @@ func Build(dir, tag string) string {
 
 // BuildFile builds the specified docker file in the context of the specified
 // directory.
-func BuildFile(dockerfile, dir, tag string) string {
+func BuildFile(dockerfile, dfLocal, dir, tag string) string {
 	if !file.Exists(dockerfile) {
 		cli.Fatalf("File does not exist: %s")
 	}
 	dir = path.Resolve(dir)
-	dfLocal := ".SousDockerfile"
 	if file.Exists(dfLocal) {
 		file.Remove(dfLocal)
 	}
