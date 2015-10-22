@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/opentable/sous/tools/cli"
@@ -54,15 +53,7 @@ func (s *Sous) BuildIfNecessary(target Target, context *Context, appInfo *AppInf
 		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
 	}
 	df := path.Resolve(context.FilePath("Dockerfile"))
-	localDockerfile := ".SousDockerfile"
-	cli.AddCleanupTask(func() error {
-		file.Remove(localDockerfile)
-		if file.Exists(localDockerfile) {
-			return fmt.Errorf("Unable to remove temporary file %s", localDockerfile)
-		}
-		return nil
-	})
-	docker.BuildFile(df, localDockerfile, ".", context.DockerTag())
+	docker.BuildFile(df, ".", context.DockerTag())
 	context.Commit()
 	return true
 }

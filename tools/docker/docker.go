@@ -82,17 +82,28 @@ func Build(dir, tag string) string {
 
 // BuildFile builds the specified docker file in the context of the specified
 // directory.
-func BuildFile(dockerfile, dfLocal, dir, tag string) string {
+func BuildFile(dockerfile, dir, tag string) string {
 	if !file.Exists(dockerfile) {
 		cli.Fatalf("File does not exist: %s")
 	}
 	dir = path.Resolve(dir)
-	if file.Exists(dfLocal) {
-		file.Remove(dfLocal)
+	localDockerfile := ".SousDockerfile"
+	if file.Exists(localDockerfile) {
+		file.Remove(localDockerfile)
 	}
-	file.Link(dockerfile, dfLocal)
-	defer file.Remove(dfLocal)
-	return dockerCmd("build", "-f", dfLocal, "-t", tag, dir).Out()
+	file.RemoveOnExit(localDockerfile)
+	// If there is a .gitignore, but no .dockerignore, link it as .dockerignore
+	if file.Exists(".gitignore") {
+		if file.Exists(".dockerignore") {
+			cli.Logf("WARNING: Local .dockerignore found; it is recommended to remove this, and allow Sous to use your .gitignore instead")
+		} else {
+			file.Link(".gitignore", ".dockerignore")
+			file.RemoveOnExit(".dockerignore")
+		}
+	}
+	file.Link(dockerfile, localDockerfile)
+	defer file.Remove(localDockerfile)
+	return dockerCmd("build", "-f", localDockerfile, "-t", tag, dir).Out()
 }
 
 func Push(tag string) {
