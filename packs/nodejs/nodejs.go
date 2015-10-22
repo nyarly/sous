@@ -71,10 +71,6 @@ func Config() *config.Config {
 var npmVersions = version.VersionList("3.3.4", "2.4.15")
 var defaultNPMVersion = version.Version("2.4.15")
 
-func npmRegistry() string {
-	return Config().Packs.NodeJS.NPMMirrorURL
-}
-
 var wd = "/srv/app/"
 
 func baseDockerfile(np *NodePackage) *docker.Dockerfile {

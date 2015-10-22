@@ -22,7 +22,7 @@ func Push(sous *core.Sous, args []string) {
 		cli.Logf("WARNING: Dirty working tree: %s", err)
 	}
 
-	_, context, appInfo := sous.AssembleTargetContext(target)
+	_, context := sous.AssembleTargetContext(target)
 
 	lastBuildTag := context.PrevDockerTag()
 	if !docker.ImageExists(lastBuildTag) {
@@ -31,5 +31,5 @@ func Push(sous *core.Sous, args []string) {
 	}
 	docker.Push(lastBuildTag)
 	name := context.CanonicalPackageName()
-	cli.Successf("Successfully pushed %s v%s as %s", name, appInfo.Version, context.DockerTag())
+	cli.Successf("Successfully pushed %s v%s as %s", name, context.AppVersion, context.DockerTag())
 }

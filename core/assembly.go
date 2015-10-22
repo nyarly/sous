@@ -11,7 +11,23 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
-func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context, *AppInfo) {
+func CheckForProblems(pack Pack) (fatal bool) {
+	// Now we know that the user was asking for something possible with the detected build pack,
+	// let's make sure that build pack is properly compatible with this project
+	issues := pack.Problems()
+	warnings, errors := issues.Warnings(), issues.Errors()
+	if len(warnings) != 0 {
+		cli.LogBulletList("WARNING:", issues.Strings())
+	}
+	if len(errors) != 0 {
+		cli.LogBulletList("ERROR:", errors.Strings())
+		cli.Logf("ERROR: Your project cannot be built by Sous until the above errors are rectified")
+		return true
+	}
+	return false
+}
+
+func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	packs := s.Packs
 	p := DetectProjectType(packs)
 	if p == nil {
@@ -22,12 +38,7 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context, *AppI
 	if !ok {
 		cli.Fatalf("The %s build pack does not support %s", pack, targetName)
 	}
-	// Now we know that the user was asking for something possible with the detected build pack,
-	// let's make sure that build pack is properly compatible with this project
-	issues := pack.Problems()
-	if len(issues) != 0 {
-		cli.Logf("This %s project has some issues...", pack)
-		cli.LogBulletList("-", issues)
+	if fatal := CheckForProblems(pack.Pack); fatal {
 		cli.Fatal()
 	}
 	appVersion := pack.AppVersion()
@@ -40,15 +51,15 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context, *AppI
 		cli.Fatalf("unable to %s %s project: %s", targetName, pack, err)
 	}
 	context.AppVersion = appVersion
-	return target, context, nil
+	return target, context
 }
 
-func (s *Sous) BuildIfNecessary(target Target, context *Context, appInfo *AppInfo) bool {
+func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
 	if !context.NeedsBuild() {
 		return false
 	}
 	context.IncrementBuildNumber()
-	s.BuildDockerfile(target, context, appInfo)
+	s.BuildDockerfile(target, context)
 	if file.Exists("Dockerfile") {
 		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
 	}
@@ -58,7 +69,7 @@ func (s *Sous) BuildIfNecessary(target Target, context *Context, appInfo *AppInf
 	return true
 }
 
-func (s *Sous) BuildDockerfile(target Target, context *Context, appInfo *AppInfo) {
+func (s *Sous) BuildDockerfile(target Target, context *Context) {
 	df := target.Dockerfile()
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")

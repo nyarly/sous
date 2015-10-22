@@ -22,20 +22,24 @@ func Properties() Props {
 	return c
 }
 
+var c *Config
+
 func Load() *Config {
-	var c *Config
-	if !file.ReadJSON(&c, "~/.sous/config") {
-		if err := Update(); err != nil {
-			cli.Fatalf("Unable to load config: %s", err)
-		}
+	if c == nil {
 		if !file.ReadJSON(&c, "~/.sous/config") {
-			cli.Fatalf("Unable to read %s", "~/.sous/config")
+			if err := Update(); err != nil {
+				cli.Fatalf("Unable to load config: %s", err)
+			}
+			if !file.ReadJSON(&c, "~/.sous/config") {
+				cli.Fatalf("Unable to read %s", "~/.sous/config")
+			}
 		}
 	}
 	return c
 }
 
 func Update() error {
+	c = nil
 	p := cli.BeginProgress("Updating config")
 	Set("last-update-check", time.Now().Format(time.RFC3339))
 	props := Properties()

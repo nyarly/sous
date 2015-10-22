@@ -20,14 +20,11 @@ func Detect(sous *core.Sous, args []string) {
 		fmt.Println("no sous-compatible project detected")
 		os.Exit(1)
 	}
-	problems := pack.Problems()
-	if len(problems) != 0 {
-		cli.Outf("Detected a %s project with some issues...", pack)
-		cli.LogBulletList("-", problems)
-		cli.Fatal()
+	if fatal := core.CheckForProblems(pack); fatal {
+		cli.Fatalf("Detected a %s project with fatal errors.", pack)
 	}
 	desc := pack.AppDesc()
-	cli.Outf("Detected %s; target support...", desc)
+	cli.Outf("Detected a %s; which supports the following targets...", desc)
 	for _, target := range pack.Targets() {
 		if err := target.Check(); err != nil {
 			cli.Outf("\t%s \t✘ %s", target, err)
@@ -35,5 +32,5 @@ func Detect(sous *core.Sous, args []string) {
 		}
 		cli.Outf("\t%s \t✔︎", target)
 	}
-	os.Exit(0)
+	cli.Success()
 }

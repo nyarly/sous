@@ -14,7 +14,7 @@ func Image(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	_, context, _ := sous.AssembleTargetContext(target)
+	_, context := sous.AssembleTargetContext(target)
 	if context.BuildNumber() == 0 {
 		cli.Fatalf("no builds yet")
 	}

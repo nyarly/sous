@@ -1,6 +1,8 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Pack describes a project type based on a particular dev stack.
 // It is guaranteed that Detect() will be called before any of
@@ -21,7 +23,7 @@ type Pack interface {
 	// Problems is called to do a more thorough check on the
 	// current project to highlight any potential problems
 	// with running the various targets against it.
-	Problems() []string
+	Problems() ErrorCollection
 	// ProjectVersion returns a semver-compatible version string
 	// representing the version of the application described by
 	// the source code, or an empty string if that is not

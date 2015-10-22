@@ -12,8 +12,8 @@ type Packs struct {
 }
 
 type NodeJSConfig struct {
-	NPMMirrorURL                   string
 	NodeVersionsToDockerBaseImages map[string]string
 	DockerTags                     map[string]string
 	AvailableNPMVersions           []string
+	DefaultNodeVersion             string
 }

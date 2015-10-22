@@ -18,15 +18,15 @@ func Test(sous *core.Sous, args []string) {
 	core.RequireGit()
 	core.RequireDocker()
 
-	target, context, appInfo := sous.AssembleTargetContext("test")
-	if !sous.BuildIfNecessary(target, context, appInfo) {
+	target, context := sous.AssembleTargetContext("test")
+	if !sous.BuildIfNecessary(target, context) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 
 	testRunExitCode := docker.NewRun(context.DockerTag()).ExitCode()
 
 	if testRunExitCode == 0 {
-		name, version := context.CanonicalPackageName(), appInfo.Version
+		name, version := context.CanonicalPackageName(), context.AppVersion
 		cli.Successf("Tests passed %s v%s as %s", name, version, context.DockerTag())
 	}
 	cli.Fatalf("Test(s) failed.")

@@ -31,7 +31,7 @@ func (t *TestTarget) Check() error {
 
 func (t *TestTarget) Dockerfile() *docker.Dockerfile {
 	df := baseDockerfile(t.PackageJSON)
-	df.AddRun("cd "+wd+" && npm install --registry=%s", npmRegistry())
+	df.AddRun("cd " + wd + " && npm install")
 	df.AddLabel("com.opentable.tests", "true")
 	df.CMD = []string{"npm", "test"}
 	return df

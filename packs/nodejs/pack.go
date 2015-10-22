@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/version"
@@ -25,29 +26,34 @@ func (p *Pack) Detect() error {
 	if !file.ReadJSON(&p.PackageJSON, "package.json") {
 		return fmt.Errorf("no package.json file found")
 	}
+	// This is the place to set defaults
+	if p.PackageJSON.Engines.Node == "" {
+		p.PackageJSON.Engines.Node = config.Load().Packs.NodeJS.DefaultNodeVersion
+	}
 	return nil
 }
 
-func (p *Pack) Problems() []string {
+func (p *Pack) Problems() core.ErrorCollection {
 	if p.PackageJSON == nil {
 		panic("PackageJSON not set, detect must have failed.")
 	}
 	np := p.PackageJSON
-	c := []string{}
+	errs := core.ErrorCollection{}
+	c := config.Load()
 	if np.Engines.Node == "" {
-		c = append(c, "unable to determine NodeJS version, missing engines.node in package.json")
+		errs.AddWarningf("missing node engine version in package.json, defaulting to node %s; see https://docs.npmjs.com/files/package.json#engines",
+			c.Packs.NodeJS.DefaultNodeVersion)
 	} else {
 		r := version.Range(np.Engines.Node)
 		if v := r.BestMatchFrom(AvailableNodeVersions()); v == nil {
 			f := "node version range (%s) not supported (pick from %s)"
-			m := fmt.Sprintf(f, r.Original, strings.Join(AvailableNodeVersions().Strings(), ", "))
-			c = append(c, m)
+			errs.AddErrorf(f, r.Original, strings.Join((AvailableNodeVersions().Strings()), ", "))
 		}
 	}
 	if np.Version == "" {
-		c = append(c, "no version specified in package.json:version")
+		errs.AddWarningf("no app version specified in package.json:version")
 	}
-	return c
+	return errs
 }
 
 func (p *Pack) AppVersion() string {
