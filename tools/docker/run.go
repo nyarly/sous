@@ -61,7 +61,7 @@ func (r *Run) ExitCode() int {
 	return r.prepareCommand().ExitCode()
 }
 
-func (r *Run) Start() (*Container, error) {
+func (r *Run) Start() (*container, error) {
 	r.inBackground = true
 	c := r.prepareCommand()
 	cid := c.Out()
@@ -72,16 +72,5 @@ func (r *Run) Start() (*Container, error) {
 	if err != nil {
 		cli.Fatalf("Unable to tail logs: %s", err)
 	}
-	return &Container{cid}, nil
-}
-
-type Container struct {
-	CID string
-}
-
-func (c *Container) Kill() error {
-	if ex := cmd.ExitCode("docker", "kill", c.CID); ex != 0 {
-		return fmt.Errorf("exit code %d", ex)
-	}
-	return nil
+	return &container{cid, ""}, nil
 }

@@ -3,7 +3,6 @@ package nodejs
 import (
 	"strings"
 
-	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/version"
@@ -18,54 +17,36 @@ type NodePackage struct {
 type NodePackageEngines struct {
 	Node, NPM string
 }
+
 type NodePackageScripts struct {
 	Start, Test, InstallProduction string
 }
 
-func keys(m map[string]string) []string {
-	ks := make([]string, len(m))
-	i := 0
-	for k := range m {
-		ks[i] = k
-		i++
+func (p *Pack) AvailableNodeVersions() version.VL {
+	vs := make([]*version.V, len(*p.Config.AvailableVersions))
+	for i, v := range *p.Config.AvailableVersions {
+		vs[i] = version.Version(v.Name)
 	}
-	return ks
+	return vs
 }
 
-var _availableNodeVersions version.VL
-
-func AvailableNodeVersions() version.VL {
-	c := config.Load()
-	if _availableNodeVersions == nil {
-		_availableNodeVersions = version.VersionList(
-			keys(c.Packs.NodeJS.NodeVersionsToDockerBaseImages)...)
-	}
-
-	return _availableNodeVersions
-}
-
-func bestSupportedNodeVersion(np *NodePackage) string {
+func (p *Pack) bestSupportedNodeVersion() string {
+	np := p.PackageJSON
 	var nodeVersion *version.V
-	nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(AvailableNodeVersions())
+	nodeVersion = version.Range(np.Engines.Node).BestMatchFrom(p.AvailableNodeVersions())
 	if nodeVersion == nil {
 		cli.Fatalf("unable to satisfy NodeJS version '%s' (from package.json); available versions are: %s",
-			np.Engines.Node, strings.Join(AvailableNodeVersions().Strings(), ", "))
+			np.Engines.Node, strings.Join(p.AvailableNodeVersions().Strings(), ", "))
 	}
 	return nodeVersion.String()
 }
 
-func dockerFrom(np *NodePackage, nodeVersion string) string {
-	c := config.Load()
-	return c.Packs.NodeJS.NodeVersionsToDockerBaseImages[nodeVersion]
-}
-
-var _config *config.Config
-
-func Config() *config.Config {
-	if _config == nil {
-		_config = config.Load()
+func (p *Pack) dockerFrom(nodeVersion, target string) string {
+	if tag, ok := p.Config.AvailableVersions.GetBaseImageTag(nodeVersion, target); ok {
+		return tag
 	}
-	return _config
+	cli.Fatalf("No base image available for NodeJS %s, target: %s", nodeVersion, target)
+	return ""
 }
 
 var npmVersions = version.VersionList("3.3.4", "2.4.15")
@@ -73,10 +54,10 @@ var defaultNPMVersion = version.Version("2.4.15")
 
 var wd = "/srv/app/"
 
-func baseDockerfile(np *NodePackage) *docker.Dockerfile {
-	var Config = config.Load()
-	nodeVersion := bestSupportedNodeVersion(np)
-	from := dockerFrom(np, nodeVersion)
+func (p *Pack) baseDockerfile(target string) *docker.Dockerfile {
+	np := p.PackageJSON
+	nodeVersion := p.bestSupportedNodeVersion()
+	from := p.dockerFrom(nodeVersion, target)
 	npmVer := defaultNPMVersion
 	if np.Engines.NPM != "" {
 		npmVer = version.Range(np.Engines.NPM).BestMatchFrom(npmVersions)
@@ -89,7 +70,7 @@ func baseDockerfile(np *NodePackage) *docker.Dockerfile {
 		From:        from,
 		Add:         []docker.Add{docker.Add{Files: []string{"."}, Dest: wd}},
 		Workdir:     wd,
-		LabelPrefix: Config.DockerLabelPrefix,
+		LabelPrefix: "com.opentable",
 	}
 	npmMajorVer := npmVer.String()[0:1]
 	df.AddRun("npm install -g npm@%s", npmMajorVer)

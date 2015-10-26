@@ -10,8 +10,8 @@ type TestTarget struct {
 	*NodeJSTarget
 }
 
-func NewTestTarget(np *NodePackage) *TestTarget {
-	return &TestTarget{NewNodeJSTarget("test", np)}
+func NewTestTarget(pack *Pack) *TestTarget {
+	return &TestTarget{NewNodeJSTarget("test", pack)}
 }
 
 func (t *TestTarget) DependsOn() []string { return nil }
@@ -23,14 +23,14 @@ func (t *TestTarget) Desc() string {
 }
 
 func (t *TestTarget) Check() error {
-	if len(t.PackageJSON.Scripts.Test) == 0 {
+	if len(t.Pack.PackageJSON.Scripts.Test) == 0 {
 		return fmt.Errorf("package.json does not specify a test script")
 	}
 	return nil
 }
 
 func (t *TestTarget) Dockerfile() *docker.Dockerfile {
-	df := baseDockerfile(t.PackageJSON)
+	df := t.Pack.baseDockerfile("test")
 	df.AddRun("cd " + wd + " && npm install")
 	df.AddLabel("com.opentable.tests", "true")
 	df.CMD = []string{"npm", "test"}

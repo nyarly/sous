@@ -11,8 +11,8 @@ type AppTarget struct {
 	*NodeJSTarget
 }
 
-func NewAppTarget(np *NodePackage) *AppTarget {
-	return &AppTarget{NewNodeJSTarget("app", np)}
+func NewAppTarget(pack *Pack) *AppTarget {
+	return &AppTarget{NewNodeJSTarget("app", pack)}
 }
 
 func (t *AppTarget) DependsOn() []string { return nil }
@@ -24,15 +24,15 @@ func (t *AppTarget) Desc() string {
 }
 
 func (t *AppTarget) Check() error {
-	if len(t.PackageJSON.Scripts.Start) == 0 {
+	if len(t.Pack.PackageJSON.Scripts.Start) == 0 {
 		return fmt.Errorf("package.json does not specify a start script")
 	}
 	return nil
 }
 
 func (t *AppTarget) Dockerfile() *docker.Dockerfile {
-	np := t.PackageJSON
-	df := baseDockerfile(np)
+	np := t.Pack.PackageJSON
+	df := t.Pack.baseDockerfile(np.Version)
 	if np.Scripts.InstallProduction != "" {
 		df.AddRun(np.Scripts.InstallProduction)
 	} else {

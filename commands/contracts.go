@@ -98,7 +98,6 @@ func Contracts(sous *core.Sous, args []string) {
 		cli.Fatalf("Unable to start container: %s", err)
 	}
 	cli.AddCleanupTask(func() error {
-		cli.Logf("Killing contracts container %s", container)
 		return container.Kill()
 	})
 
