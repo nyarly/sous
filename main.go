@@ -13,18 +13,19 @@ import (
 
 func main() {
 	trapSignals()
-	sous := core.NewSous(Version, Revision, OS, Arch, loadCommands(), buildPacks)
 	defer cli.Cleanup()
 	if len(os.Args) < 2 {
 		usage()
 	}
 	command := os.Args[1]
+	if command != "config" {
+		updateHourly()
+	}
+	cfg := config.Load()
+	sous := core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(cfg))
 	c, ok := sous.Commands[command]
 	if !ok {
 		cli.Fatalf("Command %s not recognised; try `sous help`", command)
-	}
-	if command != "config" {
-		updateHourly()
 	}
 	// It is the responsibility of the command to exit with an appropriate
 	// error code...

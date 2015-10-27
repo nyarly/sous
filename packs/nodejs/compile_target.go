@@ -3,6 +3,7 @@ package nodejs
 import (
 	"fmt"
 
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 )
@@ -28,14 +29,21 @@ func (t *CompileTarget) Check() error {
 }
 
 func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
-	//np := t.PackageJSON
-	df := &docker.Dockerfile{}
-	df.From = ""
-	df.CMD = []string{"cd /wd && ls -lah / &&  ./build.bash"}
+	df := t.Pack.baseDockerfile(t.Name())
+	df.CMD = []string{"npm install -g npm@2 && npm install"}
 	return df
 }
 
-// Run first checks if a container with the right name has already been built. If so,
+// Stale for this target only rebuilds when Sous itself is updated. This is
+// because we want to preserve the same container as long as possible, as it
+// builds up a cache, speeding up builds. When Sous itself is updated (either a
+// new version of the binary, or the config is changed) we must always re-build
+// everything, as base images and policies may have been updated.
+func (t *CompileTarget) Stale(c *core.Context) bool {
+	return c.ChangesSinceLastBuild().SousUpdated
+}
+
+// Run first checks if a container with the right name has already been bcd /wd && ls -lah / &&  ./build.bashuilt. If so,
 // it re-uses that container (note: this container is built exactly once per project,
 // per configuration par change or upgrade to sous, not when source code generally,
 // nor even dependencies change.

@@ -1,9 +1,7 @@
 package core
 
 import (
-	"crypto/sha1"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -79,18 +77,34 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
 }
 
-func (c *Context) NeedsBuild() bool {
-	if !c.LastBuildImageExists() {
-		return true
+// NeedsBuild detects if the project's last
+// build is stale, and if it therefore needs to be rebuilt. This can be overidden
+// by implementing the Staler interfact on individual build targets. This default
+// implementation rebuilds on absolutely any change in sous (i.e. new version/new
+// config) or in the working tree (new or modified files).
+func (c *Context) NeedsBuild(target Target) bool {
+	if staler, ok := target.(Staler); ok {
+		return staler.Stale(c)
 	}
-	if c.BuildState.CommitSHA != c.BuildState.LastCommitSHA {
-		return true
-	}
+	return c.ChangesSinceLastBuild().Any()
+}
+
+func (c *Context) ChangesSinceLastBuild() *Changes {
 	cc := c.BuildState.CurrentCommit()
-	if cc.Hash != cc.OldHash {
-		return true
+	return &Changes{
+		NoBuiltImage:       !c.LastBuildImageExists(),
+		NewCommit:          c.BuildState.CommitSHA != c.BuildState.LastCommitSHA,
+		WorkingTreeChanged: cc.TreeHash != cc.OldTreeHash,
+		SousUpdated:        cc.SousHash != cc.OldSousHash,
 	}
-	return false
+}
+
+type Changes struct {
+	NoBuiltImage, NewCommit, WorkingTreeChanged, SousUpdated bool
+}
+
+func (c *Changes) Any() bool {
+	return c.NoBuiltImage || c.NewCommit || c.WorkingTreeChanged || c.SousUpdated
 }
 
 func (c *Context) LastBuildImageExists() bool {
@@ -145,32 +159,6 @@ func (c *Context) FilePath(name string) string {
 
 func (c *Context) BaseDir() string {
 	return path.BaseDir(c.BuildState.path)
-}
-
-func CalculateHash() string {
-	h := sha1.New()
-	toolVersion := cmd.Stdout("sous", "version")
-	io.WriteString(h, toolVersion)
-	indexDiffs := cmd.Stdout("git", "diff-index", "HEAD")
-	if len(indexDiffs) != 0 {
-		io.WriteString(h, indexDiffs)
-	}
-	newFiles := git.UntrackedUnignoredFiles()
-	if len(newFiles) != 0 {
-		for _, f := range newFiles {
-			io.WriteString(h, f)
-			if content, ok := file.ReadString(f); ok {
-				io.WriteString(h, content)
-			}
-		}
-	}
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-type Commit struct {
-	Hash, OldHash string
-	BuildNumber   int
-	ToolVersion   string
 }
 
 func tryGetBuildNumberFromEnv() (int, bool) {

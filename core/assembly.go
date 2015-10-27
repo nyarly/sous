@@ -54,10 +54,25 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	return target, context
 }
 
+// BuildIfNecessary usually rebuilds any target if anything of the following
+// are true:
+//
+// - No build is available at all
+// - Any files in the working tree have changed
+// - Sous has been updated
+// - Sous config has changed
+//
+// However, you may override this behaviour for a specific target by implementing
+// the Staler interface: { Stale(*Context) bool }
 func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
-	if !context.NeedsBuild() {
+	if !context.NeedsBuild(target) {
 		return false
 	}
+	s.Build(target, context)
+	return true
+}
+
+func (s *Sous) Build(target Target, context *Context) {
 	context.IncrementBuildNumber()
 	s.BuildDockerfile(target, context)
 	if file.Exists("Dockerfile") {
@@ -66,7 +81,6 @@ func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
 	df := path.Resolve(context.FilePath("Dockerfile"))
 	docker.BuildFile(df, ".", context.DockerTag())
 	context.Commit()
-	return true
 }
 
 func (s *Sous) BuildDockerfile(target Target, context *Context) {

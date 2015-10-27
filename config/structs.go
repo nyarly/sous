@@ -33,9 +33,7 @@ func (svs StackVersions) GetBaseImageTag(version, target string) (string, bool) 
 			if specificImage, ok := sv.TargetImages[target]; ok {
 				return specificImage, true
 			}
-			if defaultImage, ok := sv.TargetImages["default"]; ok {
-				return defaultImage, true
-			}
+			return sv.DefaultImage, true
 		}
 	}
 	return "", false
