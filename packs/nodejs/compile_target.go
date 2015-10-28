@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
 )
 
@@ -52,21 +52,31 @@ func (t *CompileTarget) Stale(c *core.Context) bool {
 // for every build of this project. It's basically a caching layer. It is based on the
 // exact same OS and Arch as the production containers, but with additional build tools
 // which enable the building of complex dependencies.
-func (t *CompileTarget) Run() {
+func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	np := t.Pack.PackageJSON
 	containerName := fmt.Sprintf("sous-builder_%s", np.Name)
 	container := docker.ContainerWithName(containerName)
 	if container.Exists() {
-		if err := container.Start(); err != nil {
-			cli.Fatalf("ERROR: Failed to start build container: %s", err)
+		if container.Running() {
+			container.Kill()
 		}
-	} else {
-		cli.Logf("=====> Preparing build container for first run")
-		run := docker.NewRun("")
-		if run.ExitCode() != 0 {
-			cli.Fatalf("ERROR: Preparing build container failed, see logs above.")
-		}
+		container.Remove()
 	}
-	// docker run -v "$PWD:/wd" -v "$HOME/.sous:/artifacts" start-page-builder
-	docker.NewRun("")
+	//if container.Exists() {
+	//	if err := container.Start(); err != nil {
+	//		cli.Fatalf("ERROR: Failed to start build container: %s", err)
+	//	}
+	//} else {
+	//	cli.Logf("=====> Preparing build container for first run")
+	//}
+	// docker run --name sous-builder_%s  -v "$PWD:/wd" -v "$HOME/.sous:/artifacts" start-page-builder
+	run := docker.NewRun(c.DockerTag())
+	run.Name = containerName
+	run.AddEnv("ARTIFACT_NAME", c.CanonicalPackageName())
+	artDir := c.FilePath("artifacts")
+	dir.EnsureExists(artDir)
+	run.AddVolume(artDir, "/artifacts")
+	run.AddVolume(c.WorkDir, "/wd")
+	run.Command = "npm install -g npm@2 && npm install"
+	return run
 }

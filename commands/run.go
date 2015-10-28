@@ -23,9 +23,21 @@ func Run(sous *core.Sous, args []string) {
 
 	target, context := sous.AssembleTargetContext(targetName)
 	if !sous.BuildIfNecessary(target, context) {
-		cli.Logf("No changes since last build, running %s", context.DockerTag())
+		cli.Logf("No relevant changes since last build, running %s", context.DockerTag())
 	}
+	var dr *docker.Run
+	if runner, ok := target.(core.DockerRunner); ok {
+		dr = runner.DockerRun(context)
+	} else {
+		dr = defaultDockerRun(context)
+	}
+	if code := dr.ExitCode(); code != 0 {
+		cli.Fatalf("Run failed with exit code %d", code)
+	}
+	cli.Success()
+}
 
+func defaultDockerRun(context *core.Context) *docker.Run {
 	dr := docker.NewRun(context.DockerTag())
 	port0, err := ports.GetFreePort()
 	if err != nil {
@@ -33,8 +45,5 @@ func Run(sous *core.Sous, args []string) {
 	}
 	dr.AddEnv("PORT0", strconv.Itoa(port0))
 	dr.AddEnv("TASK_HOST", core.DivineTaskHost())
-	if code := dr.ExitCode(); code != 0 {
-		cli.Fatalf("Run failed with exit code %d", code)
-	}
-	cli.Success()
+	return dr
 }

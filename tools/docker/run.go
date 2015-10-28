@@ -14,6 +14,8 @@ type Run struct {
 	Env                    map[string]string
 	Net                    string
 	StdoutFile, StderrFile string
+	Volumes                []string
+	Command                string
 	inBackground           bool
 }
 
@@ -27,6 +29,13 @@ func NewRun(image string) *Run {
 
 func (r *Run) AddEnv(key, value string) {
 	r.Env[key] = value
+}
+
+func (r *Run) AddVolume(hostPath, containerPath string) {
+	if r.Volumes == nil {
+		r.Volumes = []string{}
+	}
+	r.Volumes = append(r.Volumes, fmt.Sprintf("%s:%s", hostPath, containerPath))
 }
 
 func (r *Run) Background() *Run {
@@ -45,10 +54,16 @@ func (r *Run) prepareCommand() *cmd.CMD {
 	for k, v := range r.Env {
 		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
+	for _, v := range r.Volumes {
+		args = append(args, "-v", v)
+	}
 	if r.Net != "" {
 		args = append(args, "--net="+r.Net)
 	}
 	args = append(args, r.Image)
+	if r.Command != "" {
+		args = append(args, r.Command)
+	}
 	c := dockerCmd(args...)
 	if r.inBackground {
 		c.EchoStdout = false

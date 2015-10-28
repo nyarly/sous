@@ -12,8 +12,10 @@ type Container interface {
 	Name() string
 	String() string
 	Kill() error
+	Remove() error
 	Start() error
 	Exists() bool
+	Running() bool
 }
 
 type container struct {
@@ -32,37 +34,53 @@ func (c *container) CID() string  { return c.cid }
 func (c *container) Name() string { return c.name }
 
 func (c *container) Exists() bool {
-	t := cmd.Table("docker", "ps", "-a", "--no-trunc")
-	var match func([]string) bool
 	if c.name != "" {
-		match = func(row []string) bool { return row[6] == c.name }
+		return len(cmd.Lines("docker", "ps", "-a", "--filter", "name="+c.name)) != 0
 	} else if c.cid != "" {
-		match = func(row []string) bool { return row[0] == c.cid }
-	} else {
-		cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
+		return len(cmd.Lines("docker", "ps", "-a", "--filter", "id="+c.cid)) != 0
 	}
-	for _, r := range t {
-		if match(r) {
-			return true
-		}
+	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
+	return false
+}
+
+func (c *container) Running() bool {
+	if c.name != "" {
+		return len(cmd.Lines("docker", "ps", "--filter", "name="+c.name)) != 0
+	} else if c.cid != "" {
+		return len(cmd.Lines("docker", "ps", "--filter", "id="+c.cid)) != 0
 	}
+	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
 	return false
 }
 
 func (c *container) Kill() error {
-	if ex := cmd.ExitCode("docker", "kill", c.cid); ex != 0 {
+	if ex := cmd.ExitCode("docker", "kill", c.effectiveName()); ex != 0 {
 		return fmt.Errorf("Unable to kill docker container %s", c)
 	}
 	return nil
 }
 
+func (c *container) Remove() error {
+	if ex := cmd.ExitCode("docker", "rm", c.effectiveName()); ex != 0 {
+		return fmt.Errorf("Unable to remove docker container %s", c)
+	}
+	return nil
+}
+
 func (c *container) Start() error {
-	if ex := cmd.ExitCode("docker", "start", c.cid); ex != 0 {
+	if ex := cmd.ExitCode("docker", "start", c.effectiveName()); ex != 0 {
 		return fmt.Errorf("Unable to start docker container %s", c)
 	}
 	return nil
 }
 
 func (c *container) String() string {
+	return c.effectiveName()
+}
+
+func (c *container) effectiveName() string {
+	if c.cid == "" {
+		return c.name
+	}
 	return c.cid
 }

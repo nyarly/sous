@@ -34,6 +34,10 @@ type Staler interface {
 	Stale(*Context) bool
 }
 
+type DockerRunner interface {
+	DockerRun(*Context) *docker.Run
+}
+
 // Target describes a buildable Docker image that performs a particular task related to building
 // testing and deploying the application. Each pack under packs/ will customise its targets for
 // the specific jobs that need to be performed for that pack.

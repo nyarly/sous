@@ -17,6 +17,7 @@ import (
 
 type Context struct {
 	Git                  *git.Info
+	WorkDir              string
 	Action               string
 	DockerRegistry       string
 	Host, FullHost, User string
@@ -34,8 +35,13 @@ func GetContext(action string) *Context {
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
 	bs := GetBuildState(action, gitInfo)
+	wd, err := os.Getwd()
+	if err != nil {
+		cli.Fatalf("Unable to get current working directory: %s", err)
+	}
 	return &Context{
 		Git:            gitInfo,
+		WorkDir:        wd,
 		Action:         action,
 		DockerRegistry: registry,
 		Host:           cmd.Stdout("hostname"),

@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"text/template"
 )
@@ -10,8 +11,22 @@ type Dockerfile struct {
 	From, Maintainer, Workdir string
 	Labels                    map[string]string
 	Add                       []Add
-	Run, Entrypoint, CMD      []string
+	Run, Entrypoint           []string
+	CMD                       StringList
 	LabelPrefix               string
+}
+
+type StringList []string
+
+func (sl StringList) String() string {
+	if len(sl) == 1 {
+		return sl[0]
+	}
+	j, err := json.Marshal(sl)
+	if err != nil {
+		panic("Unable to marshal json array")
+	}
+	return string(j)
 }
 
 type Add struct {
@@ -40,8 +55,7 @@ func (d *Dockerfile) AddRun(format string, a ...interface{}) {
 	d.Run = append(d.Run, fmt.Sprintf(format, a...))
 }
 
-var dockerfileTemplate = `
-FROM {{.From}}
+var dockerfileTemplate = `FROM {{.From}}
 MAINTAINER {{.Maintainer}}
 {{if .Labels}}{{$first:=true}}
 LABEL {{range $name, $value := .Labels}} \
@@ -52,6 +66,5 @@ WORKDIR {{.Workdir}}{{end}}
 {{range .Run}}RUN {{.}}
 {{end}}
 {{if .Entrypoint}}ENTRYPOINT [{{range $i, $e := .Entrypoint}}{{if $i}},{{end}}"{{$e}}"{{end}}]{{end}}
-{{if .CMD}}CMD [{{range $i, $e := .CMD}}{{if $i}},{{end}}"{{$e}}"{{end}}]{{end}}
-
+{{if .CMD}}CMD {{.CMD}}{{end}}
 `
