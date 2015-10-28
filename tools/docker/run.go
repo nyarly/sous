@@ -11,6 +11,7 @@ import (
 
 type Run struct {
 	Image, Name            string
+	ReRun                  Container
 	Env                    map[string]string
 	Net                    string
 	StdoutFile, StderrFile string
@@ -24,6 +25,12 @@ func NewRun(image string) *Run {
 		Image: image,
 		Net:   "host",
 		Env:   map[string]string{},
+	}
+}
+
+func NewReRun(container Container) *Run {
+	return &Run{
+		ReRun: container,
 	}
 }
 
@@ -44,25 +51,31 @@ func (r *Run) Background() *Run {
 }
 
 func (r *Run) prepareCommand() *cmd.CMD {
-	args := []string{"run"}
-	if r.inBackground {
-		args = append(args, "-d")
-	}
-	if r.Name != "" {
-		args = append(args, "--name", r.Name)
-	}
-	for k, v := range r.Env {
-		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
-	}
-	for _, v := range r.Volumes {
-		args = append(args, "-v", v)
-	}
-	if r.Net != "" {
-		args = append(args, "--net="+r.Net)
-	}
-	args = append(args, r.Image)
-	if r.Command != "" {
-		args = append(args, r.Command)
+	var args []string
+	if r.ReRun != nil {
+		// Add -i flag since start by default puts container in background
+		args = []string{"start", "-i", r.ReRun.String()}
+	} else {
+		args = []string{"run"}
+		if r.inBackground {
+			args = append(args, "-d")
+		}
+		if r.Name != "" {
+			args = append(args, "--name", r.Name)
+		}
+		for k, v := range r.Env {
+			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+		}
+		for _, v := range r.Volumes {
+			args = append(args, "-v", v)
+		}
+		if r.Net != "" {
+			args = append(args, "--net="+r.Net)
+		}
+		args = append(args, r.Image)
+		if r.Command != "" {
+			args = append(args, r.Command)
+		}
 	}
 	c := dockerCmd(args...)
 	if r.inBackground {

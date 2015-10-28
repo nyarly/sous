@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/opentable/sous/core"
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
 )
@@ -30,7 +31,7 @@ func (t *CompileTarget) Check() error {
 
 func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
 	df := t.Pack.baseDockerfile(t.Name())
-	df.CMD = []string{"npm install -g npm@2 && npm install"}
+	df.AddRun("npm install -g npm@2")
 	return df
 }
 
@@ -43,9 +44,9 @@ func (t *CompileTarget) Stale(c *core.Context) bool {
 	return c.ChangesSinceLastBuild().SousUpdated
 }
 
-// Run first checks if a container with the right name has already been bcd /wd && ls -lah / &&  ./build.bashuilt. If so,
+// Run first checks if a container with the right name has already been built. If so,
 // it re-uses that container (note: this container is built exactly once per project,
-// per configuration par change or upgrade to sous, not when source code generally,
+// per configuration per change or upgrade to sous, not when source code generally,
 // nor even dependencies change.
 //
 // It builds a stateful container with the NPM cache that implies, which is re-used
@@ -53,30 +54,21 @@ func (t *CompileTarget) Stale(c *core.Context) bool {
 // exact same OS and Arch as the production containers, but with additional build tools
 // which enable the building of complex dependencies.
 func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
-	np := t.Pack.PackageJSON
-	containerName := fmt.Sprintf("sous-builder_%s", np.Name)
+	containerName := fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
 	container := docker.ContainerWithName(containerName)
 	if container.Exists() {
-		if container.Running() {
-			container.Kill()
-		}
-		container.Remove()
+		cli.Logf("Re-using build container")
+		return docker.NewReRun(container)
 	}
-	//if container.Exists() {
-	//	if err := container.Start(); err != nil {
-	//		cli.Fatalf("ERROR: Failed to start build container: %s", err)
-	//	}
-	//} else {
-	//	cli.Logf("=====> Preparing build container for first run")
-	//}
-	// docker run --name sous-builder_%s  -v "$PWD:/wd" -v "$HOME/.sous:/artifacts" start-page-builder
+	cli.Logf("====> Preparing build container for first use")
 	run := docker.NewRun(c.DockerTag())
 	run.Name = containerName
-	run.AddEnv("ARTIFACT_NAME", c.CanonicalPackageName())
+	artifactName := fmt.Sprintf("%s-%s-%s", c.CanonicalPackageName(), c.AppVersion, c.Git.CommitSHA)
+	run.AddEnv("ARTIFACT_NAME", artifactName)
 	artDir := c.FilePath("artifacts")
 	dir.EnsureExists(artDir)
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
-	run.Command = "npm install -g npm@2 && npm install"
+	run.Command = "npm install"
 	return run
 }

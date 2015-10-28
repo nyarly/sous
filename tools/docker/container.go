@@ -35,9 +35,9 @@ func (c *container) Name() string { return c.name }
 
 func (c *container) Exists() bool {
 	if c.name != "" {
-		return len(cmd.Lines("docker", "ps", "-a", "--filter", "name="+c.name)) != 0
+		return len(cmd.Lines("docker", "ps", "-a", "--filter", "name="+c.name)) > 1
 	} else if c.cid != "" {
-		return len(cmd.Lines("docker", "ps", "-a", "--filter", "id="+c.cid)) != 0
+		return len(cmd.Lines("docker", "ps", "-a", "--filter", "id="+c.cid)) > 1
 	}
 	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
 	return false
@@ -45,9 +45,9 @@ func (c *container) Exists() bool {
 
 func (c *container) Running() bool {
 	if c.name != "" {
-		return len(cmd.Lines("docker", "ps", "--filter", "name="+c.name)) != 0
+		return len(cmd.Lines("docker", "ps", "--filter", "name="+c.name)) > 1
 	} else if c.cid != "" {
-		return len(cmd.Lines("docker", "ps", "--filter", "id="+c.cid)) != 0
+		return len(cmd.Lines("docker", "ps", "--filter", "id="+c.cid)) > 1
 	}
 	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
 	return false
