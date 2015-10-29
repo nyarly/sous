@@ -57,7 +57,7 @@ var wd = "/srv/app/"
 func (p *Pack) baseDockerfile(target string) *docker.Dockerfile {
 	np := p.PackageJSON
 	nodeVersion := p.bestSupportedNodeVersion()
-	from := p.dockerFrom(nodeVersion, target)
+	from := p.dockerFrom(nodeVersion, target) + ":latest"
 	npmVer := defaultNPMVersion
 	if np.Engines.NPM != "" {
 		npmVer = version.Range(np.Engines.NPM).BestMatchFrom(npmVersions)
