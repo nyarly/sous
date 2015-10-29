@@ -17,7 +17,7 @@ type Target interface {
 	// DependsOn lists the direct dependencies of this target. Dependencies listed as "optional" will
 	// always be built when available, but if they are not available will be ignored. It is the job
 	// of each package under packs/ to correctly define these relationships.
-	DependsOn() []string
+	DependsOn() []Target
 	// Desc is a description of what this target does exactly in the context
 	// of the pack that owns it. It should be set by the pack when it is initialised.
 	Desc() string
@@ -28,14 +28,6 @@ type Target interface {
 	// This method is only invoked only once the Detect func has successfully detected target availability.
 	// The *AppInfo from Detect is passed in as context.
 	Dockerfile() *docker.Dockerfile
-}
-
-type Staler interface {
-	Stale(*Context) bool
-}
-
-type DockerRunner interface {
-	DockerRun(*Context) *docker.Run
 }
 
 // Target describes a buildable Docker image that performs a particular task related to building
@@ -85,6 +77,46 @@ func MustGetTargetBase(name string) *TargetBase {
 		cli.Fatalf("target %s not known", name)
 	}
 	return &b
+}
+
+type Staler interface {
+	Stale(*Context) bool
+}
+
+type DockerRunner interface {
+	DockerRun(*Context) *docker.Run
+}
+
+type SetStater interface {
+	SetState(string, interface{})
+}
+
+type Stater interface {
+	State() interface{}
+}
+
+func (s *Sous) RunTarget(t Target, c *Context) interface{} {
+	for _, d := range t.DependsOn() {
+		state := s.RunTarget(d, c)
+		if sa, ok := t.(SetStater); ok {
+			sa.SetState(d.Name(), state)
+		}
+	}
+	// Now we have run this on all dependencies, run this
+	// one if necessary...
+	s.BuildIfNecessary(t, c)
+	// If this target specifies a docker run command, invoke it.
+	if runner, ok := t.(DockerRunner); ok {
+		run := runner.DockerRun(c)
+		if run.ExitCode() != 0 {
+			cli.Fatalf("Docker run failed.")
+		}
+	}
+	// Get any available state...
+	if sc, ok := t.(Stater); ok {
+		return sc.State()
+	}
+	return nil
 }
 
 var knownTargets = map[string]TargetBase{

@@ -3,6 +3,7 @@ package nodejs
 import (
 	"fmt"
 
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/docker"
 )
@@ -15,7 +16,11 @@ func NewAppTarget(pack *Pack) *AppTarget {
 	return &AppTarget{NewNodeJSTarget("app", pack)}
 }
 
-func (t *AppTarget) DependsOn() []string { return nil }
+func (t *AppTarget) DependsOn() []core.Target {
+	return []core.Target{
+		NewCompileTarget(t.Pack),
+	}
+}
 
 func (t *AppTarget) RunAfter() []string { return []string{"compile"} }
 

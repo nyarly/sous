@@ -22,9 +22,12 @@ func Run(sous *core.Sous, args []string) {
 	core.RequireDocker()
 
 	target, context := sous.AssembleTargetContext(targetName)
-	if !sous.BuildIfNecessary(target, context) {
-		cli.Logf("No relevant changes since last build, running %s", context.DockerTag())
-	}
+
+	sous.RunTarget(target, context)
+
+	//if !sous.BuildIfNecessary(target, context) {
+	//cli.Logf("No relevant changes since last build, running %s", context.DockerTag())
+	//}
 	var dr *docker.Run
 	if runner, ok := target.(core.DockerRunner); ok {
 		dr = runner.DockerRun(context)

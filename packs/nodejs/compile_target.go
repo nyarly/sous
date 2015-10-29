@@ -17,7 +17,7 @@ func NewCompileTarget(pack *Pack) *CompileTarget {
 	return &CompileTarget{NewNodeJSTarget("compile", pack)}
 }
 
-func (t *CompileTarget) DependsOn() []string { return nil }
+func (t *CompileTarget) DependsOn() []core.Target { return nil }
 
 func (t *CompileTarget) RunAfter() []string { return nil }
 
@@ -57,7 +57,7 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	containerName := fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
 	container := docker.ContainerWithName(containerName)
 	if container.Exists() {
-		cli.Logf("Re-using build container")
+		cli.Logf("Re-using build container %s", container)
 		return docker.NewReRun(container)
 	}
 	cli.Logf("====> Preparing build container for first use")
