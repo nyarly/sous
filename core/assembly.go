@@ -65,7 +65,7 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 // However, you may override this behaviour for a specific target by implementing
 // the Staler interface: { Stale(*Context) bool }
 func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
-	if !context.NeedsBuild(target) {
+	if !s.NeedsBuild(target, context) {
 		return false
 	}
 	s.Build(target, context)
@@ -74,19 +74,19 @@ func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
 
 func (s *Sous) Build(target Target, context *Context) {
 	context.IncrementBuildNumber()
-	s.BuildDockerfile(target, context)
 	if file.Exists("Dockerfile") {
-		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
+		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", target.Name())
 	}
-	df := path.Resolve(context.FilePath("Dockerfile"))
-	docker.BuildFile(df, ".", context.DockerTag())
+	dfPath := path.Resolve(context.FilePath("Dockerfile"))
+	docker.BuildFile(dfPath, ".", context.DockerTag())
 	context.Commit()
 }
 
-func (s *Sous) BuildDockerfile(target Target, context *Context) {
+func (s *Sous) BuildDockerfile(target Target, context *Context) *docker.Dockerfile {
 	df := target.Dockerfile()
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
+	return df
 }
 
 func RequireDocker() {

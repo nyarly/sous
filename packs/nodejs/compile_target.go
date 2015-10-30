@@ -35,13 +35,11 @@ func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
 	return df
 }
 
-// Stale for this target only rebuilds when Sous itself is updated. This is
-// because we want to preserve the same container as long as possible, as it
-// builds up a cache, speeding up builds. When Sous itself is updated (either a
-// new version of the binary, or the config is changed) we must always re-build
-// everything, as base images and policies may have been updated.
+// This image does not get stale because of any changes to the project itself.
+// Everything is stale when Sous or its configuration is updated, or when the
+// relevant Docker base image is updated.
 func (t *CompileTarget) Stale(c *core.Context) bool {
-	return c.ChangesSinceLastBuild().SousUpdated
+	return false
 }
 
 // Run first checks if a container with the right name has already been built. If so,

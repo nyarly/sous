@@ -88,11 +88,22 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 // by implementing the Staler interfact on individual build targets. This default
 // implementation rebuilds on absolutely any change in sous (i.e. new version/new
 // config) or in the working tree (new or modified files).
-func (c *Context) NeedsBuild(target Target) bool {
-	if staler, ok := target.(Staler); ok {
-		return staler.Stale(c)
+func (s *Sous) NeedsBuild(t Target, c *Context) bool {
+	changes := c.ChangesSinceLastBuild()
+	if staler, ok := t.(Staler); ok {
+		if staler.Stale(c) {
+			return true
+		}
+	} else if changes.Any() {
+		return true
 	}
-	return c.ChangesSinceLastBuild().Any()
+	// Always force a rebuild if sous itself, or the relevant base image
+	// has been updated.
+	if c.LastBuildImageExists() &&
+		docker.BaseImageUpdated(t.Dockerfile().From, c.PrevDockerTag()) {
+		return true
+	}
+	return changes.SousUpdated
 }
 
 func (c *Context) ChangesSinceLastBuild() *Changes {

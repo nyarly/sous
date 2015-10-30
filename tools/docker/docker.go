@@ -120,3 +120,52 @@ func ImageExists(tag string) bool {
 	}
 	return false
 }
+
+func Pull(image string) string {
+	cmd.EchoAll("docker", "pull", image)
+	var i []Image
+	cmd.JSON(&i, "docker", "inspect", image)
+	if len(i) == 0 {
+		cli.Fatalf("image missing after pull: %s", image)
+	}
+	if len(i) != 1 {
+		cli.Fatalf("multiple images match %s; ensure sous is using unique tags", image)
+	}
+	return i[0].ID
+}
+
+func Layers(image string) []string {
+	t := cmd.Table("docker", "history", "--no-trunc", image)
+	layers := make([]string, len(t))
+	for i, r := range t {
+		layers[i] = r[0]
+	}
+	return layers
+}
+
+func ImageID(image string) string {
+	var i []Image
+	cmd.JSON(&i, "docker", "inspect", image)
+	if len(i) == 0 {
+		cli.Fatalf("image missing after pull: %s", image)
+	}
+	if len(i) != 1 {
+		cli.Fatalf("multiple images match %s; ensure sous is using unique tags", image)
+	}
+	return i[0].ID
+}
+
+func BaseImageUpdated(baseImageTag, builtImageTag string) bool {
+	baseImageID := ImageID(baseImageTag)
+	layers := Layers(builtImageTag)
+	for _, l := range layers {
+		if l == baseImageID {
+			return false
+		}
+	}
+	return true
+}
+
+type Image struct {
+	ID string
+}
