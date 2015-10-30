@@ -104,11 +104,13 @@ func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 	depsRebuilt := false
 	var state interface{}
 	for _, d := range t.DependsOn() {
+		cli.Logf("======> Building dependency %s", d.Name())
 		depsRebuilt, state = s.RunTarget(d, c)
 		if ss, ok := t.(SetStater); ok {
 			ss.SetState(d.Name(), state)
 		}
 	}
+	cli.Logf("=======> All dependencies of %s built", t.Name())
 	// Now we have run all dependencies, run this
 	// one if necessary...
 	rebuilt := s.BuildIfNecessary(t, c)

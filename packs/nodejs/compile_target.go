@@ -11,10 +11,11 @@ import (
 
 type CompileTarget struct {
 	*NodeJSTarget
+	state map[string]string
 }
 
 func NewCompileTarget(pack *Pack) *CompileTarget {
-	return &CompileTarget{NewNodeJSTarget("compile", pack)}
+	return &CompileTarget{NewNodeJSTarget("compile", pack), nil}
 }
 
 func (t *CompileTarget) DependsOn() []core.Target { return nil }
@@ -57,9 +58,6 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	containerName := t.DockerContainerName(c)
 	container := docker.ContainerWithName(containerName)
 	if container.Exists() {
-		// TODO: Get container image ID, and target dockerfile FROM;
-		// Then check if the base image has changed, and destroy/recreate
-		// the container if so...
 		image := container.Image()
 		baseImage := t.Dockerfile().From
 		if !docker.BaseImageUpdated(baseImage, image) {
@@ -81,9 +79,16 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
 	run.Command = "npm install"
+	t.state = map[string]string{
+		"artifactPath": fmt.Sprintf("%s/%s.tar.gz", artDir, artifactName),
+	}
 	return run
 }
 
 func (t *CompileTarget) DockerContainerName(c *core.Context) string {
 	return fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
+}
+
+func (t *CompileTarget) State() interface{} {
+	return t.state
 }

@@ -33,14 +33,21 @@ func Build(sous *core.Sous, args []string) {
 	}
 
 	target, context := sous.AssembleTargetContext(targetName)
-	if *forceBuild {
-		cli.Logf("Forcing new build")
-		sous.Build(target, context)
-	} else {
-		if !sous.BuildIfNecessary(target, context) {
-			cli.Successf("Already built: %s", context.DockerTag())
-		}
+
+	built, _ := sous.RunTarget(target, context)
+
+	if built {
+		cli.Successf("Already built: %s", context.DockerTag())
 	}
+
+	//if *forceBuild {
+	//	cli.Logf("Forcing new build")
+	//	sous.Build(target, context)
+	//} else {
+	//	if !sous.BuildIfNecessary(target, context) {
+	//		cli.Successf("Already built: %s", context.DockerTag())
+	//	}
+	//}
 	name := context.CanonicalPackageName()
 	cli.Successf("Successfully built %s v%s as %s", name, context.AppVersion, context.DockerTag())
 }
