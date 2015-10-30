@@ -100,16 +100,18 @@ type Stater interface {
 	State() interface{}
 }
 
-func (s *Sous) RunTarget(t Target, c *Context) interface{} {
+func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
+	depsRebuilt := false
+	var state interface{}
 	for _, d := range t.DependsOn() {
-		state := s.RunTarget(d, c)
-		if sa, ok := t.(SetStater); ok {
-			sa.SetState(d.Name(), state)
+		depsRebuilt, state = s.RunTarget(d, c)
+		if ss, ok := t.(SetStater); ok {
+			ss.SetState(d.Name(), state)
 		}
 	}
-	// Now we have run this on all dependencies, run this
+	// Now we have run all dependencies, run this
 	// one if necessary...
-	s.BuildIfNecessary(t, c)
+	rebuilt := s.BuildIfNecessary(t, c)
 	// If this target specifies a docker run command, invoke it.
 	if runner, ok := t.(DockerRunner); ok {
 		run := runner.DockerRun(c)
@@ -118,10 +120,10 @@ func (s *Sous) RunTarget(t Target, c *Context) interface{} {
 		}
 	}
 	// Get any available state...
-	if sc, ok := t.(Stater); ok {
-		return sc.State()
+	if s, ok := t.(Stater); ok {
+		state = s.State()
 	}
-	return nil
+	return rebuilt || depsRebuilt, state
 }
 
 var knownTargets = map[string]TargetBase{
