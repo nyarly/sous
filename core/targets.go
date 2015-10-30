@@ -87,6 +87,11 @@ type DockerRunner interface {
 	DockerRun(*Context) *docker.Run
 }
 
+type DockerContainer interface {
+	DockerRunner
+	DockerContainerName() string
+}
+
 type SetStater interface {
 	SetState(string, interface{})
 }

@@ -10,6 +10,7 @@ import (
 type Container interface {
 	CID() string
 	Name() string
+	Image() string
 	String() string
 	Kill() error
 	Remove() error
@@ -51,6 +52,22 @@ func (c *container) Running() bool {
 	}
 	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
 	return false
+}
+
+func (c *container) Image() string {
+	var dc []DockerContainer
+	cmd.JSON(&dc, "docker", "inspect", c.Name())
+	if len(dc) == 0 {
+		cli.Fatalf("Container %s does not exist.", c)
+	}
+	if len(dc) != 1 {
+		cli.Fatalf("Multiple containers match %s", c)
+	}
+	return dc[0].Image
+}
+
+type DockerContainer struct {
+	ID, Name, Image string
 }
 
 func (c *container) Kill() error {

@@ -52,11 +52,24 @@ func (t *CompileTarget) Stale(c *core.Context) bool {
 // exact same OS and Arch as the production containers, but with additional build tools
 // which enable the building of complex dependencies.
 func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
-	containerName := fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
+	// TODO: This logic probably should be higher up, and be default behaviour
+	// for any target that is .(DockerContainer)
+	containerName := t.DockerContainerName(c)
 	container := docker.ContainerWithName(containerName)
 	if container.Exists() {
-		cli.Logf("Re-using build container %s", container)
-		return docker.NewReRun(container)
+		// TODO: Get container image ID, and target dockerfile FROM;
+		// Then check if the base image has changed, and destroy/recreate
+		// the container if so...
+		image := container.Image()
+		baseImage := t.Dockerfile().From
+		if !docker.BaseImageUpdated(baseImage, image) {
+			cli.Logf("Re-using build container %s", container)
+			return docker.NewReRun(container)
+		}
+		cli.Logf("INFO: Base image %s updated; re-creating build container, the first build may take some time.", baseImage)
+		if err := container.Remove(); err != nil {
+			cli.Fatalf("Unable to remove outdated container %s", container)
+		}
 	}
 	cli.Logf("====> Preparing build container for first use")
 	run := docker.NewRun(c.DockerTag())
@@ -69,4 +82,8 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	run.AddVolume(c.WorkDir, "/wd")
 	run.Command = "npm install"
 	return run
+}
+
+func (t *CompileTarget) DockerContainerName(c *core.Context) string {
+	return fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
 }
