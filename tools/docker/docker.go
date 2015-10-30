@@ -156,6 +156,9 @@ func ImageID(image string) string {
 }
 
 func BaseImageUpdated(baseImageTag, builtImageTag string) bool {
+	if !ImageExists(baseImageTag) {
+		return true
+	}
 	baseImageID := ImageID(baseImageTag)
 	layers := Layers(builtImageTag)
 	for _, l := range layers {
