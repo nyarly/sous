@@ -15,8 +15,16 @@ func RemoveOnExit(path string) {
 			Remove(path)
 		}
 		if Exists(path) {
-			return fmt.Errorf("Unable to remove temporary file %s", path)
+			return fmt.Errorf("Unable to remove temporary object %s; please remove it manually.", path)
 		}
 		return nil
 	})
+}
+
+func TemporaryLink(path, newPath string) {
+	if Exists(newPath) {
+		cli.Fatalf("Unable to link file to %s, it already exists", newPath)
+	}
+	RemoveOnExit(newPath)
+	Link(path, newPath)
 }

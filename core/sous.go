@@ -19,7 +19,7 @@ type Sous struct {
 }
 
 type SousFlags struct {
-	ForceBuild, ForceRebuildAll bool
+	ForceRebuild, ForceRebuildAll bool
 }
 
 type Command struct {
@@ -48,15 +48,15 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 
 func (s *Sous) ParseFlags(args []string) []string {
 	flagSet := flag.NewFlagSet("sous", flag.ExitOnError)
-	force := flagSet.Bool("force", false, "force a rebuild")
-	forceAll := flagSet.Bool("force-all", false, "force a rebuild of this target plus all dependencies")
+	rebuild := flagSet.Bool("rebuild", false, "force a rebuild")
+	rebuildAll := flagSet.Bool("rebuild-all", false, "force a rebuild of this target plus all dependencies")
 	err := flagSet.Parse(args)
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}
 	s.Flags = &SousFlags{
-		ForceBuild:      *force,
-		ForceRebuildAll: *forceAll,
+		ForceRebuild:    *rebuild,
+		ForceRebuildAll: *rebuildAll,
 	}
 	return flagSet.Args()
 }

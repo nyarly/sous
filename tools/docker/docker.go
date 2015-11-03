@@ -97,11 +97,13 @@ func BuildFile(dockerfile, dir, tag string) string {
 		if file.Exists(".dockerignore") {
 			cli.Logf("WARNING: Local .dockerignore found; it is recommended to remove this, and allow Sous to use your .gitignore instead")
 		} else {
-			file.Link(".gitignore", ".dockerignore")
-			file.RemoveOnExit(".dockerignore")
+			file.TemporaryLink(".gitignore", ".dockerignore")
+			// We try to clean this file up early, in preperation for the next build step
+			defer file.Remove(".dockerignore")
 		}
 	}
-	file.Link(dockerfile, localDockerfile)
+	file.TemporaryLink(dockerfile, localDockerfile)
+	// We try to clean the local Dockerfile up early, in preperation for the next build step
 	defer file.Remove(localDockerfile)
 	return dockerCmd("build", "-f", localDockerfile, "-t", tag, dir).Out()
 }

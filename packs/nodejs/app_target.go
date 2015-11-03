@@ -48,16 +48,7 @@ func (t *AppTarget) PreDockerBuild(c *core.Context) {
 	}
 	filename := path.Base(t.artifactPath)
 	localArtifact := filename
-	cli.AddCleanupTask(func() error {
-		if file.Exists(localArtifact) {
-			file.Remove(localArtifact)
-		}
-		if file.Exists(localArtifact) {
-			return fmt.Errorf("Unable to clean up link %s; please remove it manually", localArtifact)
-		}
-		return nil
-	})
-	file.Link(t.artifactPath, localArtifact)
+	file.TemporaryLink(t.artifactPath, localArtifact)
 	t.artifactPath = localArtifact
 }
 

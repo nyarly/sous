@@ -116,9 +116,9 @@ type Stater interface {
 // RunTarget is used to run the top-level target from build commands.
 func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 	if !c.ChangesSinceLastBuild().Any() {
-		if !s.Flags.ForceBuild {
+		if !s.Flags.ForceRebuild {
 			cli.Logf("No changes since last build.")
-			cli.Logf("TIP: use -force to rebuild anyway, or -force-all to rebuild all dependencies")
+			cli.Logf("TIP: use -rebuild to rebuild anyway, or -rebuild-all to rebuild all dependencies")
 			return false, nil
 		}
 	}
@@ -143,14 +143,11 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 	}
 	// Now we have run all dependencies, run this
 	// one if necessary...
-	rebuilt := s.BuildImageIfNecessary(t, c)
+	rebuilt := s.buildImageIfNecessary(t, c, asDependency)
 	// If this target specifies a docker container, invoke it.
 	if ct, ok := t.(ContainerTarget); ok {
 		fmt.Sprintf(" ===> Running target image %s", t.Name())
-		run, isNew := s.RunContainerTarget(ct, c, rebuilt)
-		if isNew {
-			cli.Logf(" ===> Preparing %s container for first use", t.Name())
-		}
+		run, _ := s.RunContainerTarget(ct, c, rebuilt)
 		if run.ExitCode() != 0 {
 			cli.Fatalf("Docker run failed.")
 		}
@@ -169,7 +166,7 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 		return t.DockerRun(c), true
 	}
 	if stale, reason := s.ContainerIsStale(t, c, imageRebuilt); stale {
-		cli.Logf(" ===> Creating new %s container becuase %s", t.Name(), reason)
+		cli.Logf(" ===> Creating new %s container because %s", t.Name(), reason)
 		if err := container.Remove(); err != nil {
 			cli.Fatalf("Unable to remove outdated container %s", container)
 		}
@@ -212,17 +209,17 @@ func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Cont
 //
 // However, you may override this behaviour for a specific target by implementing
 // the Staler interface: { Stale(*Context) bool }
-func (s *Sous) BuildImageIfNecessary(target Target, context *Context) bool {
-	return s.buildImageIfNecessary(target, context, false)
+func (s *Sous) BuildImageIfNecessary(t Target, c *Context) bool {
+	return s.buildImageIfNecessary(t, c, false)
 }
 
-func (s *Sous) buildImageIfNecessary(target Target, context *Context, asDependency bool) bool {
-	stale, reason := s.NeedsToBuildNewImage(target, context, asDependency)
+func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool) bool {
+	stale, reason := s.NeedsToBuildNewImage(t, c, asDependency)
 	if !stale {
 		return false
 	}
-	cli.Logf(" ===> Image is stale because %s; rebuilding...", reason)
-	s.BuildImage(target, context)
+	cli.Logf(" ===> Rebuilding image for %s because %s", t.Name(), reason)
+	s.BuildImage(t, c)
 	return true
 }
 
@@ -235,7 +232,7 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 	if s.Flags.ForceRebuildAll {
 		return true, "-force-all flag was used"
 	}
-	if s.Flags.ForceBuild && !asDependency {
+	if s.Flags.ForceRebuild && !asDependency {
 		return true, "-force flag was used"
 	}
 	changes := c.ChangesSinceLastBuild()
@@ -248,6 +245,9 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 	}
 	// Always force a rebuild if is base image has been updated.
 	baseImage := t.Dockerfile().From
+	// TODO: This is probably a bit too aggressive, consider only asking the user to
+	// update base images every 24 hours, if they have actually been updated.
+	s.UpdateBaseImage(baseImage)
 	if c.LastBuildImageExists() && docker.BaseImageUpdated(baseImage, c.PrevDockerTag()) {
 		return true, fmt.Sprintf("the base image %s was updated", baseImage)
 	}
@@ -258,20 +258,20 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 	return false, ""
 }
 
-func (s *Sous) BuildImage(target Target, context *Context) {
-	context.IncrementBuildNumber()
+func (s *Sous) BuildImage(t Target, c *Context) {
+	c.IncrementBuildNumber()
 	if file.Exists("Dockerfile") {
-		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", target.Name())
+		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", t.Name())
 	}
-	dfPath := path.Resolve(context.FilePath("Dockerfile"))
-	if prebuilder, ok := target.(PreDockerBuilder); ok {
-		prebuilder.PreDockerBuild(context)
+	dfPath := path.Resolve(c.FilePath("Dockerfile"))
+	if prebuilder, ok := t.(PreDockerBuilder); ok {
+		prebuilder.PreDockerBuild(c)
 		// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
 		// may update target state to reflect things like copied file locations etc.
-		s.BuildDockerfile(target, context)
+		s.BuildDockerfile(t, c)
 	}
-	docker.BuildFile(dfPath, ".", context.DockerTag())
-	context.Commit()
+	docker.BuildFile(dfPath, ".", c.DockerTag())
+	c.Commit()
 }
 
 var knownTargets = map[string]TargetBase{
