@@ -96,7 +96,7 @@ func MustGetTargetBase(name string) *TargetBase {
 }
 
 type ImageIsStaler interface {
-	ImageIsStale(*Context) bool
+	ImageIsStale(*Context) (bool, string)
 }
 
 type PreDockerBuilder interface {

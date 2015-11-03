@@ -39,8 +39,8 @@ func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
 // This image does not get stale because of any changes to the project itself.
 // Everything is stale when Sous or its configuration is updated, or when the
 // relevant Docker base image is updated.
-func (t *CompileTarget) ImageIsStale(c *core.Context) bool {
-	return false
+func (t *CompileTarget) ImageIsStale(c *core.Context) (bool, string) {
+	return false, ""
 }
 
 // This container does not get stale unless the working directory is changed, but

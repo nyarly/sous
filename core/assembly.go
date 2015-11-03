@@ -65,9 +65,11 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 // However, you may override this behaviour for a specific target by implementing
 // the Staler interface: { Stale(*Context) bool }
 func (s *Sous) BuildImageIfNecessary(target Target, context *Context) bool {
-	if !s.NeedsToBuildNewImage(target, context) {
+	stale, reason := s.NeedsToBuildNewImage(target, context)
+	if !stale {
 		return false
 	}
+	cli.Logf(" ===> Image is stale because %s; rebuilding...", reason)
 	s.BuildImage(target, context)
 	return true
 }
