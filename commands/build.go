@@ -15,7 +15,6 @@ sous build does not have any options yet`
 }
 
 func Build(sous *core.Sous, args []string) {
-	args = sous.ParseFlags(args)
 	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]

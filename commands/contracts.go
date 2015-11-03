@@ -13,9 +13,9 @@ import (
 	"github.com/opentable/sous/tools/ports"
 )
 
-var flags = flag.NewFlagSet("contracts", flag.ExitOnError)
+var contractsFlags = flag.NewFlagSet("contracts", flag.ExitOnError)
 
-var timeoutFlag = flags.Duration("timeout", 10*time.Second, "per-contract timeout")
+var timeoutFlag = contractsFlags.Duration("timeout", 10*time.Second, "per-contract timeout")
 
 type Contract struct {
 	Name    string
@@ -64,8 +64,8 @@ func ContractsHelp() string {
 }
 
 func Contracts(sous *core.Sous, args []string) {
-	flags.Parse(args)
-	args = flags.Args()
+	contractsFlags.Parse(args)
+	args = contractsFlags.Args()
 	timeout := *timeoutFlag
 	targetName := "app"
 	if len(args) != 0 {
@@ -75,9 +75,8 @@ func Contracts(sous *core.Sous, args []string) {
 	core.RequireDocker()
 
 	target, context := sous.AssembleTargetContext(targetName)
-	if !sous.BuildImageIfNecessary(target, context) {
-		cli.Logf("No changes since last build, running %s", context.DockerTag())
-	}
+
+	sous.RunTarget(target, context)
 
 	cli.Logf("=> Running Contracts")
 	cli.Logf(`=> **TIP:** Open another terminal in this directory and type **sous logs -f**`)

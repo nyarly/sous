@@ -30,7 +30,7 @@ type Command struct {
 
 var sous *Sous
 
-func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack) *Sous {
+func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags) *Sous {
 	if sous == nil {
 		sous = &Sous{
 			Version:      version,
@@ -39,26 +39,11 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 			Arch:         arch,
 			Packs:        packs,
 			Commands:     commands,
-			Flags:        &SousFlags{},
+			Flags:        flags,
 			cleanupTasks: []func() error{},
 		}
 	}
 	return sous
-}
-
-func (s *Sous) ParseFlags(args []string) []string {
-	flagSet := flag.NewFlagSet("sous", flag.ExitOnError)
-	rebuild := flagSet.Bool("rebuild", false, "force a rebuild")
-	rebuildAll := flagSet.Bool("rebuild-all", false, "force a rebuild of this target plus all dependencies")
-	err := flagSet.Parse(args)
-	if err != nil {
-		cli.Fatalf("%s", err)
-	}
-	s.Flags = &SousFlags{
-		ForceRebuild:    *rebuild,
-		ForceRebuildAll: *rebuildAll,
-	}
-	return flagSet.Args()
 }
 
 func (s *Sous) UpdateBaseImage(image string) {

@@ -31,7 +31,7 @@ func (t *CompileTarget) Check() error {
 }
 
 func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
-	df := t.Pack.baseDockerfile(t.Name())
+	df := t.NodeJSPack.baseDockerfile(t.Name())
 	df.AddRun("npm install -g npm@2")
 	return df
 }

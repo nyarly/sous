@@ -32,6 +32,8 @@ type Target interface {
 	// Dockerfile is the shebang method which writes out a functionally complete *docker.Dockerfile
 	// This method is only invoked only once the Detect func has successfully detected target availability.
 	Dockerfile() *docker.Dockerfile
+	// Pack is the pack this Target belongs to.
+	Pack() Pack
 }
 
 // ContainerTarget is a specialisation of Target that in addition to building a Dockerfile,
@@ -54,6 +56,7 @@ type ContainerTarget interface {
 type TargetBase struct {
 	name,
 	genericDesc string
+	pack Pack
 }
 
 func (t *TargetBase) Name() string {
@@ -66,6 +69,10 @@ func (t *TargetBase) GenericDesc() string {
 
 func (t *TargetBase) String() string {
 	return t.Name()
+}
+
+func (t *TargetBase) Pack() Pack {
+	return t.pack
 }
 
 type Targets map[string]Target
@@ -89,12 +96,14 @@ func KnownTargets() map[string]TargetBase {
 
 // MustGetTargetBase returns a pointer to a new copy of a known target base,
 // or causes the program to fail if the named target does not exist.
-func MustGetTargetBase(name string) *TargetBase {
+func MustGetTargetBase(name string, pack Pack) *TargetBase {
 	b, ok := knownTargets[name]
 	if !ok {
 		cli.Fatalf("target %s not known", name)
 	}
-	return &b
+	targetCopy := b
+	targetCopy.pack = pack
+	return &targetCopy
 }
 
 type ImageIsStaler interface {

@@ -3,12 +3,14 @@ package nodejs
 import (
 	"fmt"
 	"path"
+	"strconv"
 
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/ports"
 )
 
 type AppTarget struct {
@@ -22,7 +24,7 @@ func NewAppTarget(pack *Pack) *AppTarget {
 
 func (t *AppTarget) DependsOn() []core.Target {
 	return []core.Target{
-		NewCompileTarget(t.Pack),
+		NewCompileTarget(t.NodeJSPack),
 	}
 }
 
@@ -33,7 +35,7 @@ func (t *AppTarget) Desc() string {
 }
 
 func (t *AppTarget) Check() error {
-	if len(t.Pack.PackageJSON.Scripts.Start) == 0 {
+	if len(t.NodeJSPack.PackageJSON.Scripts.Start) == 0 {
 		return fmt.Errorf("package.json does not specify a start script")
 	}
 	return nil
@@ -59,8 +61,8 @@ func (t *AppTarget) Dockerfile() *docker.Dockerfile {
 		// path.
 		t.artifactPath = "<¡ artifact path set by compile target !>"
 	}
-	np := t.Pack.PackageJSON
-	df := t.Pack.baseDockerfile(np.Version)
+	np := t.NodeJSPack.PackageJSON
+	df := t.NodeJSPack.baseDockerfile(np.Version)
 	// Since the artifact is tar.gz, docker automatically unpacks it.
 	df.Add = []docker.Add{docker.Add{Files: []string{t.artifactPath}, Dest: "/srv/app/"}}
 	// Pick out the contents of NPM start to invoke directly (using npm start in
@@ -83,4 +85,19 @@ func (t *AppTarget) SetState(fromTarget string, state interface{}) {
 		cli.Fatalf("app target got %+v from compile target; expected key 'artifactPath'", m)
 	}
 	t.artifactPath = artifactPath
+}
+
+func (t *AppTarget) DockerRun(c *core.Context) *docker.Run {
+	dr := docker.NewRun(c.DockerTag())
+	port0, err := ports.GetFreePort()
+	if err != nil {
+		cli.Fatalf("Unable to get free port: %s", err)
+	}
+	dr.AddEnv("PORT0", strconv.Itoa(port0))
+	dr.AddEnv("TASK_HOST", core.DivineTaskHost())
+	return dr
+}
+
+func (t *AppTarget) ContainerIsStale(c *core.Context) (bool, string) {
+	return true, "we never re-use app containers"
 }

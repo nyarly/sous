@@ -1,12 +1,9 @@
 package commands
 
 import (
-	"strconv"
-
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
-	"github.com/opentable/sous/tools/ports"
 )
 
 func RunHelp() string {
@@ -14,7 +11,6 @@ func RunHelp() string {
 }
 
 func Run(sous *core.Sous, args []string) {
-	args = sous.ParseFlags(args)
 	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]
@@ -27,24 +23,15 @@ func Run(sous *core.Sous, args []string) {
 	sous.RunTarget(target, context)
 
 	var dr *docker.Run
-	if runner, ok := target.(core.ContainerTarget); ok {
-		dr = runner.DockerRun(context)
+	runner, ok := target.(core.ContainerTarget)
+	if !ok {
+		cli.Fatalf("%s->%s does not support running", target.Pack(), target.Name())
 	} else {
-		dr = defaultDockerRun(context)
+
 	}
+	dr = runner.DockerRun(context)
 	if code := dr.ExitCode(); code != 0 {
 		cli.Fatalf("Run failed with exit code %d", code)
 	}
 	cli.Success()
-}
-
-func defaultDockerRun(context *core.Context) *docker.Run {
-	dr := docker.NewRun(context.DockerTag())
-	port0, err := ports.GetFreePort()
-	if err != nil {
-		cli.Fatalf("Unable to get free port: %s", err)
-	}
-	dr.AddEnv("PORT0", strconv.Itoa(port0))
-	dr.AddEnv("TASK_HOST", core.DivineTaskHost())
-	return dr
 }

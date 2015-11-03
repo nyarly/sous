@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,12 +18,14 @@ func main() {
 	if len(os.Args) < 2 {
 		usage()
 	}
-	command := os.Args[1]
+	sousFlags, args := parseFlags(os.Args)
+	command := args[1]
 	if command != "config" {
 		updateHourly()
 	}
 	cfg := config.Load()
-	sous := core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(cfg))
+	sous := core.NewSous(Version, Revision, OS, Arch,
+		loadCommands(), BuildPacks(cfg), sousFlags)
 	c, ok := sous.Commands[command]
 	if !ok {
 		cli.Fatalf("Command %s not recognised; try `sous help`", command)
@@ -32,6 +35,20 @@ func main() {
 	c.Func(sous, os.Args[2:])
 	// If it does not, we assume it failed...
 	cli.Fatalf("Command did not complete correctly")
+}
+
+func parseFlags(args []string) (*core.SousFlags, []string) {
+	flagSet := flag.NewFlagSet("sous", flag.ExitOnError)
+	rebuild := flagSet.Bool("rebuild", false, "force a rebuild")
+	rebuildAll := flagSet.Bool("rebuild-all", false, "force a rebuild of this target plus all dependencies")
+	err := flagSet.Parse(args)
+	if err != nil {
+		cli.Fatalf("%s", err)
+	}
+	return &core.SousFlags{
+		ForceRebuild:    *rebuild,
+		ForceRebuildAll: *rebuildAll,
+	}, flagSet.Args()
 }
 
 func usage() {
