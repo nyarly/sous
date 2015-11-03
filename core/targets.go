@@ -241,7 +241,17 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 			return true, reason
 		}
 	} else if changes.Any() {
-		return true, "default change detector detected changes"
+		reason := "changes were detected"
+		if changes.WorkingTreeChanged {
+			reason = "your working tree has changed"
+		} else if changes.NewCommit {
+			reason = "you have a new commit"
+		} else if changes.NoBuiltImage {
+			reason = "no corresponding image exists yet"
+		} else if changes.SousUpdated {
+			reason = "sous itself was updated"
+		}
+		return true, reason
 	}
 	// Always force a rebuild if is base image has been updated.
 	baseImage := t.Dockerfile().From
