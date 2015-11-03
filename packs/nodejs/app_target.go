@@ -2,6 +2,7 @@ package nodejs
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools"
@@ -39,7 +40,14 @@ func (t *AppTarget) Check() error {
 }
 
 func (t *AppTarget) PreDockerBuild(c *core.Context) {
-	localArtifact := "artifact.tar.gz"
+	if t.artifactPath == "" {
+		cli.Fatalf("Artifact path not set by compile target.")
+	}
+	if !file.Exists(t.artifactPath) {
+		cli.Fatalf("Artifact not at %s", t.artifactPath)
+	}
+	filename := path.Base(t.artifactPath)
+	localArtifact := filename
 	cli.AddCleanupTask(func() error {
 		if file.Exists(localArtifact) {
 			file.Remove(localArtifact)
@@ -50,18 +58,20 @@ func (t *AppTarget) PreDockerBuild(c *core.Context) {
 		return nil
 	})
 	file.Link(t.artifactPath, localArtifact)
+	t.artifactPath = localArtifact
 }
 
 func (t *AppTarget) Dockerfile() *docker.Dockerfile {
+	if t.artifactPath == "" {
+		// Actually, it is first set by compile target, then the PreDockerBuild
+		// step links it into the WD and resets artifactPath to a local, relative
+		// path.
+		t.artifactPath = "<¡ artifact path set by compile target !>"
+	}
 	np := t.Pack.PackageJSON
 	df := t.Pack.baseDockerfile(np.Version)
-	//if np.Scripts.InstallProduction != "" {
-	//	df.AddRun(np.Scripts.InstallProduction)
-	//} else {
-	//	df.AddRun("npm install --production")
-	//}
-	df.Add = []docker.Add{docker.Add{Files: []string{"artifact.tar.gz"}, Dest: "/srv/app/"}}
-	df.AddRun("cd /srv/app && tar -zxf artifact.tar.gz")
+	// Since the artifact is tar.gz, docker automatically unpacks it.
+	df.Add = []docker.Add{docker.Add{Files: []string{t.artifactPath}, Dest: "/srv/app/"}}
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.

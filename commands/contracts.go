@@ -75,7 +75,7 @@ func Contracts(sous *core.Sous, args []string) {
 	core.RequireDocker()
 
 	target, context := sous.AssembleTargetContext(targetName)
-	if !sous.BuildIfNecessary(target, context) {
+	if !sous.BuildImageIfNecessary(target, context) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 

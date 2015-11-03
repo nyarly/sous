@@ -7,6 +7,9 @@ import (
 	"github.com/opentable/sous/tools/docker"
 )
 
+// Target describes a buildable Docker file that performs a particular task related to building
+// testing and deploying the application. Each pack under packs/ will customise its targets for
+// the specific jobs that need to be performed for that pack.
 type Target interface {
 	fmt.Stringer
 	// Name of the target, as used in command-line operations.
@@ -22,17 +25,30 @@ type Target interface {
 	// of the pack that owns it. It should be set by the pack when it is initialised.
 	Desc() string
 	// Check is a function which tries to detect if this target is possible with the
-	// current project. If so, it returns a complete *AppInfo, else nil and an error.
+	// current project. If not, it should return an error.
 	Check() error
 	// Dockerfile is the shebang method which writes out a functionally complete *docker.Dockerfile
 	// This method is only invoked only once the Detect func has successfully detected target availability.
-	// The *AppInfo from Detect is passed in as context.
 	Dockerfile() *docker.Dockerfile
 }
 
-// Target describes a buildable Docker image that performs a particular task related to building
-// testing and deploying the application. Each pack under packs/ will customise its targets for
-// the specific jobs that need to be performed for that pack.
+// ContainerTarget is a specialisation of Target that in addition to building a Dockerfile,
+// also returns a Docker run command that can be invoked on images built from that Dockerfile, which
+// the build process invokes to create a Docker container when needed.
+type ContainerTarget interface {
+	Target
+	// DockerRun returns a Docker run command which the build process can use to
+	// create the container.
+	DockerRun(*Context) *docker.Run
+	// ContainerName returns the name to be given to the container built by
+	// this target.
+	ContainerName(*Context) string
+	// ContainerIsStale should return true if the container needs to be rebuilt,
+	// otherwise it returns false. Certain conditions (like Sous itself being upgraded always cause root
+	// and branch rebuilds, regardless of this return value.
+	ContainerIsStale(*Context) bool
+}
+
 type TargetBase struct {
 	name,
 	genericDesc string
@@ -79,17 +95,12 @@ func MustGetTargetBase(name string) *TargetBase {
 	return &b
 }
 
-type Staler interface {
-	Stale(*Context) bool
+type ImageIsStaler interface {
+	ImageIsStale(*Context) bool
 }
 
-type DockerRunner interface {
-	DockerRun(*Context) *docker.Run
-}
-
-type DockerContainer interface {
-	DockerRunner
-	DockerContainerName() string
+type PreDockerBuilder interface {
+	PreDockerBuild(*Context)
 }
 
 type SetStater interface {
@@ -97,35 +108,63 @@ type SetStater interface {
 }
 
 type Stater interface {
-	State() interface{}
+	State(*Context) interface{}
 }
 
 func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
+	fmt.Sprintf("Running target %s", t.Name())
 	depsRebuilt := false
 	var state interface{}
-	for _, d := range t.DependsOn() {
-		cli.Logf("======> Building dependency %s", d.Name())
-		depsRebuilt, state = s.RunTarget(d, c)
-		if ss, ok := t.(SetStater); ok {
-			ss.SetState(d.Name(), state)
+	deps := t.DependsOn()
+	if len(deps) != 0 {
+		for _, d := range deps {
+			cli.Logf(" ===> Building dependency %s", d.Name())
+			dt, dc := s.AssembleTargetContext(d.Name())
+			depsRebuilt, state = s.RunTarget(dt, dc)
+			if ss, ok := t.(SetStater); ok {
+				ss.SetState(dt.Name(), state)
+			}
 		}
+		cli.Logf(" ===> All dependencies of %s built", t.Name())
 	}
-	cli.Logf("=======> All dependencies of %s built", t.Name())
 	// Now we have run all dependencies, run this
 	// one if necessary...
-	rebuilt := s.BuildIfNecessary(t, c)
-	// If this target specifies a docker run command, invoke it.
-	if runner, ok := t.(DockerRunner); ok {
-		run := runner.DockerRun(c)
+	rebuilt := s.BuildImageIfNecessary(t, c)
+	// If this target specifies a docker container, invoke it.
+	if ct, ok := t.(ContainerTarget); ok {
+		fmt.Sprintf(" ===> Running target image %s", t.Name())
+		run, isNew := s.RunContainerTarget(ct, c)
+		if isNew {
+			cli.Logf(" ===> Preparing %s container for first use", t.Name())
+		}
 		if run.ExitCode() != 0 {
 			cli.Fatalf("Docker run failed.")
 		}
 	}
 	// Get any available state...
 	if s, ok := t.(Stater); ok {
-		state = s.State()
+		state = s.State(c)
 	}
 	return rebuilt || depsRebuilt, state
+}
+
+func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context) (*docker.Run, bool) {
+	container := docker.ContainerWithName(t.ContainerName(c))
+	if !container.Exists() || t.ContainerIsStale(c) || s.OverrideContainerRebuild(t, container) {
+		cli.Logf("Re-using build container %s", container)
+		return docker.NewReRun(container), false
+	}
+	if err := container.Remove(); err != nil {
+		cli.Fatalf("Unable to remove outdated container %s", container)
+	}
+	return t.DockerRun(c), true
+}
+
+func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Container) bool {
+	image := container.Image()
+	baseImage := t.Dockerfile().From
+	return docker.BaseImageUpdated(baseImage, image)
+
 }
 
 var knownTargets = map[string]TargetBase{

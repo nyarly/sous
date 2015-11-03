@@ -19,7 +19,7 @@ func Test(sous *core.Sous, args []string) {
 	core.RequireDocker()
 
 	target, context := sous.AssembleTargetContext("test")
-	if !sous.BuildIfNecessary(target, context) {
+	if !sous.BuildImageIfNecessary(target, context) {
 		cli.Logf("No changes since last build, running %s", context.DockerTag())
 	}
 

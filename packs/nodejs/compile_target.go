@@ -2,9 +2,9 @@ package nodejs
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
 )
@@ -39,8 +39,24 @@ func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
 // This image does not get stale because of any changes to the project itself.
 // Everything is stale when Sous or its configuration is updated, or when the
 // relevant Docker base image is updated.
-func (t *CompileTarget) Stale(c *core.Context) bool {
+func (t *CompileTarget) ImageIsStale(c *core.Context) bool {
 	return false
+}
+
+// This container does not get stale unless the working directory is changed, but
+// we currently don't have a way to check this.
+// TODO: Record WD changes in context so we can invalidate the container when the
+// WD changes.
+func (t *CompileTarget) ContainerIsStale(c *core.Context) bool {
+	return false
+}
+
+func (t *CompileTarget) ImageTag(c *core.Context) string {
+	return strconv.Itoa(c.BuildNumber())
+}
+
+func (t *CompileTarget) ContainerName(c *core.Context) string {
+	return fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
 }
 
 // Run first checks if a container with the right name has already been built. If so,
@@ -53,42 +69,32 @@ func (t *CompileTarget) Stale(c *core.Context) bool {
 // exact same OS and Arch as the production containers, but with additional build tools
 // which enable the building of complex dependencies.
 func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
-	// TODO: This logic probably should be higher up, and be default behaviour
-	// for any target that is .(DockerContainer)
-	containerName := t.DockerContainerName(c)
-	container := docker.ContainerWithName(containerName)
-	if container.Exists() {
-		image := container.Image()
-		baseImage := t.Dockerfile().From
-		if !docker.BaseImageUpdated(baseImage, image) {
-			cli.Logf("Re-using build container %s", container)
-			return docker.NewReRun(container)
-		}
-		cli.Logf("INFO: Base image %s updated; re-creating build container, the first build may take some time.", baseImage)
-		if err := container.Remove(); err != nil {
-			cli.Fatalf("Unable to remove outdated container %s", container)
-		}
-	}
-	cli.Logf("====> Preparing build container for first use")
+	containerName := t.ContainerName(c)
 	run := docker.NewRun(c.DockerTag())
 	run.Name = containerName
-	artifactName := fmt.Sprintf("%s-%s-%s", c.CanonicalPackageName(), c.AppVersion, c.Git.CommitSHA)
-	run.AddEnv("ARTIFACT_NAME", artifactName)
-	artDir := c.FilePath("artifacts")
+	run.AddEnv("ARTIFACT_NAME", t.artifactName(c))
+	artDir := t.artifactDir(c)
 	dir.EnsureExists(artDir)
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
 	run.Command = "npm install"
-	t.state = map[string]string{
-		"artifactPath": fmt.Sprintf("%s/%s.tar.gz", artDir, artifactName),
-	}
 	return run
 }
 
-func (t *CompileTarget) DockerContainerName(c *core.Context) string {
-	return fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
+func (t *CompileTarget) State(c *core.Context) interface{} {
+	return map[string]string{
+		"artifactPath": t.artifactPath(c),
+	}
 }
 
-func (t *CompileTarget) State() interface{} {
-	return t.state
+func (t *CompileTarget) artifactPath(c *core.Context) string {
+	return fmt.Sprintf("%s/%s.tar.gz", t.artifactDir(c), t.artifactName(c))
+}
+
+func (t *CompileTarget) artifactDir(c *core.Context) string {
+	return c.FilePath("artifacts")
+}
+
+func (t *CompileTarget) artifactName(c *core.Context) string {
+	return fmt.Sprintf("%s-%s-%s-%d", c.CanonicalPackageName(), c.AppVersion, c.Git.CommitSHA, c.BuildNumber())
 }

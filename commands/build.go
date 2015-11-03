@@ -48,6 +48,7 @@ func Build(sous *core.Sous, args []string) {
 	//		cli.Successf("Already built: %s", context.DockerTag())
 	//	}
 	//}
+
 	name := context.CanonicalPackageName()
 	cli.Successf("Successfully built %s v%s as %s", name, context.AppVersion, context.DockerTag())
 }

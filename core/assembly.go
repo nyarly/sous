@@ -64,20 +64,26 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 //
 // However, you may override this behaviour for a specific target by implementing
 // the Staler interface: { Stale(*Context) bool }
-func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
-	if !s.NeedsBuild(target, context) {
+func (s *Sous) BuildImageIfNecessary(target Target, context *Context) bool {
+	if !s.NeedsToBuildNewImage(target, context) {
 		return false
 	}
-	s.Build(target, context)
+	s.BuildImage(target, context)
 	return true
 }
 
-func (s *Sous) Build(target Target, context *Context) {
+func (s *Sous) BuildImage(target Target, context *Context) {
 	context.IncrementBuildNumber()
 	if file.Exists("Dockerfile") {
 		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", target.Name())
 	}
 	dfPath := path.Resolve(context.FilePath("Dockerfile"))
+	if prebuilder, ok := target.(PreDockerBuilder); ok {
+		prebuilder.PreDockerBuild(context)
+		// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
+		// may update target state to reflect things like copied file locations etc.
+		s.BuildDockerfile(target, context)
+	}
 	docker.BuildFile(dfPath, ".", context.DockerTag())
 	context.Commit()
 }
