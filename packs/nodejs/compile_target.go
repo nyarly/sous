@@ -47,8 +47,8 @@ func (t *CompileTarget) ImageIsStale(c *core.Context) (bool, string) {
 // we currently don't have a way to check this.
 // TODO: Record WD changes in context so we can invalidate the container when the
 // WD changes.
-func (t *CompileTarget) ContainerIsStale(c *core.Context) bool {
-	return false
+func (t *CompileTarget) ContainerIsStale(c *core.Context) (bool, string) {
+	return false, ""
 }
 
 func (t *CompileTarget) ImageTag(c *core.Context) string {

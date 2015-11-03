@@ -14,6 +14,7 @@ func RunHelp() string {
 }
 
 func Run(sous *core.Sous, args []string) {
+	args = sous.ParseFlags(args)
 	targetName := "app"
 	if len(args) != 0 {
 		targetName = args[0]
@@ -25,18 +26,15 @@ func Run(sous *core.Sous, args []string) {
 
 	sous.RunTarget(target, context)
 
-	//if !sous.BuildIfNecessary(target, context) {
-	//cli.Logf("No relevant changes since last build, running %s", context.DockerTag())
-	//}
-	//var dr *docker.Run
-	//if runner, ok := target.(core.DockerRunner); ok {
-	//	dr = runner.DockerRun(context)
-	//} else {
-	//	dr = defaultDockerRun(context)
-	//}
-	//if code := dr.ExitCode(); code != 0 {
-	//	cli.Fatalf("Run failed with exit code %d", code)
-	//}
+	var dr *docker.Run
+	if runner, ok := target.(core.ContainerTarget); ok {
+		dr = runner.DockerRun(context)
+	} else {
+		dr = defaultDockerRun(context)
+	}
+	if code := dr.ExitCode(); code != 0 {
+		cli.Fatalf("Run failed with exit code %d", code)
+	}
 	cli.Success()
 }
 

@@ -5,6 +5,8 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
+	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/path"
 )
 
 // Target describes a buildable Docker file that performs a particular task related to building
@@ -46,7 +48,7 @@ type ContainerTarget interface {
 	// ContainerIsStale should return true if the container needs to be rebuilt,
 	// otherwise it returns false. Certain conditions (like Sous itself being upgraded always cause root
 	// and branch rebuilds, regardless of this return value.
-	ContainerIsStale(*Context) bool
+	ContainerIsStale(*Context) (bool, string)
 }
 
 type TargetBase struct {
@@ -111,8 +113,20 @@ type Stater interface {
 	State(*Context) interface{}
 }
 
+// RunTarget is used to run the top-level target from build commands.
 func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
-	fmt.Sprintf("Running target %s", t.Name())
+	if !c.ChangesSinceLastBuild().Any() {
+		if !s.Flags.ForceBuild {
+			cli.Logf("No changes since last build.")
+			cli.Logf("TIP: use -force to rebuild anyway, or -force-all to rebuild all dependencies")
+			return false, nil
+		}
+	}
+	cli.Logf(` ===> Building target "%s"`, t.Name())
+	return s.runTarget(t, c, false)
+}
+
+func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interface{}) {
 	depsRebuilt := false
 	var state interface{}
 	deps := t.DependsOn()
@@ -120,7 +134,7 @@ func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 		for _, d := range deps {
 			cli.Logf(" ===> Building dependency %s", d.Name())
 			dt, dc := s.AssembleTargetContext(d.Name())
-			depsRebuilt, state = s.RunTarget(dt, dc)
+			depsRebuilt, state = s.runTarget(dt, dc, true)
 			if ss, ok := t.(SetStater); ok {
 				ss.SetState(dt.Name(), state)
 			}
@@ -133,7 +147,7 @@ func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 	// If this target specifies a docker container, invoke it.
 	if ct, ok := t.(ContainerTarget); ok {
 		fmt.Sprintf(" ===> Running target image %s", t.Name())
-		run, isNew := s.RunContainerTarget(ct, c)
+		run, isNew := s.RunContainerTarget(ct, c, rebuilt)
 		if isNew {
 			cli.Logf(" ===> Preparing %s container for first use", t.Name())
 		}
@@ -148,23 +162,116 @@ func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 	return rebuilt || depsRebuilt, state
 }
 
-func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context) (*docker.Run, bool) {
+func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bool) (*docker.Run, bool) {
 	container := docker.ContainerWithName(t.ContainerName(c))
-	if !container.Exists() || t.ContainerIsStale(c) || s.OverrideContainerRebuild(t, container) {
-		cli.Logf("Re-using build container %s", container)
-		return docker.NewReRun(container), false
+	if !container.Exists() {
+		cli.Logf(" ===> Creating new %s container, as no existing one found...", t.Name())
+		return t.DockerRun(c), true
 	}
-	if err := container.Remove(); err != nil {
-		cli.Fatalf("Unable to remove outdated container %s", container)
+	if stale, reason := s.ContainerIsStale(t, c, imageRebuilt); stale {
+		cli.Logf(" ===> Creating new %s container becuase %s", t.Name(), reason)
+		if err := container.Remove(); err != nil {
+			cli.Fatalf("Unable to remove outdated container %s", container)
+		}
+		return t.DockerRun(c), true
 	}
-	return t.DockerRun(c), true
+	cli.Logf(" ===> Re-using build container %s", container)
+	return docker.NewReRun(container), false
 }
 
-func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Container) bool {
+func (s *Sous) ContainerIsStale(t ContainerTarget, c *Context, imageRebuilt bool) (bool, string) {
+	if imageRebuilt {
+		return true, "its underlying image was rebuilt"
+	}
+	container := docker.ContainerWithName(t.ContainerName(c))
+	if stale, reason := t.ContainerIsStale(c); stale {
+		return true, reason
+	}
+	if stale, reason := s.OverrideContainerRebuild(t, container); stale {
+		return true, reason
+	}
+	return false, ""
+}
+
+func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Container) (bool, string) {
 	image := container.Image()
 	baseImage := t.Dockerfile().From
-	return docker.BaseImageUpdated(baseImage, image)
+	if docker.BaseImageUpdated(baseImage, image) {
+		return true, fmt.Sprintf("base image %s updated", baseImage)
+	}
+	return false, ""
+}
 
+// BuildIfNecessary usually rebuilds any target if anything of the following
+// are true:
+//
+// - No build is available at all
+// - Any files in the working tree have changed
+// - Sous has been updated
+// - Sous config has changed
+//
+// However, you may override this behaviour for a specific target by implementing
+// the Staler interface: { Stale(*Context) bool }
+func (s *Sous) BuildImageIfNecessary(target Target, context *Context) bool {
+	return s.buildImageIfNecessary(target, context, false)
+}
+
+func (s *Sous) buildImageIfNecessary(target Target, context *Context, asDependency bool) bool {
+	stale, reason := s.NeedsToBuildNewImage(target, context, asDependency)
+	if !stale {
+		return false
+	}
+	cli.Logf(" ===> Image is stale because %s; rebuilding...", reason)
+	s.BuildImage(target, context)
+	return true
+}
+
+// NeedsBuild detects if the project's last
+// build is stale, and if it therefore needs to be rebuilt. This can be overidden
+// by implementing the Staler interfact on individual build targets. This default
+// implementation rebuilds on absolutely any change in sous (i.e. new version/new
+// config) or in the working tree (new or modified files).
+func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bool, string) {
+	if s.Flags.ForceRebuildAll {
+		return true, "-force-all flag was used"
+	}
+	if s.Flags.ForceBuild && !asDependency {
+		return true, "-force flag was used"
+	}
+	changes := c.ChangesSinceLastBuild()
+	if staler, ok := t.(ImageIsStaler); ok {
+		if stale, reason := staler.ImageIsStale(c); stale {
+			return true, reason
+		}
+	} else if changes.Any() {
+		return true, "default change detector detected changes"
+	}
+	// Always force a rebuild if is base image has been updated.
+	baseImage := t.Dockerfile().From
+	if c.LastBuildImageExists() && docker.BaseImageUpdated(baseImage, c.PrevDockerTag()) {
+		return true, fmt.Sprintf("the base image %s was updated", baseImage)
+	}
+	// Always force a build if Sous itself has been updated
+	if changes.SousUpdated {
+		return true, fmt.Sprintf("Sous itself or its config was updated")
+	}
+	return false, ""
+}
+
+func (s *Sous) BuildImage(target Target, context *Context) {
+	context.IncrementBuildNumber()
+	if file.Exists("Dockerfile") {
+		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", target.Name())
+	}
+	dfPath := path.Resolve(context.FilePath("Dockerfile"))
+	if prebuilder, ok := target.(PreDockerBuilder); ok {
+		prebuilder.PreDockerBuild(context)
+		// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
+		// may update target state to reflect things like copied file locations etc.
+		s.BuildDockerfile(target, context)
+	}
+	docker.BuildFile(dfPath, ".", context.DockerTag())
+	context.Commit()
 }
 
 var knownTargets = map[string]TargetBase{

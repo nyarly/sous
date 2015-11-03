@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"flag"
 
 	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/tools/cli"
@@ -13,6 +14,12 @@ type Sous struct {
 	Packs                       []Pack
 	Commands                    map[string]*Command
 	cleanupTasks                []func() error
+	Flags                       *SousFlags
+	flagSet                     *flag.FlagSet
+}
+
+type SousFlags struct {
+	ForceBuild, ForceRebuildAll bool
 }
 
 type Command struct {
@@ -32,10 +39,26 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 			Arch:         arch,
 			Packs:        packs,
 			Commands:     commands,
+			Flags:        &SousFlags{},
 			cleanupTasks: []func() error{},
 		}
 	}
 	return sous
+}
+
+func (s *Sous) ParseFlags(args []string) []string {
+	flagSet := flag.NewFlagSet("sous", flag.ExitOnError)
+	force := flagSet.Bool("force", false, "force a rebuild")
+	forceAll := flagSet.Bool("force-all", false, "force a rebuild of this target plus all dependencies")
+	err := flagSet.Parse(args)
+	if err != nil {
+		cli.Fatalf("%s", err)
+	}
+	s.Flags = &SousFlags{
+		ForceBuild:      *force,
+		ForceRebuildAll: *forceAll,
+	}
+	return flagSet.Args()
 }
 
 func (s *Sous) UpdateBaseImage(image string) {

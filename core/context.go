@@ -24,6 +24,7 @@ type Context struct {
 	BuildState           *BuildState
 	AppVersion           string
 	PackInfo             interface{}
+	changes              *Changes
 }
 
 func (bc *Context) IsCI() bool {
@@ -83,40 +84,17 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
 }
 
-// NeedsBuild detects if the project's last
-// build is stale, and if it therefore needs to be rebuilt. This can be overidden
-// by implementing the Staler interfact on individual build targets. This default
-// implementation rebuilds on absolutely any change in sous (i.e. new version/new
-// config) or in the working tree (new or modified files).
-func (s *Sous) NeedsToBuildNewImage(t Target, c *Context) (bool, string) {
-	changes := c.ChangesSinceLastBuild()
-	if staler, ok := t.(ImageIsStaler); ok {
-		if stale, reason := staler.ImageIsStale(c); stale {
-			return true, reason
-		}
-	} else if changes.Any() {
-		return true, "default change detector detected changes"
-	}
-	// Always force a rebuild if is base image has been updated.
-	baseImage := t.Dockerfile().From
-	if c.LastBuildImageExists() && docker.BaseImageUpdated(baseImage, c.PrevDockerTag()) {
-		return true, fmt.Sprintf("the base image %s was updated", baseImage)
-	}
-	// Always force a build if Sous itself has been updated
-	if changes.SousUpdated {
-		return true, fmt.Sprintf("Sous itself or its config was updated")
-	}
-	return false, ""
-}
-
 func (c *Context) ChangesSinceLastBuild() *Changes {
 	cc := c.BuildState.CurrentCommit()
-	return &Changes{
-		NoBuiltImage:       !c.LastBuildImageExists(),
-		NewCommit:          c.BuildState.CommitSHA != c.BuildState.LastCommitSHA,
-		WorkingTreeChanged: cc.TreeHash != cc.OldTreeHash,
-		SousUpdated:        cc.SousHash != cc.OldSousHash,
+	if c.changes == nil {
+		c.changes = &Changes{
+			NoBuiltImage:       !c.LastBuildImageExists(),
+			NewCommit:          c.BuildState.CommitSHA != c.BuildState.LastCommitSHA,
+			WorkingTreeChanged: cc.TreeHash != cc.OldTreeHash,
+			SousUpdated:        cc.SousHash != cc.OldSousHash,
+		}
 	}
+	return c.changes
 }
 
 type Changes struct {

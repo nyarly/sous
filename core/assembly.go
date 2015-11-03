@@ -5,9 +5,7 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
-	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
-	"github.com/opentable/sous/tools/path"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -52,42 +50,6 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	}
 	context.AppVersion = appVersion
 	return target, context
-}
-
-// BuildIfNecessary usually rebuilds any target if anything of the following
-// are true:
-//
-// - No build is available at all
-// - Any files in the working tree have changed
-// - Sous has been updated
-// - Sous config has changed
-//
-// However, you may override this behaviour for a specific target by implementing
-// the Staler interface: { Stale(*Context) bool }
-func (s *Sous) BuildImageIfNecessary(target Target, context *Context) bool {
-	stale, reason := s.NeedsToBuildNewImage(target, context)
-	if !stale {
-		return false
-	}
-	cli.Logf(" ===> Image is stale because %s; rebuilding...", reason)
-	s.BuildImage(target, context)
-	return true
-}
-
-func (s *Sous) BuildImage(target Target, context *Context) {
-	context.IncrementBuildNumber()
-	if file.Exists("Dockerfile") {
-		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", target.Name())
-	}
-	dfPath := path.Resolve(context.FilePath("Dockerfile"))
-	if prebuilder, ok := target.(PreDockerBuilder); ok {
-		prebuilder.PreDockerBuild(context)
-		// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
-		// may update target state to reflect things like copied file locations etc.
-		s.BuildDockerfile(target, context)
-	}
-	docker.BuildFile(dfPath, ".", context.DockerTag())
-	context.Commit()
 }
 
 func (s *Sous) BuildDockerfile(target Target, context *Context) *docker.Dockerfile {
