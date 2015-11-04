@@ -13,19 +13,22 @@ import (
 )
 
 func main() {
-	trapSignals()
-	defer cli.Cleanup()
 	if len(os.Args) < 2 {
 		usage()
 	}
 	sousFlags, args := parseFlags(os.Args)
 	command := args[1]
+	var cfg *config.Config
+	var sous *core.Sous
 	if command != "config" {
 		updateHourly()
+		cfg = config.Load()
+		trapSignals()
+		defer cli.Cleanup()
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(cfg), sousFlags)
+	} else {
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags)
 	}
-	cfg := config.Load()
-	sous := core.NewSous(Version, Revision, OS, Arch,
-		loadCommands(), BuildPacks(cfg), sousFlags)
 	c, ok := sous.Commands[command]
 	if !ok {
 		cli.Fatalf("Command %s not recognised; try `sous help`", command)
