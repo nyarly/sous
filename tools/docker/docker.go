@@ -84,7 +84,7 @@ func Build(dir, tag string) string {
 // directory.
 func BuildFile(dockerfile, dir, tag string) string {
 	if !file.Exists(dockerfile) {
-		cli.Fatalf("File does not exist: %s")
+		cli.Fatalf("File does not exist: %s", dockerfile)
 	}
 	dir = path.Resolve(dir)
 	localDockerfile := ".SousDockerfile"
