@@ -267,12 +267,20 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 	// TODO: This is probably a bit too aggressive, consider only asking the user to
 	// update base images every 24 hours, if they have actually been updated.
 	s.UpdateBaseImage(baseImage)
-	if c.LastBuildImageExists() && docker.BaseImageUpdated(baseImage, c.PrevDockerTag()) {
+	if c.BuildNumber() == 0 {
+		return true, fmt.Sprintf("there are no successful builds yet for the current revision (%s)", c.Git.CommitSHA)
+	}
+	if !c.LastBuildImageExists() {
+		return true, fmt.Sprintf("the last successful build image no longer exists (%s)", c.PrevDockerTag())
+	}
+	if docker.BaseImageUpdated(baseImage, c.PrevDockerTag()) {
 		return true, fmt.Sprintf("the base image %s was updated", baseImage)
 	}
 	// Always force a build if Sous itself has been updated
+	// NB: Always keep this check until last, since it's annoying, so only report this as the reason to rebuild
+	// if none of the reasons above hold true. Sous does its own PR innit.
 	if changes.SousUpdated {
-		return true, fmt.Sprintf("Sous itself or its config was updated")
+		return true, fmt.Sprintf("sous itself or its config was updated")
 	}
 	return false, ""
 }
