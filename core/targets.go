@@ -131,7 +131,7 @@ func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 			return false, nil
 		}
 	}
-	cli.Logf(` ===> Building target "%s"`, t.Name())
+	cli.Logf(`** ===> Building top-level target "%s"**`, t.Name())
 	return s.runTarget(t, c, false)
 }
 
@@ -141,24 +141,24 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 	deps := t.DependsOn()
 	if len(deps) != 0 {
 		for _, d := range deps {
-			cli.Logf(" ===> Building dependency %s", d.Name())
+			cli.Logf("** ===> Building dependency \"%s\"**", d.Name())
 			dt, dc := s.AssembleTargetContext(d.Name())
 			depsRebuilt, state = s.runTarget(dt, dc, true)
 			if ss, ok := t.(SetStater); ok {
 				ss.SetState(dt.Name(), state)
 			}
 		}
-		cli.Logf(" ===> All dependencies of %s built", t.Name())
+		cli.Logf("** ===> All dependencies of %s built**", t.Name())
 	}
 	// Now we have run all dependencies, run this
 	// one if necessary...
 	rebuilt := s.buildImageIfNecessary(t, c, asDependency)
 	// If this target specifies a docker container, invoke it.
 	if ct, ok := t.(ContainerTarget); ok {
-		fmt.Sprintf(" ===> Running target image %s", t.Name())
+		fmt.Sprintf("** ===> Running target image \"%s\"**", t.Name())
 		run, _ := s.RunContainerTarget(ct, c, rebuilt)
 		if run.ExitCode() != 0 {
-			cli.Fatalf("Docker run failed.")
+			cli.Fatalf("** =x=> Docker run failed.**")
 		}
 	}
 	// Get any available state...
@@ -171,17 +171,17 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bool) (*docker.Run, bool) {
 	container := docker.ContainerWithName(t.ContainerName(c))
 	if !container.Exists() {
-		cli.Logf(" ===> Creating new %s container, as no existing one found...", t.Name())
+		cli.Logf("** ===> Creating new %s container, as no existing one found...**", t.Name())
 		return t.DockerRun(c), true
 	}
 	if stale, reason := s.ContainerIsStale(t, c, imageRebuilt); stale {
-		cli.Logf(" ===> Creating new %s container because %s", t.Name(), reason)
+		cli.Logf("** ===> Creating new %s container because %s**", t.Name(), reason)
 		if err := container.Remove(); err != nil {
 			cli.Fatalf("Unable to remove outdated container %s", container)
 		}
 		return t.DockerRun(c), true
 	}
-	cli.Logf(" ===> Re-using build container %s", container)
+	cli.Logf("** ===> Re-using build container %s**", container)
 	return docker.NewReRun(container), false
 }
 
@@ -227,7 +227,7 @@ func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool) bo
 	if !stale {
 		return false
 	}
-	cli.Logf(" ===> Rebuilding image for %s because %s", t.Name(), reason)
+	cli.Logf("** ===> Rebuilding image for %s because %s**", t.Name(), reason)
 	s.BuildImage(t, c)
 	return true
 }
@@ -288,7 +288,7 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 func (s *Sous) BuildImage(t Target, c *Context) {
 	c.IncrementBuildNumber()
 	if file.Exists("Dockerfile") {
-		cli.Logf("WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here", t.Name())
+		cli.Logf("**WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here**", t.Name())
 	}
 	dfPath := path.Resolve(c.FilePath("Dockerfile"))
 	if prebuilder, ok := t.(PreDockerBuilder); ok {
