@@ -52,7 +52,7 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	return target, context
 }
 
-func (s *Sous) BuildDockerfile(target Target, context *Context) *docker.Dockerfile {
+func (s *Sous) WriteDockerfile(target Target, context *Context) *docker.Dockerfile {
 	df := target.Dockerfile()
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")

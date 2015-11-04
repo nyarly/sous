@@ -293,10 +293,10 @@ func (s *Sous) BuildImage(t Target, c *Context) {
 	dfPath := path.Resolve(c.FilePath("Dockerfile"))
 	if prebuilder, ok := t.(PreDockerBuilder); ok {
 		prebuilder.PreDockerBuild(c)
-		// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
-		// may update target state to reflect things like copied file locations etc.
-		s.BuildDockerfile(t, c)
 	}
+	// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
+	// may update target state to reflect things like copied file locations etc.
+	s.WriteDockerfile(t, c)
 	docker.BuildFile(dfPath, ".", c.DockerTag())
 	c.Commit()
 }
