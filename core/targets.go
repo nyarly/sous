@@ -267,7 +267,7 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 	// TODO: This is probably a bit too aggressive, consider only asking the user to
 	// update base images every 24 hours, if they have actually been updated.
 	s.UpdateBaseImage(baseImage)
-	if c.BuildNumber() == 0 {
+	if c.BuildNumber() == 1 {
 		return true, fmt.Sprintf("there are no successful builds yet for the current revision (%s)", c.Git.CommitSHA)
 	}
 	if !c.LastBuildImageExists() {
