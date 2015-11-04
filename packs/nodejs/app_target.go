@@ -98,6 +98,10 @@ func (t *AppTarget) DockerRun(c *core.Context) *docker.Run {
 	return dr
 }
 
+func (t *AppTarget) ContainerName(c *core.Context) string {
+	return c.DockerTag()
+}
+
 func (t *AppTarget) ContainerIsStale(c *core.Context) (bool, string) {
 	return true, "we never re-use app containers"
 }

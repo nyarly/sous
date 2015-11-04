@@ -21,4 +21,10 @@ func TestAppTarget(t *testing.T) {
 	if _, ok := target.(core.SetStater); !ok {
 		t.Errorf("%T does not implement SetStater", target)
 	}
+	// TODO: Use this method of static checking instead of tests for
+	// checking interface implementation.
+	var _ core.ContainerTarget = &AppTarget{}
+	if _, ok := target.(core.ContainerTarget); !ok {
+		t.Errorf("%T does not implement ContainerTarget", target)
+	}
 }
