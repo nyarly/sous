@@ -34,6 +34,7 @@ if ! go install -ldflags "$FLAGS"; then
 fi
 if ! go test ./...; then
 	echo "Tests failed."
+	exit 1
 fi
 # Finally, make sure we can still execute sous version
 sous version

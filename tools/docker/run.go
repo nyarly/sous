@@ -11,9 +11,12 @@ import (
 
 type Run struct {
 	Image, Name            string
+	ReRun                  Container
 	Env                    map[string]string
 	Net                    string
 	StdoutFile, StderrFile string
+	Volumes                []string
+	Command                string
 	inBackground           bool
 }
 
@@ -25,8 +28,21 @@ func NewRun(image string) *Run {
 	}
 }
 
+func NewReRun(container Container) *Run {
+	return &Run{
+		ReRun: container,
+	}
+}
+
 func (r *Run) AddEnv(key, value string) {
 	r.Env[key] = value
+}
+
+func (r *Run) AddVolume(hostPath, containerPath string) {
+	if r.Volumes == nil {
+		r.Volumes = []string{}
+	}
+	r.Volumes = append(r.Volumes, fmt.Sprintf("%s:%s", hostPath, containerPath))
 }
 
 func (r *Run) Background() *Run {
@@ -35,20 +51,32 @@ func (r *Run) Background() *Run {
 }
 
 func (r *Run) prepareCommand() *cmd.CMD {
-	args := []string{"run"}
-	if r.inBackground {
-		args = append(args, "-d")
+	var args []string
+	if r.ReRun != nil {
+		// Add -i flag since start by default puts container in background
+		args = []string{"start", "-i", r.ReRun.String()}
+	} else {
+		args = []string{"run"}
+		if r.inBackground {
+			args = append(args, "-d")
+		}
+		if r.Name != "" {
+			args = append(args, "--name", r.Name)
+		}
+		for k, v := range r.Env {
+			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+		}
+		for _, v := range r.Volumes {
+			args = append(args, "-v", v)
+		}
+		if r.Net != "" {
+			args = append(args, "--net="+r.Net)
+		}
+		args = append(args, r.Image)
+		if r.Command != "" {
+			args = append(args, r.Command)
+		}
 	}
-	if r.Name != "" {
-		args = append(args, "--name", r.Name)
-	}
-	for k, v := range r.Env {
-		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
-	}
-	if r.Net != "" {
-		args = append(args, "--net="+r.Net)
-	}
-	args = append(args, r.Image)
 	c := dockerCmd(args...)
 	if r.inBackground {
 		c.EchoStdout = false
@@ -61,7 +89,7 @@ func (r *Run) ExitCode() int {
 	return r.prepareCommand().ExitCode()
 }
 
-func (r *Run) Start() (*Container, error) {
+func (r *Run) Start() (*container, error) {
 	r.inBackground = true
 	c := r.prepareCommand()
 	cid := c.Out()
@@ -72,16 +100,5 @@ func (r *Run) Start() (*Container, error) {
 	if err != nil {
 		cli.Fatalf("Unable to tail logs: %s", err)
 	}
-	return &Container{cid}, nil
-}
-
-type Container struct {
-	CID string
-}
-
-func (c *Container) Kill() error {
-	if ex := cmd.ExitCode("docker", "kill", c.CID); ex != 0 {
-		return fmt.Errorf("exit code %d", ex)
-	}
-	return nil
+	return &container{cid, ""}, nil
 }

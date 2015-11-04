@@ -97,11 +97,13 @@ func BuildFile(dockerfile, dir, tag string) string {
 		if file.Exists(".dockerignore") {
 			cli.Logf("WARNING: Local .dockerignore found; it is recommended to remove this, and allow Sous to use your .gitignore instead")
 		} else {
-			file.Link(".gitignore", ".dockerignore")
-			file.RemoveOnExit(".dockerignore")
+			file.TemporaryLink(".gitignore", ".dockerignore")
+			// We try to clean this file up early, in preperation for the next build step
+			defer file.Remove(".dockerignore")
 		}
 	}
-	file.Link(dockerfile, localDockerfile)
+	file.TemporaryLink(dockerfile, localDockerfile)
+	// We try to clean the local Dockerfile up early, in preperation for the next build step
 	defer file.Remove(localDockerfile)
 	return dockerCmd("build", "-f", localDockerfile, "-t", tag, dir).Out()
 }
@@ -119,4 +121,56 @@ func ImageExists(tag string) bool {
 		}
 	}
 	return false
+}
+
+func Pull(image string) string {
+	cmd.EchoAll("docker", "pull", image)
+	var i []Image
+	cmd.JSON(&i, "docker", "inspect", image)
+	if len(i) == 0 {
+		cli.Fatalf("image missing after pull: %s", image)
+	}
+	if len(i) != 1 {
+		cli.Fatalf("multiple images match %s; ensure sous is using unique tags", image)
+	}
+	return i[0].ID
+}
+
+func Layers(image string) []string {
+	t := cmd.Table("docker", "history", "--no-trunc", image)
+	layers := make([]string, len(t))
+	for i, r := range t {
+		layers[i] = r[0]
+	}
+	return layers
+}
+
+func ImageID(image string) string {
+	var i []Image
+	cmd.JSON(&i, "docker", "inspect", image)
+	if len(i) == 0 {
+		cli.Fatalf("image missing after pull: %s", image)
+	}
+	if len(i) != 1 {
+		cli.Fatalf("multiple images match %s; ensure sous is using unique tags", image)
+	}
+	return i[0].ID
+}
+
+func BaseImageUpdated(baseImageTag, builtImageTag string) bool {
+	if !ImageExists(baseImageTag) {
+		return true
+	}
+	baseImageID := ImageID(baseImageTag)
+	layers := Layers(builtImageTag)
+	for _, l := range layers {
+		if l == baseImageID {
+			return false
+		}
+	}
+	return true
+}
+
+type Image struct {
+	ID string
 }

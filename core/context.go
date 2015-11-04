@@ -1,9 +1,7 @@
 package core
 
 import (
-	"crypto/sha1"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -19,12 +17,14 @@ import (
 
 type Context struct {
 	Git                  *git.Info
+	WorkDir              string
 	Action               string
 	DockerRegistry       string
 	Host, FullHost, User string
 	BuildState           *BuildState
 	AppVersion           string
 	PackInfo             interface{}
+	changes              *Changes
 }
 
 func (bc *Context) IsCI() bool {
@@ -36,8 +36,13 @@ func GetContext(action string) *Context {
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
 	bs := GetBuildState(action, gitInfo)
+	wd, err := os.Getwd()
+	if err != nil {
+		cli.Fatalf("Unable to get current working directory: %s", err)
+	}
 	return &Context{
 		Git:            gitInfo,
+		WorkDir:        wd,
 		Action:         action,
 		DockerRegistry: registry,
 		Host:           cmd.Stdout("hostname"),
@@ -79,18 +84,25 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
 }
 
-func (c *Context) NeedsBuild() bool {
-	if !c.LastBuildImageExists() {
-		return true
-	}
-	if c.BuildState.CommitSHA != c.BuildState.LastCommitSHA {
-		return true
-	}
+func (c *Context) ChangesSinceLastBuild() *Changes {
 	cc := c.BuildState.CurrentCommit()
-	if cc.Hash != cc.OldHash {
-		return true
+	if c.changes == nil {
+		c.changes = &Changes{
+			NoBuiltImage:       !c.LastBuildImageExists(),
+			NewCommit:          c.BuildState.CommitSHA != c.BuildState.LastCommitSHA,
+			WorkingTreeChanged: cc.TreeHash != cc.OldTreeHash,
+			SousUpdated:        cc.SousHash != cc.OldSousHash,
+		}
 	}
-	return false
+	return c.changes
+}
+
+type Changes struct {
+	NoBuiltImage, NewCommit, WorkingTreeChanged, SousUpdated bool
+}
+
+func (c *Changes) Any() bool {
+	return c.NoBuiltImage || c.NewCommit || c.WorkingTreeChanged || c.SousUpdated
 }
 
 func (c *Context) LastBuildImageExists() bool {
@@ -145,32 +157,6 @@ func (c *Context) FilePath(name string) string {
 
 func (c *Context) BaseDir() string {
 	return path.BaseDir(c.BuildState.path)
-}
-
-func CalculateHash() string {
-	h := sha1.New()
-	toolVersion := cmd.Stdout("sous", "version")
-	io.WriteString(h, toolVersion)
-	indexDiffs := cmd.Stdout("git", "diff-index", "HEAD")
-	if len(indexDiffs) != 0 {
-		io.WriteString(h, indexDiffs)
-	}
-	newFiles := git.UntrackedUnignoredFiles()
-	if len(newFiles) != 0 {
-		for _, f := range newFiles {
-			io.WriteString(h, f)
-			if content, ok := file.ReadString(f); ok {
-				io.WriteString(h, content)
-			}
-		}
-	}
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-type Commit struct {
-	Hash, OldHash string
-	BuildNumber   int
-	ToolVersion   string
 }
 
 func tryGetBuildNumberFromEnv() (int, bool) {

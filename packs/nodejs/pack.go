@@ -11,7 +11,12 @@ import (
 )
 
 type Pack struct {
+	Config      *config.NodeJSConfig
 	PackageJSON *NodePackage
+}
+
+func New(c *config.NodeJSConfig) *Pack {
+	return &Pack{Config: c}
 }
 
 func (p *Pack) Name() string {
@@ -28,7 +33,7 @@ func (p *Pack) Detect() error {
 	}
 	// This is the place to set defaults
 	if p.PackageJSON.Engines.Node == "" {
-		p.PackageJSON.Engines.Node = config.Load().Packs.NodeJS.DefaultNodeVersion
+		p.PackageJSON.Engines.Node = p.Config.DefaultNodeVersion
 	}
 	return nil
 }
@@ -45,9 +50,9 @@ func (p *Pack) Problems() core.ErrorCollection {
 			c.Packs.NodeJS.DefaultNodeVersion)
 	} else {
 		r := version.Range(np.Engines.Node)
-		if v := r.BestMatchFrom(AvailableNodeVersions()); v == nil {
+		if v := r.BestMatchFrom(p.AvailableNodeVersions()); v == nil {
 			f := "node version range (%s) not supported (pick from %s)"
-			errs.AddErrorf(f, r.Original, strings.Join((AvailableNodeVersions().Strings()), ", "))
+			errs.AddErrorf(f, r.Original, strings.Join((p.AvailableNodeVersions().Strings()), ", "))
 		}
 	}
 	if np.Version == "" {
@@ -68,8 +73,9 @@ func (p *Pack) AppDesc() string {
 
 func (p *Pack) Targets() []core.Target {
 	return []core.Target{
-		NewAppTarget(p.PackageJSON),
-		NewTestTarget(p.PackageJSON),
+		NewAppTarget(p),
+		NewTestTarget(p),
+		NewCompileTarget(p),
 	}
 }
 

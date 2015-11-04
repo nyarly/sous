@@ -19,6 +19,9 @@ func DetectProjectType(packs []Pack) Pack {
 		}
 		pack = p
 	}
+	if pack == nil {
+		cli.Fatalf("no buildable project detected")
+	}
 	pack.Detect()
 	return pack
 }

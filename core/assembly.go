@@ -5,9 +5,7 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
-	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
-	"github.com/opentable/sous/tools/path"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -54,25 +52,11 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	return target, context
 }
 
-func (s *Sous) BuildIfNecessary(target Target, context *Context) bool {
-	if !context.NeedsBuild() {
-		return false
-	}
-	context.IncrementBuildNumber()
-	s.BuildDockerfile(target, context)
-	if file.Exists("Dockerfile") {
-		cli.Logf("INFO: Your local Dockerfile is ignored by sous, just so you know")
-	}
-	df := path.Resolve(context.FilePath("Dockerfile"))
-	docker.BuildFile(df, ".", context.DockerTag())
-	context.Commit()
-	return true
-}
-
-func (s *Sous) BuildDockerfile(target Target, context *Context) {
+func (s *Sous) BuildDockerfile(target Target, context *Context) *docker.Dockerfile {
 	df := target.Dockerfile()
 	AddMetadata(df, context)
 	context.SaveFile(df.Render(), "Dockerfile")
+	return df
 }
 
 func RequireDocker() {

@@ -26,9 +26,13 @@ func Build(sous *core.Sous, args []string) {
 	}
 
 	target, context := sous.AssembleTargetContext(targetName)
-	if !sous.BuildIfNecessary(target, context) {
+
+	built, _ := sous.RunTarget(target, context)
+
+	if !built {
 		cli.Successf("Already built: %s", context.DockerTag())
 	}
+
 	name := context.CanonicalPackageName()
 	cli.Successf("Successfully built %s v%s as %s", name, context.AppVersion, context.DockerTag())
 }

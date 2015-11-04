@@ -19,9 +19,8 @@ func Test(sous *core.Sous, args []string) {
 	core.RequireDocker()
 
 	target, context := sous.AssembleTargetContext("test")
-	if !sous.BuildIfNecessary(target, context) {
-		cli.Logf("No changes since last build, running %s", context.DockerTag())
-	}
+
+	sous.RunTarget(target, context)
 
 	testRunExitCode := docker.NewRun(context.DockerTag()).ExitCode()
 

@@ -1,12 +1,9 @@
 package commands
 
 import (
-	"strconv"
-
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
-	"github.com/opentable/sous/tools/ports"
 )
 
 func RunHelp() string {
@@ -22,17 +19,17 @@ func Run(sous *core.Sous, args []string) {
 	core.RequireDocker()
 
 	target, context := sous.AssembleTargetContext(targetName)
-	if !sous.BuildIfNecessary(target, context) {
-		cli.Logf("No changes since last build, running %s", context.DockerTag())
-	}
 
-	dr := docker.NewRun(context.DockerTag())
-	port0, err := ports.GetFreePort()
-	if err != nil {
-		cli.Fatalf("Unable to get free port: %s", err)
+	sous.RunTarget(target, context)
+
+	var dr *docker.Run
+	runner, ok := target.(core.ContainerTarget)
+	if !ok {
+		cli.Fatalf("%s->%s does not support running", target.Pack(), target.Name())
+	} else {
+
 	}
-	dr.AddEnv("PORT0", strconv.Itoa(port0))
-	dr.AddEnv("TASK_HOST", core.DivineTaskHost())
+	dr = runner.DockerRun(context)
 	if code := dr.ExitCode(); code != 0 {
 		cli.Fatalf("Run failed with exit code %d", code)
 	}

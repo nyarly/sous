@@ -36,6 +36,7 @@ func (C *CMD) execute() (code int, err error) {
 	c := exec.Command(C.Name, C.Args...)
 	c.Stdout = C.Stdout
 	c.Stderr = C.Stderr
+	c.Env = os.Environ()
 	if C.EchoStdout {
 		c.Stdout = io.MultiWriter(os.Stdout, c.Stdout)
 	}
@@ -48,11 +49,11 @@ func (C *CMD) execute() (code int, err error) {
 	if C.WriteStderr != nil {
 		c.Stderr = io.MultiWriter(C.WriteStderr, c.Stderr)
 	}
-	if err := c.Start(); err != nil {
-		cli.Fatalf("Unable to begin command execution; %s", err)
-	}
 	if C.EchoStdout || C.EchoStderr {
 		cli.Logf("shell> %s", C)
+	}
+	if err := c.Start(); err != nil {
+		cli.Fatalf("Unable to begin command execution; %s", err)
 	}
 	err = c.Wait()
 	if err != nil {
