@@ -50,7 +50,7 @@ func (t *AppTarget) PreDockerBuild(c *core.Context) {
 	}
 	filename := path.Base(t.artifactPath)
 	localArtifact := filename
-	file.TemporaryLink(t.artifactPath, localArtifact)
+	file.TemporaryLink(t.artifactPath, "./"+localArtifact)
 	t.artifactPath = localArtifact
 }
 
