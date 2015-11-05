@@ -72,6 +72,7 @@ func (r *Run) prepareCommand() *cmd.CMD {
 		if r.Net != "" {
 			args = append(args, "--net="+r.Net)
 		}
+		// Do not add more options after this line.
 		args = append(args, r.Image)
 		if r.Command != "" {
 			args = append(args, r.Command)
