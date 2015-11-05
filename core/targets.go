@@ -177,7 +177,9 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 				cli.Fatalf("Unable to remove outdated container %s", container)
 			}
 		}
-		return t.DockerRun(c), true
+		run := t.DockerRun(c)
+		run.Name = t.ContainerName(c)
+		return run, true
 	}
 	cli.Logf("** ===> Re-using build container %s**", container)
 	return docker.NewReRun(container), false
