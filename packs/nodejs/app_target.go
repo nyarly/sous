@@ -99,7 +99,7 @@ func (t *AppTarget) DockerRun(c *core.Context) *docker.Run {
 }
 
 func (t *AppTarget) ContainerName(c *core.Context) string {
-	return c.DockerTag()
+	return c.CanonicalPackageName()
 }
 
 func (t *AppTarget) ContainerIsStale(c *core.Context) (bool, string) {
