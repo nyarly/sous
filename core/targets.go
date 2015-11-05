@@ -186,7 +186,8 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 }
 
 func (s *Sous) NewContainerNeeded(t ContainerTarget, c *Context, imageRebuilt bool) (bool, string, docker.Container) {
-	container := docker.ContainerWithName(t.ContainerName(c))
+	containerName := t.ContainerName(c)
+	container := docker.ContainerWithName(containerName)
 	if !container.Exists() {
 		container = nil
 	}
@@ -194,7 +195,7 @@ func (s *Sous) NewContainerNeeded(t ContainerTarget, c *Context, imageRebuilt bo
 		return true, reason, container
 	}
 	if container == nil {
-		return true, fmt.Sprintf("no container named %s exists", container), nil
+		return true, fmt.Sprintf("no container named %s exists", containerName), nil
 	}
 	if imageRebuilt {
 		return true, "its underlying image was rebuilt", container

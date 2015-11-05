@@ -34,24 +34,37 @@ func ContainerWithCID(cid string) Container {
 func (c *container) CID() string  { return c.cid }
 func (c *container) Name() string { return c.name }
 
-func (c *container) Exists() bool {
-	if c.name != "" {
-		return len(cmd.Lines("docker", "ps", "-a", "--filter", "name="+c.name)) > 1
-	} else if c.cid != "" {
-		return len(cmd.Lines("docker", "ps", "-a", "--filter", "id="+c.cid)) > 1
+func (c *container) Inspect() (*DockerContainer, bool) {
+	if cmd.ExitCode("docker", "inspect", c.effectiveName()) != 0 {
+		return nil, false
 	}
-	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
-	return false
+	var dc []*DockerContainer
+	cmd.JSON(&dc, "docker", "inspect", c.effectiveName())
+	if len(dc) == 0 {
+		return nil, false
+	}
+	if len(dc) != 1 {
+		cli.Fatalf("Docker inspect %s returned more than one result, please open a GitHub issue about this",
+			c.effectiveName())
+	}
+	// The seond return value checks that the thing we inspected was, in fact, the
+	// relevant container, since docker inpect takes both container and image
+	// names and IDs, so it's a bit ambiguous otherwise.
+	cont := dc[0]
+	return cont, cont.Name == "/"+c.Name() || cont.ID == c.CID()
+}
+
+func (c *container) Exists() bool {
+	_, exists := c.Inspect()
+	return exists
 }
 
 func (c *container) Running() bool {
-	if c.name != "" {
-		return len(cmd.Lines("docker", "ps", "--filter", "name="+c.name)) > 1
-	} else if c.cid != "" {
-		return len(cmd.Lines("docker", "ps", "--filter", "id="+c.cid)) > 1
+	dc, ok := c.Inspect()
+	if !ok {
+		return false
 	}
-	cli.Fatalf("Sous Programmer Error: Container has neither CID nor Name")
-	return false
+	return dc.State.Running
 }
 
 func (c *container) Image() string {
@@ -68,6 +81,9 @@ func (c *container) Image() string {
 
 type DockerContainer struct {
 	ID, Name, Image string
+	State           struct {
+		Running, Paused, Restarting bool
+	}
 }
 
 func (c *container) Kill() error {
