@@ -26,12 +26,26 @@ func Run(sous *core.Sous, args []string) {
 	runner, ok := target.(core.ContainerTarget)
 	if !ok {
 		cli.Fatalf("%s->%s does not support running", target.Pack(), target.Name())
-	} else {
-
 	}
 	dr = runner.DockerRun(context)
-	if code := dr.ExitCode(); code != 0 {
-		cli.Fatalf("Run failed with exit code %d", code)
+	container, err := dr.Start()
+	if err != nil {
+		cli.Fatalf("Unable to start container: %s", err)
+	}
+	cli.AddCleanupTask(func() error {
+		if container.Exists() {
+			if container.Running() {
+				if err := container.Kill(); err != nil {
+					return err
+				}
+			}
+		} else {
+			cli.Logf("Attempted to clean up container %s, but it doesn't exist", container)
+		}
+		return nil
+	})
+	if err := container.Wait(); err != nil {
+		cli.Fatalf("Run failed: %s", err)
 	}
 	cli.Success()
 }

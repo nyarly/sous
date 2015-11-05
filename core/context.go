@@ -144,10 +144,17 @@ func (c *Context) IncrementBuildNumber() {
 }
 
 func (s *BuildState) Commit() {
+	if s.path == "" {
+		panic("BuildState.path is empty")
+	}
 	file.WriteJSON(s, s.path)
 }
 
 func (c *Context) SaveFile(content, name string) {
+	wot := c.FilePath(name)
+	if wot == "" {
+		panic("WOT WAS EMPTY!")
+	}
 	file.WriteString(content, c.FilePath(name))
 }
 

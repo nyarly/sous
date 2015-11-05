@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
@@ -16,6 +17,9 @@ func Write(data []byte, pathFormat string, a ...interface{}) {
 	dir.EnsureExists(path.BaseDir(p))
 	err := ioutil.WriteFile(p, data, 0777)
 	if err != nil {
+		var buf []byte
+		runtime.Stack(buf, false)
+		cli.Logf(string(buf))
 		cli.Fatalf("unable to write file %s; %s", p, err)
 	}
 }

@@ -155,7 +155,7 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 	rebuilt := s.buildImageIfNecessary(t, c, asDependency)
 	// If this target specifies a docker container, invoke it.
 	if ct, ok := t.(ContainerTarget); ok {
-		fmt.Sprintf("** ===> Running target image \"%s\"**", t.Name())
+		//cli.Logf("** ===> Running target image \"%s\"**", t.Name())
 		run, _ := s.RunContainerTarget(ct, c, rebuilt)
 		if run.ExitCode() != 0 {
 			cli.Fatalf("** =x=> Docker run failed.**")
@@ -169,15 +169,13 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 }
 
 func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bool) (*docker.Run, bool) {
-	container := docker.ContainerWithName(t.ContainerName(c))
-	if !container.Exists() {
-		cli.Logf("** ===> Creating new %s container, as no existing one found...**", t.Name())
-		return t.DockerRun(c), true
-	}
-	if stale, reason := s.ContainerIsStale(t, c, imageRebuilt); stale {
+	stale, reason, container := s.NewContainerNeeded(t, c, imageRebuilt)
+	if stale {
 		cli.Logf("** ===> Creating new %s container because %s**", t.Name(), reason)
-		if err := container.Remove(); err != nil {
-			cli.Fatalf("Unable to remove outdated container %s", container)
+		if container != nil {
+			if err := container.Remove(); err != nil {
+				cli.Fatalf("Unable to remove outdated container %s", container)
+			}
 		}
 		return t.DockerRun(c), true
 	}
@@ -185,18 +183,24 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 	return docker.NewReRun(container), false
 }
 
-func (s *Sous) ContainerIsStale(t ContainerTarget, c *Context, imageRebuilt bool) (bool, string) {
-	if imageRebuilt {
-		return true, "its underlying image was rebuilt"
-	}
+func (s *Sous) NewContainerNeeded(t ContainerTarget, c *Context, imageRebuilt bool) (bool, string, docker.Container) {
 	container := docker.ContainerWithName(t.ContainerName(c))
+	if !container.Exists() {
+		container = nil
+	}
 	if stale, reason := t.ContainerIsStale(c); stale {
-		return true, reason
+		return true, reason, container
+	}
+	if container == nil {
+		return true, fmt.Sprintf("no container named %s exists", container), nil
+	}
+	if imageRebuilt {
+		return true, "its underlying image was rebuilt", container
 	}
 	if stale, reason := s.OverrideContainerRebuild(t, container); stale {
-		return true, reason
+		return true, reason, container
 	}
-	return false, ""
+	return false, "", container
 }
 
 func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Container) (bool, string) {
@@ -239,10 +243,10 @@ func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool) bo
 // config) or in the working tree (new or modified files).
 func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bool, string) {
 	if s.Flags.ForceRebuildAll {
-		return true, "-force-all flag was used"
+		return true, "-rebuild-all flag was used"
 	}
 	if s.Flags.ForceRebuild && !asDependency {
-		return true, "-force flag was used"
+		return true, "-rebuild flag was used"
 	}
 	changes := c.ChangesSinceLastBuild()
 	if staler, ok := t.(ImageIsStaler); ok {

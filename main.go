@@ -16,8 +16,8 @@ func main() {
 	if len(os.Args) < 2 {
 		usage()
 	}
-	sousFlags, args := parseFlags(os.Args)
-	command := args[1]
+	sousFlags, args := parseFlags(os.Args[2:])
+	command := os.Args[1]
 	var cfg *config.Config
 	var sous *core.Sous
 	if command != "config" {
@@ -35,7 +35,7 @@ func main() {
 	}
 	// It is the responsibility of the command to exit with an appropriate
 	// error code...
-	c.Func(sous, os.Args[2:])
+	c.Func(sous, args)
 	// If it does not, we assume it failed...
 	cli.Fatalf("Command did not complete correctly")
 }

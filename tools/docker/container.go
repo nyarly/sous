@@ -91,6 +91,13 @@ func (c *container) Start() error {
 	return nil
 }
 
+func (c *container) Wait() error {
+	if ex := cmd.ExitCode("docker", "wait", c.effectiveName()); ex != 0 {
+		return fmt.Errorf("Unable to wait on docker container %s", c)
+	}
+	return nil
+}
+
 func (c *container) String() string {
 	return c.effectiveName()
 }
