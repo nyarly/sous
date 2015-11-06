@@ -102,12 +102,15 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	run := docker.NewRun(c.DockerTag())
 	run.Name = containerName
 	run.AddEnv("ARTIFACT_NAME", t.artifactName(c))
+	uid := cmd.Stdout("id", "-u")
+	gid := cmd.Stdout("id", "-g")
+	artifactOwner := fmt.Sprintf("%s:%s", uid, gid)
+	run.AddEnv("ARTIFACT_OWNER", artifactOwner)
 	artDir := t.artifactDir(c)
 	dir.EnsureExists(artDir)
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
 	run.Command = "npm install"
-	run.UserID = cmd.Stdout("id", "-u")
 	return run
 }
 
