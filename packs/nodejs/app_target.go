@@ -103,5 +103,5 @@ func (t *AppTarget) ContainerName(c *core.Context) string {
 }
 
 func (t *AppTarget) ContainerIsStale(c *core.Context) (bool, string) {
-	return true, "we never re-use app containers"
+	return true, "it is not reusable"
 }
