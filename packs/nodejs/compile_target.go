@@ -47,8 +47,16 @@ func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
 	// This is a non-portable container, since it includes the UID of the
 	// logged-in user.
 	uid := cmd.Stdout("id", "-u")
+	gid := cmd.Stdout("id", "-g")
 	username := cmd.Stdout("whoami")
-	df.AddRun("useradd", "-u", uid, username)
+	// Just use the username for group name, it doesn't matter as long as
+	// the IDs are right.
+	df.AddRun(fmt.Sprintf("groupadd -g %s %s", gid, username))
+	// Explanation of some of the below useradd flags:
+	//   -M means do not create home directory, which we do not need
+	//   --no-log-init means do not create a 32G sparse file (which Docker commit
+	//       cannot handle properly, and tries to create a non-sparse 32G file.
+	df.AddRun(fmt.Sprintf("useradd --no-log-init -M --uid %s --gid %s %s", uid, gid, username))
 	df.AddRun("npm install -g npm@2")
 	return df
 }
@@ -99,6 +107,7 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
 	run.Command = "npm install"
+	run.UserID = cmd.Stdout("id", "-u")
 	return run
 }
 

@@ -11,6 +11,7 @@ import (
 
 type Run struct {
 	Image, Name            string
+	UserID                 string
 	ReRun                  Container
 	Env                    map[string]string
 	Net                    string
@@ -71,6 +72,9 @@ func (r *Run) prepareCommand() *cmd.CMD {
 		}
 		if r.Net != "" {
 			args = append(args, "--net="+r.Net)
+		}
+		if r.UserID != "" {
+			args = append(args, "-u", r.UserID)
 		}
 		// Do not add more options after this line.
 		args = append(args, r.Image)
