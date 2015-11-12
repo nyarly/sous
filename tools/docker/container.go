@@ -14,6 +14,7 @@ type Container interface {
 	String() string
 	Kill() error
 	Remove() error
+	ForceRemove() error
 	Start() error
 	Exists() bool
 	Running() bool
@@ -95,6 +96,13 @@ func (c *container) Kill() error {
 
 func (c *container) Remove() error {
 	if ex := cmd.ExitCode("docker", "rm", c.effectiveName()); ex != 0 {
+		return fmt.Errorf("Unable to remove docker container %s", c)
+	}
+	return nil
+}
+
+func (c *container) ForceRemove() error {
+	if ex := cmd.ExitCode("docker", "rm", "-f", c.effectiveName()); ex != 0 {
 		return fmt.Errorf("Unable to remove docker container %s", c)
 	}
 	return nil

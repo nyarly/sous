@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
@@ -136,14 +137,16 @@ func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 }
 
 func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interface{}) {
-	depsRebuilt := false
-	var state interface{}
+	depsRebuilt := []string{}
 	deps := t.DependsOn()
 	if len(deps) != 0 {
 		for _, d := range deps {
 			cli.Logf("** ===> Building dependency \"%s\"**", d.Name())
 			dt, dc := s.AssembleTargetContext(d.Name())
-			depsRebuilt, state = s.runTarget(dt, dc, true)
+			depRebuilt, state := s.runTarget(dt, dc, true)
+			if depRebuilt {
+				depsRebuilt = append(depsRebuilt, d.Name())
+			}
 			if ss, ok := t.(SetStater); ok {
 				ss.SetState(dt.Name(), state)
 			}
@@ -152,7 +155,7 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 	}
 	// Now we have run all dependencies, run this
 	// one if necessary...
-	rebuilt := s.buildImageIfNecessary(t, c, asDependency)
+	rebuilt := s.buildImageIfNecessary(t, c, asDependency, depsRebuilt)
 	// If this target specifies a docker container, invoke it.
 	if ct, ok := t.(ContainerTarget); ok {
 		//cli.Logf("** ===> Running target image \"%s\"**", t.Name())
@@ -162,10 +165,11 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 		}
 	}
 	// Get any available state...
+	var state interface{}
 	if s, ok := t.(Stater); ok {
 		state = s.State(c)
 	}
-	return rebuilt || depsRebuilt, state
+	return rebuilt, state
 }
 
 func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bool) (*docker.Run, bool) {
@@ -173,8 +177,9 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 	if stale {
 		cli.Logf("** ===> Creating new %s container because %s**", t.Name(), reason)
 		if container != nil {
-			if err := container.Remove(); err != nil {
-				cli.Fatalf("Unable to remove outdated container %s", container)
+			cli.Logf("Force-removing old containern %s", container)
+			if err := container.ForceRemove(); err != nil {
+				cli.Fatalf("Unable to remove outdated container %s; %s", container, err)
 			}
 		}
 		run := t.DockerRun(c)
@@ -226,11 +231,11 @@ func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Cont
 // However, you may override this behaviour for a specific target by implementing
 // the Staler interface: { Stale(*Context) bool }
 func (s *Sous) BuildImageIfNecessary(t Target, c *Context) bool {
-	return s.buildImageIfNecessary(t, c, false)
+	return s.buildImageIfNecessary(t, c, false, []string{})
 }
 
-func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool) bool {
-	stale, reason := s.NeedsToBuildNewImage(t, c, asDependency)
+func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool, depsRebuilt []string) bool {
+	stale, reason := s.needsToBuildNewImage(t, c, asDependency, depsRebuilt)
 	if !stale {
 		return false
 	}
@@ -239,12 +244,22 @@ func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool) bo
 	return true
 }
 
+func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bool, string) {
+	return s.needsToBuildNewImage(t, c, asDependency, []string{})
+}
+
 // NeedsBuild detects if the project's last
 // build is stale, and if it therefore needs to be rebuilt. This can be overidden
 // by implementing the Staler interfact on individual build targets. This default
 // implementation rebuilds on absolutely any change in sous (i.e. new version/new
 // config) or in the working tree (new or modified files).
-func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bool, string) {
+func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, depsRebuilt []string) (bool, string) {
+	if len(depsRebuilt) == 1 {
+		return true, fmt.Sprintf("its %s dependency was rebuilt", depsRebuilt[0])
+	}
+	if len(depsRebuilt) > 1 {
+		return true, fmt.Sprintf("its dependencies [%s] were reubilt", strings.Join(depsRebuilt, ", "))
+	}
 	if s.Flags.ForceRebuildAll {
 		return true, "-rebuild-all flag was used"
 	}
