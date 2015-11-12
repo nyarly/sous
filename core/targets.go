@@ -177,7 +177,7 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 	if stale {
 		cli.Logf("** ===> Creating new %s container because %s**", t.Name(), reason)
 		if container != nil {
-			cli.Logf("Force-removing old containern %s", container)
+			cli.Logf("Force-removing old container %s", container)
 			if err := container.ForceRemove(); err != nil {
 				cli.Fatalf("Unable to remove outdated container %s; %s", container, err)
 			}
