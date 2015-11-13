@@ -156,12 +156,14 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 	// Now we have run all dependencies, run this
 	// one if necessary...
 	rebuilt := s.buildImageIfNecessary(t, c, asDependency, depsRebuilt)
-	// If this target specifies a docker container, invoke it.
-	if ct, ok := t.(ContainerTarget); ok {
-		//cli.Logf("** ===> Running target image \"%s\"**", t.Name())
-		run, _ := s.RunContainerTarget(ct, c, rebuilt)
-		if run.ExitCode() != 0 {
-			cli.Fatalf("** =x=> Docker run failed.**")
+	// If this is a dep and target specifies a docker container, invoke it.
+	if asDependency {
+		if ct, ok := t.(ContainerTarget); ok {
+			//cli.Logf("** ===> Running target image \"%s\"**", t.Name())
+			run, _ := s.RunContainerTarget(ct, c, rebuilt)
+			if run.ExitCode() != 0 {
+				cli.Fatalf("** =x=> Docker run failed.**")
+			}
 		}
 	}
 	// Get any available state...
