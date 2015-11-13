@@ -52,13 +52,6 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	return target, context
 }
 
-func (s *Sous) WriteDockerfile(target Target, context *Context) *docker.Dockerfile {
-	df := target.Dockerfile()
-	AddMetadata(df, context)
-	context.SaveFile(df.Render(), "Dockerfile")
-	return df
-}
-
 func RequireDocker() {
 	docker.RequireVersion(version.Range(">=1.8.2"))
 	docker.RequireDaemon()
@@ -67,16 +60,6 @@ func RequireDocker() {
 func RequireGit() {
 	git.RequireVersion(version.Range(">=1.9.1"))
 	git.RequireRepo()
-}
-
-func AddMetadata(d *docker.Dockerfile, c *Context) {
-	d.Maintainer = c.User
-	d.AddLabel("builder.app", "sous")
-	d.AddLabel("builder.host", c.Host)
-	d.AddLabel("builder.fullhost", c.FullHost)
-	d.AddLabel("builder.user", c.User)
-	d.AddLabel("source.git.repo", c.Git.CanonicalName())
-	d.AddLabel("source.git.revision", c.Git.CommitSHA)
 }
 
 func DivineTaskHost() string {

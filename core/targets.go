@@ -2,12 +2,12 @@ package core
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
-	"github.com/opentable/sous/tools/path"
 )
 
 // Target describes a buildable Docker file that performs a particular task related to building
@@ -314,15 +314,39 @@ func (s *Sous) BuildImage(t Target, c *Context) {
 	if file.Exists("Dockerfile") {
 		cli.Logf("**WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here**", t.Name())
 	}
-	dfPath := path.Resolve(c.FilePath("Dockerfile"))
 	if prebuilder, ok := t.(PreDockerBuilder); ok {
 		prebuilder.PreDockerBuild(c)
 	}
 	// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
 	// may update target state to reflect things like copied file locations etc.
-	s.WriteDockerfile(t, c)
-	docker.BuildFile(dfPath, ".", c.DockerTag())
+	c.SaveFile(s.Dockerfile(t, c).Render(), "Dockerfile")
+	docker.BuildFile(c.FilePath("Dockerfile"), ".", c.DockerTag())
 	c.Commit()
+}
+
+// Sous.Dockerfile is the canonical source for all Dockerfiles. It takes
+// the Dockerfile defined by the pack target, and decorates it with additional
+// metadata.
+func (s *Sous) Dockerfile(t Target, c *Context) *docker.Dockerfile {
+	df := t.Dockerfile()
+	df.Maintainer = c.User
+	df.AddLabel("build.number", strconv.Itoa(c.BuildNumber()))
+	df.AddLabel("build.pack.name", t.Pack().Name())
+	df.AddLabel("build.pack.id", strings.ToLower(t.Pack().Name()))
+	df.AddLabel("build.target", t.Name())
+	df.AddLabel("build.tool.name", "sous")
+	df.AddLabel("build.tool.version", sous.Version)
+	df.AddLabel("build.tool.revision", sous.Revision)
+	df.AddLabel("build.tool.os", sous.OS)
+	df.AddLabel("build.tool.arch", sous.Arch)
+	df.AddLabel("build.machine.host", c.Host)
+	df.AddLabel("build.machine.fullhost", c.FullHost)
+	df.AddLabel("build.user", c.User)
+	df.AddLabel("build.source.repository", c.Git.CanonicalName())
+	df.AddLabel("build.source.revision", c.Git.CommitSHA)
+	df.AddLabel("build.package.name", c.CanonicalPackageName())
+	df.AddLabel("build.package.version", t.Pack().AppVersion())
+	return df
 }
 
 var knownTargets = map[string]TargetBase{

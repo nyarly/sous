@@ -72,10 +72,6 @@ func (p *Pack) baseDockerfile(target string) *docker.Dockerfile {
 		Workdir:     wd,
 		LabelPrefix: "com.opentable",
 	}
-	//npmMajorVer := npmVer.String()[0:1]
-	//df.AddRun("npm install -g npm@%s", npmMajorVer)
-	df.AddLabel("stack.name", "NodeJS")
-	df.AddLabel("stack.id", "nodejs")
-	df.AddLabel("stack.nodejs.version", nodeVersion)
+	df.AddLabel("build.pack.nodejs.version", nodeVersion)
 	return df
 }

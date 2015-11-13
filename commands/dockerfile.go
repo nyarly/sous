@@ -3,7 +3,6 @@ package commands
 import (
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
-	"github.com/opentable/sous/tools/file"
 )
 
 func DockerfileHelp() string {
@@ -16,12 +15,6 @@ func Dockerfile(sous *core.Sous, args []string) {
 		targetName = args[0]
 	}
 	target, context := sous.AssembleTargetContext(targetName)
-	sous.WriteDockerfile(target, context)
-	fp := context.FilePath("Dockerfile")
-	df, ok := file.ReadString(fp)
-	if !ok {
-		cli.Fatalf("Unable to read %s", fp)
-	}
-	cli.Outf(df)
+	cli.Outf(sous.Dockerfile(target, context).Render())
 	cli.Success()
 }
