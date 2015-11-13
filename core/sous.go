@@ -3,9 +3,11 @@ package core
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 
 	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/docker"
 )
 
@@ -68,6 +70,33 @@ func (s *Sous) UpdateBaseImage(image string) {
 	config.Set(key, string(listJSON))
 	// Now lets grab the actual image
 	docker.Pull(image)
+}
+
+func (s *Sous) LsImages(c *Context) {
+	labelFilter := fmt.Sprintf("label=%s.build.package.name=%s", s.Config.DockerLabelPrefix, c.CanonicalPackageName())
+	results := cmd.Table("docker", "images", "--filter", labelFilter)
+	// The first line is just table headers
+	if len(results) < 2 {
+		return
+	}
+	results = results[1:]
+	for _, row := range results {
+		cli.Outf("  %s:%s", row[0], row[1])
+	}
+}
+
+func (s *Sous) LsContainers(c *Context) {
+	labelFilter := fmt.Sprintf("label=%s.build.package.name=%s", s.Config.DockerLabelPrefix, c.CanonicalPackageName())
+	results := cmd.Table("docker", "ps", "-a", "--filter", labelFilter)
+	// The first line is just table headers
+	if len(results) < 2 {
+		return
+	}
+	results = results[1:]
+	for _, row := range results {
+		nameIndex := len(row) - 1
+		cli.Outf("  %s (%s)", row[nameIndex], row[0])
+	}
 }
 
 func doesNotAppearInList(item string, list []string) bool {
