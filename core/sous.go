@@ -15,6 +15,7 @@ type Sous struct {
 	Commands                    map[string]*Command
 	cleanupTasks                []func() error
 	Flags                       *SousFlags
+	Config                      *config.Config
 	flagSet                     *flag.FlagSet
 }
 
@@ -30,7 +31,7 @@ type Command struct {
 
 var sous *Sous
 
-func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags) *Sous {
+func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags, config *config.Config) *Sous {
 	if sous == nil {
 		sous = &Sous{
 			Version:      version,
@@ -40,6 +41,7 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 			Packs:        packs,
 			Commands:     commands,
 			Flags:        flags,
+			Config:       config,
 			cleanupTasks: []func() error{},
 		}
 	}

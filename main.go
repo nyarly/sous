@@ -25,9 +25,9 @@ func main() {
 		cfg = config.Load()
 		trapSignals()
 		defer cli.Cleanup()
-		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(cfg), sousFlags)
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(cfg), sousFlags, cfg)
 	} else {
-		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags)
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags, nil)
 	}
 	c, ok := sous.Commands[command]
 	if !ok {

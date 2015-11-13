@@ -11,6 +11,10 @@ func loadCommands() map[string]*core.Command {
 			commands.Build, commands.BuildHelp,
 			"build your project"},
 
+		"dockerfile": {
+			commands.Dockerfile, commands.DockerfileHelp,
+			"print current dockerfile"},
+
 		"push": {
 			commands.Push, commands.PushHelp,
 			"push your project"},
@@ -29,9 +33,10 @@ func loadCommands() map[string]*core.Command {
 			"view stdout and stderr from containers",
 		},
 
-		"dockerfile": {
-			commands.Dockerfile, commands.DockerfileHelp,
-			"print current dockerfile"},
+		"ls": {
+			commands.Ls, commands.LsHelp,
+			"list images, containers and other artifacts",
+		},
 
 		"image": {
 			commands.Image, commands.ImageHelp,
