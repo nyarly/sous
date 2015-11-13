@@ -18,15 +18,31 @@ type Run struct {
 	StdoutFile, StderrFile string
 	Volumes                []string
 	Command                string
+	Labels                 map[string]string
 	inBackground           bool
 }
 
-func NewRun(image string) *Run {
+func NewRun(imageTag string) *Run {
 	return &Run{
-		Image: image,
+		Image: imageTag,
 		Net:   "host",
 		Env:   map[string]string{},
+		// This will not be necessary when running docker 1.9+, see https://github.com/docker/docker/issues/17964
+		Labels: getLabelsFromImage(imageTag),
 	}
+}
+
+func getLabelsFromImage(imageTag string) map[string]string {
+	var images []*Image
+	cmd.JSON(&images, "docker", "inspect", imageTag)
+	if len(images) == 0 {
+		cli.Fatalf("cannot find image %s", imageTag)
+	}
+	if len(images) > 1 {
+		cli.Fatalf("multiple images named %s, cannot continue", imageTag)
+	}
+	image := images[0]
+	return image.Config.Labels
 }
 
 func NewReRun(container Container) *Run {
@@ -75,6 +91,9 @@ func (r *Run) prepareCommand() *cmd.CMD {
 		}
 		if r.UserID != "" {
 			args = append(args, "-u", r.UserID)
+		}
+		for k, v := range r.Labels {
+			args = append(args, "-l", fmt.Sprintf("%s=%s", k, v))
 		}
 		// Do not add more options after this line.
 		args = append(args, r.Image)
