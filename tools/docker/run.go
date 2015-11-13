@@ -99,6 +99,12 @@ func (r *Run) Start() (*container, error) {
 	c := r.prepareCommand()
 	cid := c.Out()
 	tailLogs := exec.Command("docker", "logs", "-f", cid)
+	if r.StdoutFile == "" {
+		cli.Fatalf("You must set docker.Run.StdoutFile before calling .Start()")
+	}
+	if r.StderrFile == "" {
+		cli.Fatalf("You must set docker.Run.Stderr before calling .Start()")
+	}
 	tailLogs.Stdout = file.Create(r.StdoutFile)
 	tailLogs.Stderr = file.Create(r.StderrFile)
 	err := tailLogs.Start()
