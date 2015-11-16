@@ -11,6 +11,10 @@ func loadCommands() map[string]*core.Command {
 			commands.Build, commands.BuildHelp,
 			"build your project"},
 
+		"clean": {
+			commands.Clean, commands.CleanHelp,
+			"delete your project's containers and images"},
+
 		"dockerfile": {
 			commands.Dockerfile, commands.DockerfileHelp,
 			"print current dockerfile"},

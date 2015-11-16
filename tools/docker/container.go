@@ -24,6 +24,10 @@ type container struct {
 	cid, name string
 }
 
+func NewContainer(name, id string) Container {
+	return &container{id, name}
+}
+
 func ContainerWithName(name string) Container {
 	return &container{"", name}
 }

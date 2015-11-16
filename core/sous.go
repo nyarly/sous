@@ -72,31 +72,35 @@ func (s *Sous) UpdateBaseImage(image string) {
 	docker.Pull(image)
 }
 
-func (s *Sous) LsImages(c *Context) {
+func (s *Sous) LsImages(c *Context) []*docker.Image {
 	labelFilter := fmt.Sprintf("label=%s.build.package.name=%s", s.Config.DockerLabelPrefix, c.CanonicalPackageName())
 	results := cmd.Table("docker", "images", "--filter", labelFilter)
 	// The first line is just table headers
 	if len(results) < 2 {
-		return
+		return nil
 	}
 	results = results[1:]
-	for _, row := range results {
-		cli.Outf("  %s:%s", row[0], row[1])
+	images := make([]*docker.Image, len(results))
+	for i, row := range results {
+		images[i] = docker.NewImage(row[0], row[1])
 	}
+	return images
 }
 
-func (s *Sous) LsContainers(c *Context) {
+func (s *Sous) LsContainers(c *Context) []docker.Container {
 	labelFilter := fmt.Sprintf("label=%s.build.package.name=%s", s.Config.DockerLabelPrefix, c.CanonicalPackageName())
 	results := cmd.Table("docker", "ps", "-a", "--filter", labelFilter)
 	// The first line is just table headers
 	if len(results) < 2 {
-		return
+		return nil
 	}
 	results = results[1:]
-	for _, row := range results {
+	containers := make([]docker.Container, len(results))
+	for i, row := range results {
 		nameIndex := len(row) - 1
-		cli.Outf("  %s (%s)", row[nameIndex], row[0])
+		containers[i] = docker.NewContainer(row[0], row[nameIndex])
 	}
+	return containers
 }
 
 func doesNotAppearInList(item string, list []string) bool {

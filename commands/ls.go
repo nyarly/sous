@@ -23,8 +23,20 @@ func Ls(sous *core.Sous, args []string) {
 	}
 	_, context := sous.AssembleTargetContext("app")
 	cli.Outf(" ===> Images")
-	sous.LsImages(context)
+	images := sous.LsImages(context)
+	if len(images) == 0 {
+		cli.Logf("  no images for this project")
+	}
+	for _, image := range images {
+		cli.Logf("  %s:%s", image.Name, image.Tag)
+	}
 	cli.Outf(" ===> Containers")
-	sous.LsContainers(context)
+	containers := sous.LsContainers(context)
+	if len(containers) == 0 {
+		cli.Logf("  no containers for this project")
+	}
+	for _, container := range containers {
+		cli.Logf("  %s (%s)", container.Name(), container.CID())
+	}
 	cli.Success()
 }

@@ -170,12 +170,3 @@ func BaseImageUpdated(baseImageTag, builtImageTag string) bool {
 	}
 	return true
 }
-
-type Image struct {
-	ID     string
-	Config *ImageConfig
-}
-
-type ImageConfig struct {
-	Labels map[string]string
-}
