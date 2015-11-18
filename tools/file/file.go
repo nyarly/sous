@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
@@ -26,6 +27,14 @@ func Create(path string) *os.File {
 		cli.Fatalf("Unable to write to file: %s", err)
 	}
 	return f
+}
+
+func Find(glob string) []string {
+	files, err := filepath.Glob(glob)
+	if err != nil {
+		cli.Fatalf("Unable to search for files matching %s; %s", glob, err)
+	}
+	return files
 }
 
 func WriteString(data interface{}, pathFormat string, a ...interface{}) {

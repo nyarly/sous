@@ -1,4 +1,4 @@
-package nodejs
+package golang
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
@@ -14,30 +13,28 @@ import (
 )
 
 type AppTarget struct {
-	*NodeJSTarget
+	*GoTarget
 	artifactPath string
 }
 
 func NewAppTarget(pack *Pack) *AppTarget {
-	return &AppTarget{NewNodeJSTarget("app", pack), ""}
+	return &AppTarget{NewGoTarget("app", pack), ""}
 }
 
 func (t *AppTarget) DependsOn() []core.Target {
 	return []core.Target{
-		NewCompileTarget(t.NodeJSPack),
+		NewCompileTarget(t.pack),
 	}
 }
 
 func (t *AppTarget) RunAfter() []string { return []string{"compile"} }
 
 func (t *AppTarget) Desc() string {
-	return "The NodeJS app target uses the contents of your package.json:scripts.start as the main command to start your application inside the container. If your pack supports the 'compile' target, the artifacts from there are first copied to the /srv/app directory inside the container. Otherwise `npm install --production` will be called inside the container (you can customise this by providing a special `installProduction` script inside your package.json)."
+	return "The Go app target simply places a compiled Go binary inside a plain ubuntu base image"
 }
 
+// Checking a Go project always passes.
 func (t *AppTarget) Check() error {
-	if len(t.NodeJSPack.PackageJSON.Scripts.Start) == 0 {
-		return fmt.Errorf("package.json does not specify a start script")
-	}
 	return nil
 }
 
@@ -54,21 +51,25 @@ func (t *AppTarget) PreDockerBuild(c *core.Context) {
 	t.artifactPath = localArtifact
 }
 
-func (t *AppTarget) Dockerfile(*core.Context) *docker.Dockerfile {
+func (t *AppTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
 	if t.artifactPath == "" {
 		// Actually, it is first set by compile target, then the PreDockerBuild
 		// step links it into the WD and resets artifactPath to a local, relative
 		// path.
 		t.artifactPath = "<¡ artifact path set by compile target !>"
 	}
-	np := t.NodeJSPack.PackageJSON
-	df := t.NodeJSPack.baseDockerfile(np.Version)
+	df := &docker.Dockerfile{}
+	df.From = t.pack.baseImageTag("app")
+
 	// Since the artifact is tar.gz, docker automatically unpacks it.
-	df.Add = []docker.Add{docker.Add{Files: []string{t.artifactPath}, Dest: "/srv/app/"}}
+	df.Add = []docker.Add{docker.Add{
+		Files: []string{t.artifactPath},
+		Dest:  "/srv/app/",
+	}}
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.
-	df.CMD = tools.Whitespace.Split(np.Scripts.Start, -1)
+	df.CMD = []string{fmt.Sprintf("./%s-%s", c.CanonicalPackageName(), c.AppVersion)}
 	return df
 }
 

@@ -32,7 +32,7 @@ type Target interface {
 	Check() error
 	// Dockerfile is the shebang method which writes out a functionally complete *docker.Dockerfile
 	// This method is only invoked only once the Detect func has successfully detected target availability.
-	Dockerfile() *docker.Dockerfile
+	Dockerfile(*Context) *docker.Dockerfile
 	// Pack is the pack this Target belongs to.
 	Pack() Pack
 }
@@ -207,22 +207,24 @@ func (s *Sous) NewContainerNeeded(t ContainerTarget, c *Context, imageRebuilt bo
 	if imageRebuilt {
 		return true, "its underlying image was rebuilt", container
 	}
-	if stale, reason := s.OverrideContainerRebuild(t, container); stale {
+	if stale, reason := s.OverrideContainerRebuild(t, c, container); stale {
 		return true, reason, container
 	}
 	return false, "", container
 }
 
-func (s *Sous) OverrideContainerRebuild(t ContainerTarget, container docker.Container) (bool, string) {
+// OverrideContainerRebuild returns true and a reason if this container needs to
+// be rebuilt.
+func (s *Sous) OverrideContainerRebuild(t ContainerTarget, context *Context, container docker.Container) (bool, string) {
 	image := container.Image()
-	baseImage := t.Dockerfile().From
+	baseImage := t.Dockerfile(context).From
 	if docker.BaseImageUpdated(baseImage, image) {
 		return true, fmt.Sprintf("base image %s updated", baseImage)
 	}
 	return false, ""
 }
 
-// BuildIfNecessary usually rebuilds any target if anything of the following
+// BuildImageIfNecessary usually rebuilds any target if anything of the following
 // are true:
 //
 // - No build is available at all
@@ -287,7 +289,7 @@ func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, dep
 		return true, reason
 	}
 	// Always force a rebuild if is base image has been updated.
-	baseImage := t.Dockerfile().From
+	baseImage := t.Dockerfile(c).From
 	// TODO: This is probably a bit too aggressive, consider only asking the user to
 	// update base images every 24 hours, if they have actually been updated.
 	s.UpdateBaseImage(baseImage)
@@ -328,7 +330,7 @@ func (s *Sous) BuildImage(t Target, c *Context) {
 // the Dockerfile defined by the pack target, and decorates it with additional
 // metadata.
 func (s *Sous) Dockerfile(t Target, c *Context) *docker.Dockerfile {
-	df := t.Dockerfile()
+	df := t.Dockerfile(c)
 	df.Maintainer = c.User
 	df.AddLabel("build.number", strconv.Itoa(c.BuildNumber()))
 	df.AddLabel("build.pack.name", t.Pack().Name())

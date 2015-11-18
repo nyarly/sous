@@ -30,7 +30,7 @@ func (t *TestTarget) Check() error {
 	return nil
 }
 
-func (t *TestTarget) Dockerfile() *docker.Dockerfile {
+func (t *TestTarget) Dockerfile(*core.Context) *docker.Dockerfile {
 	df := t.NodeJSPack.baseDockerfile("test")
 	df.AddRun("cd " + wd + " && npm install")
 	df.AddLabel("com.opentable.tests", "true")

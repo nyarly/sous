@@ -42,7 +42,7 @@ func (t *CompileTarget) Check() error {
 
 // Dockerfile returns a configured *docker.Dockerfile which is used by Sous
 // to build new Docker images when needed.
-func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
+func (t *CompileTarget) Dockerfile(*core.Context) *docker.Dockerfile {
 	df := t.NodeJSPack.baseDockerfile(t.Name())
 	// This is a non-portable container, since it includes the UID of the
 	// logged-in user.
@@ -55,7 +55,7 @@ func (t *CompileTarget) Dockerfile() *docker.Dockerfile {
 	// Explanation of some of the below useradd flags:
 	//   -M means do not create home directory, which we do not need
 	//   --no-log-init means do not create a 32G sparse file (which Docker commit
-	//       cannot handle properly, and tries to create a non-sparse 32G file.
+	//       cannot handle properly, and tries to create a non-sparse 32G file.)
 	df.AddRun(fmt.Sprintf("useradd --no-log-init -M --uid %s --gid %s %s", uid, gid, username))
 	df.AddRun("npm install -g npm@2")
 	return df
@@ -92,7 +92,7 @@ func (t *CompileTarget) ImageTag(c *core.Context) string {
 // build. This does not have to change for each build, Sous will automatically
 // deleted any pre-existing containers with this name before creating a new one.
 func (t *CompileTarget) ContainerName(c *core.Context) string {
-	return fmt.Sprintf("%s_reusable_builder", c.CanonicalPackageName())
+	return fmt.Sprintf("%s_reusable-builder", c.CanonicalPackageName())
 }
 
 // DockerRun returns a configured *docker.Run, which is used to create a new

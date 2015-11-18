@@ -9,6 +9,7 @@ type Config struct {
 
 type Packs struct {
 	NodeJS *NodeJSConfig
+	Go     *GoConfig
 }
 
 type NodeJSConfig struct {
@@ -16,6 +17,11 @@ type NodeJSConfig struct {
 	DockerTags           map[string]string
 	AvailableNPMVersions []string
 	DefaultNodeVersion   string
+}
+
+type GoConfig struct {
+	AvailableVersions *StackVersions
+	DefaultGoVersion  string
 }
 
 type StackVersions []*StackVersion
