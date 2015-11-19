@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. /etc/profile
 log() { echo "$@" >&2; }
 die() { log "$@"; exit 1; }
 
