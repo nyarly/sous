@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 . /etc/profile
+PATH="$PATH:/usr/local/bin"
 log() { echo "$@" >&2; }
 die() { log "$@"; exit 1; }
 

@@ -47,7 +47,7 @@ func (p *Pack) AppDesc() string {
 func (p *Pack) Targets() []core.Target {
 	return []core.Target{
 		NewAppTarget(p),
-		//NewTestTarget(p),
+		NewTestTarget(p),
 		NewCompileTarget(p),
 	}
 }

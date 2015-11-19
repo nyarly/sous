@@ -9,38 +9,33 @@ import (
 	"github.com/opentable/sous/tools/docker"
 )
 
-type CompileTarget struct {
+type TestTarget struct {
 	*GoTarget
 }
 
-func NewCompileTarget(pack *Pack) *CompileTarget {
-	return &CompileTarget{NewGoTarget("compile", pack)}
+func NewTestTarget(pack *Pack) *TestTarget {
+	return &TestTarget{NewGoTarget("test", pack)}
 }
 
-func (t *CompileTarget) DependsOn() []core.Target {
+func (t *TestTarget) DependsOn() []core.Target { return nil }
+
+func (t *TestTarget) RunAfter() []string { return nil }
+
+func (t *TestTarget) Desc() string {
+	return "The Go test target executes `go generate && go test ./...`"
+}
+
+func (t *TestTarget) Check() error {
 	return nil
 }
 
-func (t *CompileTarget) RunAfter() []string { return nil }
-
-func (t *CompileTarget) Desc() string {
-	return "The Go compile target generates a single binary file"
-}
-
-// Checking a Go project always passes.
-func (t *CompileTarget) Check() error {
-	return nil
-}
-
-func (t *CompileTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
+func (t *TestTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
 	df := &docker.Dockerfile{}
-	df.From = t.pack.baseImageTag(t.Name())
+	df.From = t.pack.baseImageTag("test")
 	c.TemporaryLinkResource("build-prep.bash")
 	buildPrepContainerPath := "/build-prep.bash"
 	df.AddAdd("build-prep.bash", buildPrepContainerPath)
 	df.AddRun(fmt.Sprintf("chmod +x %s", buildPrepContainerPath))
-	// This is a non-portable image, since it includes the UID of the
-	// logged-in user.
 	uid := cmd.Stdout("id", "-u")
 	gid := cmd.Stdout("id", "-g")
 	username := cmd.Stdout("whoami")
@@ -57,19 +52,19 @@ func (t *CompileTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
 	return df
 }
 
-func (t *CompileTarget) ContainerName(c *core.Context) string {
-	return fmt.Sprintf("%s_reusable-builder", c.CanonicalPackageName())
+func (t *TestTarget) ContainerName(c *core.Context) string {
+	return c.CanonicalPackageName() + "_test"
 }
 
-func (t *CompileTarget) ContainerIsStale(c *core.Context) (bool, string) {
+func (t *TestTarget) ContainerIsStale(c *core.Context) (bool, string) {
 	return true, "it is not reusable"
 }
 
-func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
+func (t *TestTarget) DockerRun(c *core.Context) *docker.Run {
 	containerName := t.ContainerName(c)
 	run := docker.NewRun(c.DockerTag())
 	run.Name = containerName
-	run.AddEnv("ARTIFACT_NAME", t.artifactName(c))
+	//run.AddEnv("ARTIFACT_NAME", t.artifactName(c))
 	uid := cmd.Stdout("id", "-u")
 	gid := cmd.Stdout("id", "-g")
 	artifactOwner := fmt.Sprintf("%s:%s", uid, gid)
@@ -78,28 +73,18 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	dir.EnsureExists(artDir)
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
-	binName := fmt.Sprintf("%s-%s", c.CanonicalPackageName(), c.AppVersion)
-	run.Command = fmt.Sprintf("[ -d Godeps ] && godep go build -o %s || go build -o %s",
-		binName, binName)
+	run.Command = fmt.Sprintf("go generate && { [ -d Godeps ] && godep go test ./... || go test ./...; }")
 	return run
 }
 
-// State returns any interesting state from this target to and dependent targets
-// in the build chain.
-func (t *CompileTarget) State(c *core.Context) interface{} {
-	return map[string]string{
-		"artifactPath": t.artifactPath(c),
-	}
-}
-
-func (t *CompileTarget) artifactPath(c *core.Context) string {
+func (t *TestTarget) artifactPath(c *core.Context) string {
 	return fmt.Sprintf("%s/%s.tar.gz", t.artifactDir(c), t.artifactName(c))
 }
 
-func (t *CompileTarget) artifactDir(c *core.Context) string {
+func (t *TestTarget) artifactDir(c *core.Context) string {
 	return c.FilePath("artifacts")
 }
 
-func (t *CompileTarget) artifactName(c *core.Context) string {
+func (t *TestTarget) artifactName(c *core.Context) string {
 	return fmt.Sprintf("%s-%s-%s-%d", c.CanonicalPackageName(), c.AppVersion, c.Git.CommitSHA, c.BuildNumber())
 }
