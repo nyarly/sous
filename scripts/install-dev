@@ -28,6 +28,10 @@ fi
 VERSION="$(id -un)@$(hostname)-$(date '+%Y-%m-%dT%H:%M:%S')"
 FLAGS="-X main.OS=$GOOS -X main.Arch=$GOARCH -X main.Version=$VERSION"
 FLAGS="$FLAGS  -X main.CommitSHA=$(git rev-parse HEAD)"
+if ! go generate; then
+	echo "Generate faileg."
+	exit 1
+fi
 if ! go install -ldflags "$FLAGS"; then
 	echo "Build failed."
 	exit 1

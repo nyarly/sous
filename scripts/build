@@ -65,6 +65,10 @@ fi
 
 log "Cleaned artifacts directory."
 
+log "Generate resources."
+
+go generate
+
 BUILDS_FAILED=0
 BUILDS_SUCCEEDED=0
 for T in ${REQUESTED_TARGETS[@]}; do
