@@ -83,6 +83,14 @@ func (t CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	return run
 }
 
+// State returns any interesting state from this target to and dependent targets
+// in the build chain.
+func (t *CompileTarget) State(c *core.Context) interface{} {
+	return map[string]string{
+		"artifactPath": t.artifactPath(c),
+	}
+}
+
 func (t *CompileTarget) artifactPath(c *core.Context) string {
 	return fmt.Sprintf("%s/%s.tar.gz", t.artifactDir(c), t.artifactName(c))
 }

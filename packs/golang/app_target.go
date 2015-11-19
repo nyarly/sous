@@ -61,15 +61,14 @@ func (t *AppTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
 	df := &docker.Dockerfile{}
 	df.From = t.pack.baseImageTag("app")
 
-	// Since the artifact is tar.gz, docker automatically unpacks it.
-	df.Add = []docker.Add{docker.Add{
-		Files: []string{t.artifactPath},
-		Dest:  "/srv/app/",
-	}}
+	// Since the artifact is tar.gz, and the dest is a directory, docker automatically unpacks it.
+	df.AddAdd(t.artifactPath, "/srv/app/")
 	// Pick out the contents of NPM start to invoke directly (using npm start in
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.
-	df.CMD = []string{fmt.Sprintf("./%s-%s", c.CanonicalPackageName(), c.AppVersion)}
+	df.Entrypoint = []string{
+		fmt.Sprintf("/srv/app/%s-%s", c.CanonicalPackageName(), c.AppVersion),
+	}
 	return df
 }
 
