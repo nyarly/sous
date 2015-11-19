@@ -5,6 +5,34 @@ type Config struct {
 	DockerLabelPrefix string
 	GlobalDockerTags  map[string]string
 	Packs             *Packs
+	Platform          *Platform
+}
+
+type Platform struct {
+	Services []Service
+	EnvDef   []EnvVar
+	Envs     []Env
+}
+
+type EnvVar struct {
+	Name, Type          string
+	Required, Protected bool
+}
+
+// Service defines a common platform service that most apps will
+// rely on. Examples include discovery servers, proxies, config servers, etc.
+// These are used in local development, and may be referred to by their name
+// in contracts.
+type Service struct {
+	Name, DockerImage, DockerRunOpts string
+}
+
+// Environment defines a named execution environment. This is an open
+// ended concept, but a common usage is to have a single environment
+// per datacentre, for example.
+type Env struct {
+	Name string
+	Vars map[string]string
 }
 
 type Packs struct {
