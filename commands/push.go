@@ -24,12 +24,11 @@ func Push(sous *core.Sous, args []string) {
 
 	_, context := sous.AssembleTargetContext(target)
 
-	lastBuildTag := context.PrevDockerTag()
-	if !docker.ImageExists(lastBuildTag) {
+	tag := context.DockerTag()
+	if !docker.ImageExists(tag) {
 		cli.Fatalf("No built image available; try building first")
-
 	}
-	docker.Push(lastBuildTag)
+	docker.Push(tag)
 	name := context.CanonicalPackageName()
 	cli.Successf("Successfully pushed %s v%s as %s", name, context.AppVersion, context.DockerTag())
 }
