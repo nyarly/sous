@@ -52,17 +52,20 @@ SUCCEEDED=0
 FAILED=0
 while [ ! -z "$1" ]; do
 	if [ -d "$1" ]; then
-		find "$1" -type f ! -name '*.go' | {
+		find "$1" -type f ! -name '*.go' ! -name '.gitignore' | {
 			while read F; do
 				if generate "$F"; then ((SUCCEEDED++)); else ((FAILED++)); fi
 			done
 		}
 	else
-		echo "$1 is not a directory"
 		if generate "$1"; then ((SUCCEEDED++)); else ((FAILED++)); fi
 	fi
 	shift
 done
 RESULT="$FAILED failed, $SUCCEEDED succeeded."
-[ ! "$FAILED" = "0" ] && die "Failed: $RESULT"
+if [ ! "$FAILED" = "0" ]; then
+	die "Failed: $RESULT"
+fi
+
+
 

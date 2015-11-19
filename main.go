@@ -12,6 +12,8 @@ import (
 	"github.com/opentable/sous/tools/cli"
 )
 
+//go:generate ./scripts/generate-resources core/resources
+
 func main() {
 	if len(os.Args) < 2 {
 		usage()
