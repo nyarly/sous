@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/opentable/sous/config"
+	"github.com/opentable/sous/core/resources"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/docker"
@@ -151,11 +152,20 @@ func (s *BuildState) Commit() {
 }
 
 func (c *Context) SaveFile(content, name string) {
-	wot := c.FilePath(name)
-	if wot == "" {
-		panic("WOT WAS EMPTY!")
+	filePath := c.FilePath(name)
+	if filePath == "" {
+		panic("Context file path was empty")
 	}
-	file.WriteString(content, c.FilePath(name))
+	file.WriteString(content, filePath)
+}
+
+func (c *Context) TemporaryLinkResource(name string) {
+	fileContents, ok := resources.Files[name]
+	if !ok {
+		cli.Fatalf("Cannot find resource %s, ensure go generate succeeded", name)
+	}
+	c.SaveFile(fileContents, name)
+	file.TemporaryLink(c.FilePath(name), name)
 }
 
 func (c *Context) FilePath(name string) string {

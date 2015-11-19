@@ -35,17 +35,23 @@ func (t *CompileTarget) Check() error {
 func (t *CompileTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
 	df := &docker.Dockerfile{}
 	df.From = t.pack.baseImageTag("compile")
+	c.TemporaryLinkResource("build-prep.bash")
+	buildPrepContainerPath := "/build-prep.bash"
+	df.AddAdd("build-prep.bash", buildPrepContainerPath)
+	df.AddRun(fmt.Sprintf("chmod +x %s", buildPrepContainerPath))
 	uid := cmd.Stdout("id", "-u")
 	gid := cmd.Stdout("id", "-g")
 	username := cmd.Stdout("whoami")
 	// Just use the username for group name, it doesn't matter as long as
 	// the IDs are right.
-	df.AddRun(fmt.Sprintf("groupadd -g %s %s", gid, username))
+	groupAdd := fmt.Sprintf("groupadd -g %s %s", gid, username)
 	// Explanation of some of the below useradd flags:
 	//   -M means do not create home directory, which we do not need
 	//   --no-log-init means do not create a 32G sparse file (which Docker commit
 	//       cannot handle properly, and tries to create a non-sparse 32G file.)
-	df.AddRun(fmt.Sprintf("useradd --no-log-init -M --uid %s --gid %s %s", uid, gid, username))
+	userAdd := fmt.Sprintf("useradd --no-log-init -M --uid %s --gid %s %s", uid, gid, username)
+	df.AddRun(fmt.Sprintf("%s && %s", groupAdd, userAdd))
+	df.Entrypoint = []string{"/build-prep.bash"}
 	return df
 }
 
@@ -73,6 +79,7 @@ func (t CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	binName := fmt.Sprintf("%s-%s", c.CanonicalPackageName(), c.AppVersion)
 	run.Command = fmt.Sprintf("[ -d Godeps ] && godep go build -o %s || go build -o %s",
 		binName, binName)
+	//run.Command = fmt.Sprintf("/usr/local/go/bin/go build -o %s", binName)
 	return run
 }
 

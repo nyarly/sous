@@ -55,6 +55,29 @@ func (d *Dockerfile) AddRun(format string, a ...interface{}) {
 	d.Run = append(d.Run, fmt.Sprintf(format, a...))
 }
 
+// AddAdd adds an Add line to the Dockerfile. The last argument
+// you pass becomes the destination, all previous arguments
+// are the source files.
+func (d *Dockerfile) AddAdd(f1, f2 string, fn ...string) {
+	sources := []string{f1}
+	dest := f2
+	if len(fn) != 0 {
+		dest = fn[len(fn)-1]
+		sources = append(sources, f2)
+		for _, f := range fn[:len(fn)-1] {
+			sources = append(sources, f)
+		}
+	}
+	add := Add{
+		Files: sources,
+		Dest:  dest,
+	}
+	if d.Add == nil {
+		d.Add = []Add{}
+	}
+	d.Add = append(d.Add, add)
+}
+
 var dockerfileTemplate = `FROM {{.From}}
 MAINTAINER {{.Maintainer}}
 {{if .Labels}}{{$first:=true}}
