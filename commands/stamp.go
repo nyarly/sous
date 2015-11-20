@@ -24,7 +24,7 @@ func Stamp(sous *core.Sous, args []string) {
 
 	tag := context.DockerTag()
 	run := docker.NewRun(tag)
-	run.Labels = parseLabels(args)
+	run.AddLabels(parseLabels(args))
 	run.StdoutFile = "/dev/null"
 	run.StderrFile = "/dev/null"
 	container, err := run.Background().Start()

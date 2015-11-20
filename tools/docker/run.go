@@ -55,6 +55,19 @@ func (r *Run) AddEnv(key, value string) {
 	r.Env[key] = value
 }
 
+func (r *Run) AddLabel(key, value string) {
+	if r.Labels == nil {
+		r.Labels = map[string]string{}
+	}
+	r.Labels[key] = value
+}
+
+func (r *Run) AddLabels(labels map[string]string) {
+	for k, v := range labels {
+		r.AddLabel(k, v)
+	}
+}
+
 func (r *Run) AddVolume(hostPath, containerPath string) {
 	if r.Volumes == nil {
 		r.Volumes = []string{}
