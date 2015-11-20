@@ -55,6 +55,10 @@ func loadCommands() map[string]*core.Command {
 			commands.Detect, commands.DetectHelp,
 			"detect available actions"},
 
+		"stamp": {
+			commands.Stamp, commands.StampHelp,
+			"stamp labels onto docker images"},
+
 		"test": {
 			commands.Test, commands.TestHelp,
 			"test your project"},

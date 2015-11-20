@@ -91,6 +91,15 @@ type DockerContainer struct {
 	}
 }
 
+func (c *container) KillIfRunning() error {
+	if err := c.Kill(); err != nil {
+		if c.Running() {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *container) Kill() error {
 	if ex := cmd.ExitCode("docker", "kill", c.effectiveName()); ex != 0 {
 		return fmt.Errorf("Unable to kill docker container %s", c)

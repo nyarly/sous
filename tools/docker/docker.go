@@ -157,6 +157,13 @@ func ImageID(image string) string {
 	return i[0].ID
 }
 
+func Commit(cid, tag string) error {
+	if code := cmd.ExitCode("docker", "commit", cid, tag); code != 0 {
+		return fmt.Errorf("Command failed with exit code %d", code)
+	}
+	return nil
+}
+
 func BaseImageUpdated(baseImageTag, builtImageTag string) bool {
 	if !ImageExists(baseImageTag) {
 		return true
