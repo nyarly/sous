@@ -19,7 +19,7 @@ import (
 type Context struct {
 	Git                  *git.Info
 	WorkDir              string
-	Action               string
+	TargetName           string
 	DockerRegistry       string
 	Host, FullHost, User string
 	BuildState           *BuildState
@@ -44,7 +44,7 @@ func GetContext(action string) *Context {
 	return &Context{
 		Git:            gitInfo,
 		WorkDir:        wd,
-		Action:         action,
+		TargetName:     action,
 		DockerRegistry: registry,
 		Host:           cmd.Stdout("hostname"),
 		FullHost:       cmd.Stdout("hostname", "-f"),
@@ -70,8 +70,10 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 		cli.Fatalf("AppVersion not set")
 	}
 	name := c.CanonicalPackageName()
-	if c.Action != "build" {
-		name += "_" + c.Action
+	// Special case: for primary target "app" we don't
+	// append the target name.
+	if c.TargetName != "app" {
+		name += "_" + c.TargetName
 	}
 	repo := fmt.Sprintf("%s/%s", c.User, name)
 	buildNumber := strconv.Itoa(n)
