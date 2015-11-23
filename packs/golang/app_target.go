@@ -67,7 +67,7 @@ func (t *AppTarget) Dockerfile(c *core.Context) *docker.Dockerfile {
 	// production shields the app from signals, which are required to be handled by
 	// the app itself to do graceful shutdown.
 	df.Entrypoint = []string{
-		fmt.Sprintf("/srv/app/%s-%s", c.CanonicalPackageName(), c.AppVersion),
+		fmt.Sprintf("/srv/app/%s-%s", c.CanonicalPackageName(), c.BuildVersion),
 	}
 	return df
 }

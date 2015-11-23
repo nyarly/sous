@@ -33,6 +33,6 @@ func Detect(sous *core.Sous, args []string) {
 		}
 		cli.Outf("\t%s \t✔︎", target)
 	}
-	cli.Outf("Build Version: %s", c.AppVersion)
+	cli.Outf("Build Version: %s", c.BuildVersion)
 	cli.Success()
 }

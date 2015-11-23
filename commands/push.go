@@ -30,5 +30,5 @@ func Push(sous *core.Sous, args []string) {
 	}
 	docker.Push(tag)
 	name := context.CanonicalPackageName()
-	cli.Successf("Successfully pushed %s v%s as %s", name, context.AppVersion, context.DockerTag())
+	cli.Successf("Successfully pushed %s v%s as %s", name, context.BuildVersion, context.DockerTag())
 }

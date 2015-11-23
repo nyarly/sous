@@ -86,5 +86,5 @@ func (t *TestTarget) artifactDir(c *core.Context) string {
 }
 
 func (t *TestTarget) artifactName(c *core.Context) string {
-	return fmt.Sprintf("%s-%s-%s-%d", c.CanonicalPackageName(), c.AppVersion, c.Git.CommitSHA, c.BuildNumber())
+	return fmt.Sprintf("%s-%s-%s-%d", c.CanonicalPackageName(), c.BuildVersion, c.Git.CommitSHA, c.BuildNumber())
 }

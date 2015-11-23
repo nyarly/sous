@@ -24,7 +24,7 @@ type Context struct {
 	DockerRegistry       string
 	Host, FullHost, User string
 	BuildState           *BuildState
-	AppVersion           string
+	BuildVersion         string
 	PackInfo             interface{}
 	changes              *Changes
 }
@@ -51,7 +51,7 @@ func GetContext(action string) *Context {
 		FullHost:       cmd.Stdout("hostname", "-f"),
 		User:           getUser(),
 		BuildState:     bs,
-		AppVersion:     buildVersion(gitInfo),
+		BuildVersion:   buildVersion(gitInfo),
 	}
 }
 
@@ -89,7 +89,7 @@ func (c *Context) PrevDockerTag() string {
 }
 
 func (c *Context) DockerTagForBuildNumber(n int) string {
-	if c.AppVersion == "" {
+	if c.BuildVersion == "" {
 		cli.Fatalf("AppVersion not set")
 	}
 	name := c.CanonicalPackageName()
@@ -104,7 +104,7 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 		buildNumber = c.Host + "-" + buildNumber
 	}
 	tag := fmt.Sprintf("v%s-%s-%s",
-		c.AppVersion, c.Git.CommitSHA[0:8], buildNumber)
+		c.BuildVersion, c.Git.CommitSHA[0:8], buildNumber)
 	// e.g. on local dev machine:
 	//   some.registry.com/username/widget-factory:v0.12.1-912eeeab-host-1
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)

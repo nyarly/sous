@@ -34,5 +34,5 @@ func Build(sous *core.Sous, args []string) {
 	}
 
 	name := context.CanonicalPackageName()
-	cli.Successf("Successfully built %s v%s as %s", name, context.AppVersion, context.DockerTag())
+	cli.Successf("Successfully built %s v%s as %s", name, context.BuildVersion, context.DockerTag())
 }

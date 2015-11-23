@@ -78,7 +78,7 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	dir.EnsureExists(artDir)
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.WorkDir, "/wd")
-	binName := fmt.Sprintf("%s-%s", c.CanonicalPackageName(), c.AppVersion)
+	binName := fmt.Sprintf("%s-%s", c.CanonicalPackageName(), c.BuildVersion)
 	run.Command = fmt.Sprintf("[ -d Godeps ] && godep go build -o %s || go build -o %s",
 		binName, binName)
 	return run
@@ -101,5 +101,5 @@ func (t *CompileTarget) artifactDir(c *core.Context) string {
 }
 
 func (t *CompileTarget) artifactName(c *core.Context) string {
-	return fmt.Sprintf("%s-%s-%s-%d", c.CanonicalPackageName(), c.AppVersion, c.Git.CommitSHA, c.BuildNumber())
+	return fmt.Sprintf("%s-%s-%s-%d", c.CanonicalPackageName(), c.BuildVersion, c.Git.CommitSHA, c.BuildNumber())
 }

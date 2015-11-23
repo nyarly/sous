@@ -48,7 +48,7 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	// If the pack specifies a version, check it matches the tagged version
 	packAppVersion := strings.Split(pack.AppVersion(), "+")[0]
 	if packAppVersion != "" {
-		buildVersion := strings.Split(context.AppVersion, "+")[0]
+		buildVersion := strings.Split(context.BuildVersion, "+")[0]
 		pv := version.Version(packAppVersion)
 		gv := version.Version(buildVersion)
 		if !pv.Version.LimitedEqual(gv.Version) {
