@@ -2,6 +2,7 @@ package core
 
 import (
 	"os"
+	"strings"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
@@ -39,16 +40,21 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	if fatal := CheckForProblems(pack.Pack); fatal {
 		cli.Fatal()
 	}
-	appVersion := pack.AppVersion()
-	if appVersion == "" {
-		appVersion = "unversioned"
-	}
 	context := GetContext(targetName)
 	err := target.Check()
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", targetName, pack, err)
 	}
-	context.AppVersion = appVersion
+	// If the pack specifies a version, check it matches the tagged version
+	packAppVersion := strings.Split(pack.AppVersion(), "+")[0]
+	if packAppVersion != "" {
+		buildVersion := strings.Split(context.AppVersion, "+")[0]
+		pv := version.Version(packAppVersion)
+		gv := version.Version(buildVersion)
+		if !pv.Version.LimitedEqual(gv.Version) {
+			cli.Logf("** =x=> WARNING: Using tag %s; Your code reports version %s, which is ignored.**", buildVersion, packAppVersion)
+		}
+	}
 	return target, context
 }
 

@@ -28,14 +28,33 @@ func RequireRepo() {
 }
 
 type Info struct {
+	// The commit SHA of HEAD
 	CommitSHA string
+	// The URL of "origin" remote...
+	// TODO: Consider following this through GitHub to find the original repo
+	// if this is a fork.
 	OriginURL *url.URL
+	// The nearest tag before CommitSHA
+	NearestTag string
+	// The SHA of the nearest tag
+	NearestTagSHA string
+	// If there are any changed or new untracked fils, the tree is dirty
+	Dirty bool
 }
 
 func GetInfo() *Info {
+	nearestTag, err := cmd.StdoutErr("git", "describe", "--tags", "--abbrev=0")
+	nearestTagSHA := ""
+	if err != nil {
+		nearestTag = ""
+	} else {
+		nearestTagSHA = cmd.Stdout("git", "rev-parse", nearestTag)
+	}
 	return &Info{
-		CommitSHA: cmd.Stdout("git", "rev-parse", "HEAD"),
-		OriginURL: getOriginURL(),
+		CommitSHA:     cmd.Stdout("git", "rev-parse", "HEAD"),
+		OriginURL:     getOriginURL(),
+		NearestTag:    nearestTag,
+		NearestTagSHA: nearestTagSHA,
 	}
 }
 
@@ -45,6 +64,20 @@ func RequireCleanWorkingTree() {
 	}
 }
 
+// CanonicalName returns a canonicalised version of a git repository.
+// E.g. all of these:
+//
+//    git@github.com:user/repo.git
+//    git@github.com:user/repo
+//    https://github.com/user/repo.git
+//    http://github.com/user/repo.git
+//    https://github.com/user/repo
+//    http://github.com/user/repo
+//
+// Become this:
+//
+//    github.com/user/repo
+//
 func (g *Info) CanonicalName() string {
 	host := g.OriginURL.Host
 	path := g.OriginURL.Path

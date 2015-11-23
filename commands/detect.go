@@ -23,6 +23,7 @@ func Detect(sous *core.Sous, args []string) {
 	if fatal := core.CheckForProblems(pack); fatal {
 		cli.Fatalf("Detected a %s project with fatal errors.", pack)
 	}
+	c := core.GetContext("app")
 	desc := pack.AppDesc()
 	cli.Outf("Detected a %s; which supports the following targets...", desc)
 	for _, target := range pack.Targets() {
@@ -32,5 +33,6 @@ func Detect(sous *core.Sous, args []string) {
 		}
 		cli.Outf("\t%s \t✔︎", target)
 	}
+	cli.Outf("Build Version: %s", c.AppVersion)
 	cli.Success()
 }

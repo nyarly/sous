@@ -19,13 +19,22 @@ type R struct {
 }
 
 func Version(s string) *V {
+	v, err := NewVersion(s)
+	if err != nil {
+		cli.Fatalf("unable to parse version string '%s'; %s", s, err)
+	}
+	return v
+}
+
+func NewVersion(s string) (*V, error) {
+	s = strings.TrimPrefix(s, "v")
 	s = strings.Replace(s, "x", "0", -1)
 	s = strings.Replace(s, "X", "0", -1)
 	v, err := semver.NewVersion(s)
 	if err != nil {
-		cli.Fatalf("unable to parse version string '%s'; %s", s, err)
+		return nil, err
 	}
-	return &V{v, s}
+	return &V{v, s}, nil
 }
 
 type VL []*V

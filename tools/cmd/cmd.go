@@ -71,6 +71,10 @@ func Stdout(command string, args ...string) string {
 	return New(command, args...).Out()
 }
 
+func StdoutErr(command string, args ...string) (string, error) {
+	return New(command, args...).OutErr()
+}
+
 func ExitCode(command string, args ...string) int {
 	return New(command, args...).ExitCode()
 }
@@ -94,10 +98,16 @@ func (c *CMD) Run() {
 }
 
 func (c *CMD) Out() string {
-	if _, err := c.execute(); err != nil {
+	out, err := c.OutErr()
+	if err != nil {
 		cli.Fatalf("Error running %s; %s", c, err)
 	}
-	return TrimWhitespace(c.Stdout.String())
+	return out
+}
+
+func (c *CMD) OutErr() (string, error) {
+	_, err := c.execute()
+	return TrimWhitespace(c.Stdout.String()), err
 }
 
 // CmdLines returns whitespace-stripped lines, and removes empty lines.
