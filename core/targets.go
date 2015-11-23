@@ -347,7 +347,7 @@ func (s *Sous) Dockerfile(t Target, c *Context) *docker.Dockerfile {
 	df.AddLabel("build.source.repository", c.Git.CanonicalName())
 	df.AddLabel("build.source.revision", c.Git.CommitSHA)
 	df.AddLabel("build.package.name", c.CanonicalPackageName())
-	df.AddLabel("build.package.version", t.Pack().AppVersion())
+	df.AddLabel("build.package.version", c.BuildVersion)
 	df.LabelPrefix = s.Config.DockerLabelPrefix
 	return df
 }
