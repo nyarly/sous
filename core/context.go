@@ -71,22 +71,28 @@ func (bv *BuildVersion) String() string {
 	return fmt.Sprintf("%s+%s", bv.MajorMinorPatch, bv.PlusRevision[:8])
 }
 
-// buildVersion constructs a build version from git info.
-func buildVersion(i *git.Info) *BuildVersion {
-	if i.NearestTag == "" {
-		return &BuildVersion{
-			MajorMinorPatch: "0.0.0",
-			PlusRevision:    i.CommitSHA,
-		}
+func defaultBuildVersion(revision string) *BuildVersion {
+	return &BuildVersion{
+		MajorMinorPatch: "0.0.0",
+		PlusRevision:    revision,
 	}
+}
+
+// buildVersion constructs a BuildVersion from git info.
+func buildVersion(i *git.Info) *BuildVersion {
 	// Try to parse the nearest tag as a version. If it isn't a valid version,
-	// we just give up for now.
+	// we just give up and return  a default for now.
 	// TODO: It's possible to walk through the tags in order of distance from
 	// the current commit, to find the nearest semver tag, so consider doing
-	// that, if people need to use non-semver tags for other reasons.
+	// that, if this becomes an issue.
+	if i.NearestTag == "" {
+		cli.Warn("No git tags found in the format X.Y.Z, defaulting to v0.0.0", i.NearestTag)
+		return defaultBuildVersion(i.CommitSHA)
+	}
 	v, err := version.NewVersion(i.NearestTag)
 	if err != nil {
-		cli.Fatalf(err.Error())
+		cli.Warn("Latest git tag '%s' not in the format X.Y.Z, defaulting to v0.0.0", i.NearestTag)
+		return defaultBuildVersion(i.CommitSHA)
 	}
 	if i.NearestTagSHA == i.CommitSHA {
 		// We're building an exact version
