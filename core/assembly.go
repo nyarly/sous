@@ -48,9 +48,8 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 	// If the pack specifies a version, check it matches the tagged version
 	packAppVersion := strings.Split(pack.AppVersion(), "+")[0]
 	if packAppVersion != "" {
-		buildVersion := strings.Split(context.BuildVersion, "+")[0]
 		pv := version.Version(packAppVersion)
-		gv := version.Version(buildVersion)
+		gv := version.Version(context.BuildVersion.MajorMinorPatch)
 		if !pv.Version.LimitedEqual(gv.Version) {
 			cli.Warn("using tag version %s; your code reports version %s, which is ignored", buildVersion, packAppVersion)
 		}

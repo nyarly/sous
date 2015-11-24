@@ -24,7 +24,7 @@ type Context struct {
 	DockerRegistry       string
 	Host, FullHost, User string
 	BuildState           *BuildState
-	BuildVersion         string
+	BuildVersion         *BuildVersion
 	PackInfo             interface{}
 	changes              *Changes
 }
@@ -55,43 +55,68 @@ func GetContext(action string) *Context {
 	}
 }
 
-func buildVersion(i *git.Info) string {
-	var buildVersion string
-	var v *version.V
-	if i.NearestTag == "" {
-		buildVersion = fmt.Sprintf("0.0.0+%s", i.CommitSHA)
-	} else if sv, err := version.NewVersion(i.NearestTag); err == nil {
-		v = sv
-		if i.NearestTagSHA == i.CommitSHA {
-			// We're building an exact version
-			buildVersion = fmt.Sprintf("%s", v)
-		} else {
-			// We're building a commit between named versions, so take the latest
-			// tag and append the commit SHA
-			buildVersion = fmt.Sprintf("%s+%s", v, i.CommitSHA)
-		}
-	} else {
-		cli.Fatalf(err.Error())
-	}
-	return buildVersion
+// BuildVersion represents the semver string for the current build.
+// The idea is to distinguish builds of exact tagged versions vs
+// builds in between tags, by appending +revision to those in-between
+// builds.
+type BuildVersion struct {
+	MajorMinorPatch, PlusRevision string
 }
 
+// String returns a semver-compatible string representing this build version.
+func (bv *BuildVersion) String() string {
+	if bv.PlusRevision == "" {
+		return bv.MajorMinorPatch
+	}
+	return fmt.Sprintf("%s+%s", bv.MajorMinorPatch, bv.PlusRevision[:8])
+}
+
+// buildVersion constructs a build version from git info.
+func buildVersion(i *git.Info) *BuildVersion {
+	if i.NearestTag == "" {
+		return &BuildVersion{
+			MajorMinorPatch: "0.0.0",
+			PlusRevision:    i.CommitSHA,
+		}
+	}
+	// Try to parse the nearest tag as a version. If it isn't a valid version,
+	// we just give up for now.
+	// TODO: It's possible to walk through the tags in order of distance from
+	// the current commit, to find the nearest semver tag, so consider doing
+	// that, if people need to use non-semver tags for other reasons.
+	v, err := version.NewVersion(i.NearestTag)
+	if err != nil {
+		cli.Fatalf(err.Error())
+	}
+	if i.NearestTagSHA == i.CommitSHA {
+		// We're building an exact version
+		return &BuildVersion{MajorMinorPatch: v.String()}
+	}
+	// We're building a commit between named versions, so add the commit SHA
+	return &BuildVersion{MajorMinorPatch: v.String(), PlusRevision: i.CommitSHA}
+}
+
+// DockerTag returns the docker tag used for the current build.
 func (c *Context) DockerTag() string {
 	return c.DockerTagForBuildNumber(c.BuildNumber())
 }
 
+// BuildNumber returns the build number for the current project at its
+// present commit on this machine with this user login. Heh, a mouthful.
 func (c *Context) BuildNumber() int {
 	return c.BuildState.CurrentCommit().BuildNumber
 }
 
+// PrevDockerTag returns the previously built docker tag for this project.
+// This is useful for re-using builds when appropriate.
 func (c *Context) PrevDockerTag() string {
 	return c.DockerTagForBuildNumber(c.BuildNumber() - 1)
 }
 
+// DockerTag for build number returns a full docker image name including
+// registry, repository, and tag, for the current project at the specified
+// build number.
 func (c *Context) DockerTagForBuildNumber(n int) string {
-	if c.BuildVersion == "" {
-		cli.Fatalf("AppVersion not set")
-	}
 	name := c.CanonicalPackageName()
 	// Special case: for primary target "app" we don't
 	// append the target name.
@@ -103,8 +128,11 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	if c.User != "teamcity" {
 		buildNumber = c.Host + "-" + buildNumber
 	}
-	tag := fmt.Sprintf("v%s-%s-%s",
-		c.BuildVersion, c.Git.CommitSHA[0:8], buildNumber)
+	tag := fmt.Sprintf("v%s-%s-%s", c.BuildVersion, buildNumber)
+	// Docker tags do not yet support semver, so replace + with _.
+	// See https://github.com/docker/distribution/issues/1201
+	// and https://github.com/docker/distribution/pull/1202
+	tag = strings.Replace(tag, "+", "_", -1)
 	// e.g. on local dev machine:
 	//   some.registry.com/username/widget-factory:v0.12.1-912eeeab-host-1
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
@@ -123,29 +151,37 @@ func (c *Context) ChangesSinceLastBuild() *Changes {
 	return c.changes
 }
 
+// Changes is a set of flags indicating what's changed since the last time
+// this project was built.
 type Changes struct {
 	NoBuiltImage, NewCommit, WorkingTreeChanged, SousUpdated bool
 }
 
+// Any returns true if there are any changes at all since the last build.
 func (c *Changes) Any() bool {
 	return c.NoBuiltImage || c.NewCommit || c.WorkingTreeChanged || c.SousUpdated
 }
 
+// LastBuildImageExists checks that the previously build image, if any, still
+// exists on this machine. If there is no previously built image, or it's been
+// deleted, return false, otherwise true.
 func (c *Context) LastBuildImageExists() bool {
 	return docker.ImageExists(c.PrevDockerTag())
 }
 
+// CurrentCommit returns the data for the current commit at HEAD in the repo.
 func (s *BuildState) CurrentCommit() *Commit {
 	return s.Commits[s.CommitSHA]
 }
 
+// Commit should be called after a build is successful, to permanently increment
+// the build number for this commit.
 func (bc *Context) Commit() {
-	if bc.IsCI() {
-		return
-	}
 	bc.BuildState.Commit()
 }
 
+// CanonicalPackageName returns the last path component of the canonical git
+// repo name, which is used as the name of the application.
 func (bc *Context) CanonicalPackageName() string {
 	c := bc.Git.CanonicalName()
 	p := strings.Split(c, "/")
@@ -193,10 +229,14 @@ func (c *Context) TemporaryLinkResource(name string) {
 	file.TemporaryLink(c.FilePath(name), name)
 }
 
+// FilePath returns a path to a named file within the state directory
+// of the current build target. This is used for things like passing
+// artifacts from one build step to the next.
 func (c *Context) FilePath(name string) string {
 	return path.Resolve(c.BaseDir() + "/" + name)
 }
 
+// BaseDir return the build state base directory for the current target.
 func (c *Context) BaseDir() string {
 	return path.BaseDir(c.BuildState.path)
 }
