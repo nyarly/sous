@@ -7,7 +7,6 @@ import (
 
 // ApplyStyles parses s using markdown-like rules to style CLI text
 func ApplyStyles(src string) string {
-
 	parts := strings.Split(" "+src+" ", "**")
 	if len(parts) < 3 {
 		return src

@@ -43,8 +43,8 @@ type Info struct {
 }
 
 func GetInfo() *Info {
-	nearestTag, err := cmd.StdoutErr("git", "describe", "--tags", "--abbrev=0")
 	nearestTagSHA := ""
+	nearestTag, err := cmd.StdoutErr("git", "describe", "--tags", "--abbrev=0")
 	if err != nil {
 		nearestTag = ""
 	} else {

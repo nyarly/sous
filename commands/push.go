@@ -19,7 +19,7 @@ func Push(sous *core.Sous, args []string) {
 	core.RequireGit()
 	core.RequireDocker()
 	if err := git.AssertCleanWorkingTree(); err != nil {
-		cli.Logf("WARNING: Dirty working tree: %s", err)
+		cli.Warn("Dirty working tree: %s", err)
 	}
 
 	_, context := sous.AssembleTargetContext(target)

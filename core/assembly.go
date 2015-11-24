@@ -52,7 +52,7 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 		pv := version.Version(packAppVersion)
 		gv := version.Version(buildVersion)
 		if !pv.Version.LimitedEqual(gv.Version) {
-			cli.Logf("** =x=> WARNING: Using tag %s; Your code reports version %s, which is ignored.**", buildVersion, packAppVersion)
+			cli.Warn("using tag version %s; your code reports version %s, which is ignored", buildVersion, packAppVersion)
 		}
 	}
 	return target, context

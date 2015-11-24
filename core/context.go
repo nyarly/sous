@@ -59,16 +59,16 @@ func buildVersion(i *git.Info) string {
 	var buildVersion string
 	var v *version.V
 	if i.NearestTag == "" {
-		buildVersion = fmt.Sprintf("v0.0.0+%s", i.CommitSHA)
+		buildVersion = fmt.Sprintf("0.0.0+%s", i.CommitSHA)
 	} else if sv, err := version.NewVersion(i.NearestTag); err == nil {
 		v = sv
 		if i.NearestTagSHA == i.CommitSHA {
 			// We're building an exact version
-			buildVersion = fmt.Sprintf("v%s", v)
+			buildVersion = fmt.Sprintf("%s", v)
 		} else {
 			// We're building a commit between named versions, so take the latest
 			// tag and append the commit SHA
-			buildVersion = fmt.Sprintf("v%s+%s", v, i.CommitSHA)
+			buildVersion = fmt.Sprintf("%s+%s", v, i.CommitSHA)
 		}
 	} else {
 		cli.Fatalf(err.Error())

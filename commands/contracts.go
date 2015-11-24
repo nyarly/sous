@@ -114,7 +114,7 @@ func Contracts(sous *core.Sous, args []string) {
 	}
 
 	if err := container.Kill(); err != nil {
-		cli.Logf("WARNING: Unable to stop container %s: %s", container.CID, err)
+		cli.Warn("Unable to stop container %s: %s", container.CID, err)
 	}
 
 	if failed != 0 {

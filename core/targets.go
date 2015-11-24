@@ -314,7 +314,7 @@ func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, dep
 func (s *Sous) BuildImage(t Target, c *Context) {
 	c.IncrementBuildNumber()
 	if file.Exists("Dockerfile") {
-		cli.Logf("**WARNING: Your local Dockerfile is ignored by sous, use `sous dockerfile %s` to see the dockerfile being used here**", t.Name())
+		cli.Warn("./Dockerfile ignored by sous; use `sous dockerfile %s` to see the Dockerfile in effect", t.Name())
 	}
 	if prebuilder, ok := t.(PreDockerBuilder); ok {
 		prebuilder.PreDockerBuild(c)

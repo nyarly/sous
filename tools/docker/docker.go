@@ -95,7 +95,7 @@ func BuildFile(dockerfile, dir, tag string) string {
 	// If there is a .gitignore, but no .dockerignore, link it as .dockerignore
 	if file.Exists(".gitignore") {
 		if file.Exists(".dockerignore") {
-			cli.Logf("WARNING: Local .dockerignore found; it is recommended to remove this, and allow Sous to use your .gitignore instead")
+			cli.Warn("./.dockerignore found, it is recommended to remove this so Sous can use your .gitignore")
 		} else {
 			file.TemporaryLink(".gitignore", ".dockerignore")
 			// We try to clean this file up early, in preperation for the next build step
