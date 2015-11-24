@@ -21,7 +21,7 @@ func TestCanonicalName(t *testing.T) {
 			t.Fatalf("Unable to parse url, test inconclusive: %s", u)
 		}
 		g := Info{OriginURL: u}
-		if canonical := g.CanonicalName(); canonical != expected {
+		if canonical := g.CanonicalRepoName(); canonical != expected {
 			t.Errorf("Canonical name for %s was %s; want %s", s, canonical, expected)
 		}
 	}

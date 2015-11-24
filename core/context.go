@@ -183,7 +183,7 @@ func (bc *Context) Commit() {
 // CanonicalPackageName returns the last path component of the canonical git
 // repo name, which is used as the name of the application.
 func (bc *Context) CanonicalPackageName() string {
-	c := bc.Git.CanonicalName()
+	c := bc.Git.CanonicalRepoName()
 	p := strings.Split(c, "/")
 	return p[len(p)-1]
 }

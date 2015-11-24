@@ -344,7 +344,7 @@ func (s *Sous) Dockerfile(t Target, c *Context) *docker.Dockerfile {
 	df.AddLabel("build.machine.host", c.Host)
 	df.AddLabel("build.machine.fullhost", c.FullHost)
 	df.AddLabel("build.user", c.User)
-	df.AddLabel("build.source.repository", c.Git.CanonicalName())
+	df.AddLabel("build.source.repository", c.Git.CanonicalRepoName())
 	df.AddLabel("build.source.revision", c.Git.CommitSHA)
 	df.AddLabel("build.package.name", c.CanonicalPackageName())
 	df.AddLabel("build.package.version", c.BuildVersion.String())

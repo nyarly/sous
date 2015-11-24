@@ -78,7 +78,7 @@ func RequireCleanWorkingTree() {
 //
 //    github.com/user/repo
 //
-func (g *Info) CanonicalName() string {
+func (g *Info) CanonicalRepoName() string {
 	host := g.OriginURL.Host
 	path := g.OriginURL.Path
 	if host == "" {

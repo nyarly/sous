@@ -104,7 +104,7 @@ func CalculateSousHash() string {
 }
 
 func getStateFile(action string, g *git.Info) string {
-	dirPath := fmt.Sprintf("~/.sous/builds/%s/%s", g.CanonicalName(), action)
+	dirPath := fmt.Sprintf("~/.sous/builds/%s/%s", g.CanonicalRepoName(), action)
 	dir.EnsureExists(dirPath)
 	return fmt.Sprintf("%s/state", dirPath)
 }
