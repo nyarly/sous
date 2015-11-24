@@ -51,7 +51,7 @@ func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
 		pv := version.Version(packAppVersion)
 		gv := version.Version(context.BuildVersion.MajorMinorPatch)
 		if !pv.Version.LimitedEqual(gv.Version) {
-			cli.Warn("using tag version %s; your code reports version %s, which is ignored", buildVersion, packAppVersion)
+			cli.Warn("using latest git tagged version %s; your code reports version %s, which is ignored", gv, pv)
 		}
 	}
 	return target, context

@@ -128,13 +128,13 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	if c.User != "teamcity" {
 		buildNumber = c.Host + "-" + buildNumber
 	}
-	tag := fmt.Sprintf("v%s-%s-%s", c.BuildVersion, buildNumber)
+	tag := fmt.Sprintf("v%s-%s", c.BuildVersion, buildNumber)
 	// Docker tags do not yet support semver, so replace + with _.
 	// See https://github.com/docker/distribution/issues/1201
 	// and https://github.com/docker/distribution/pull/1202
 	tag = strings.Replace(tag, "+", "_", -1)
 	// e.g. on local dev machine:
-	//   some.registry.com/username/widget-factory:v0.12.1-912eeeab-host-1
+	//   some.registry.com/username/widget-factory:v0.12.1_912eeeab-host-1
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
 }
 
