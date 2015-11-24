@@ -97,7 +97,7 @@ func Contracts(sous *core.Sous, args []string) {
 		cli.Fatalf("Unable to start container: %s", err)
 	}
 	cli.AddCleanupTask(func() error {
-		return container.Kill()
+		return container.KillIfRunning()
 	})
 
 	failed := 0
@@ -111,10 +111,6 @@ func Contracts(sous *core.Sous, args []string) {
 		failed += within(timeout, func() bool {
 			return c.Premise(dr)
 		})
-	}
-
-	if err := container.Kill(); err != nil {
-		cli.Warn("Unable to stop container %s: %s", container.CID, err)
 	}
 
 	if failed != 0 {
