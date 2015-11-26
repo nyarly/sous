@@ -7,14 +7,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	// Awaiting merge of https://github.com/go-yaml/yaml/pull/149
+	// before going back to the upstream repo.
+	"github.com/samsalisbury/yaml"
 
 	"github.com/opentable/sous/tools/file"
 )
 
 func Parse(configDir string) (*State, error) {
 	configFile := fmt.Sprintf("%s/config.yaml", configDir)
-	var state *State
+	var state State
 	if err := parseYAMLFile(configFile, &state); err != nil {
 		return nil, err
 	}
@@ -29,18 +31,21 @@ func Parse(configDir string) (*State, error) {
 		return nil, err
 	}
 	state.Manifests = manifests
-	return state, nil
+	return &state, nil
 }
 
 func parseDatacentres(datacentresDir string) (Datacentres, error) {
-	initNew := func() interface{} { return &Datacentre{} }
-	results, err := parseYAMLDir(datacentresDir, initNew)
+	dcs := Datacentres{}
+	err := walkYAMLDir(datacentresDir, func(path string) error {
+		var dc Datacentre
+		if err := parseYAMLFile(path, &dc); err != nil {
+			return err
+		}
+		dcs[dc.Name] = &dc
+		return nil
+	})
 	if err != nil {
 		return nil, err
-	}
-	dcs := make(Datacentres, len(results))
-	for i, r := range results {
-		dcs[i] = r.(*Datacentre)
 	}
 	return dcs, nil
 }
@@ -53,26 +58,23 @@ func parseYAMLFile(f string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := yaml.Unmarshal(b, &v); err != nil {
+	if err := yaml.Unmarshal(b, v, yaml.OPT_NOLOWERCASE); err != nil {
 		return fmt.Errorf("unable to parse %s as %T: %s", f, v, err)
 	}
 	return nil
 }
 
-func parseYAMLDir(d string, initNew func() interface{}) ([]interface{}, error) {
+func walkYAMLDir(d string, fn func(path string) error) error {
 	files, err := filepath.Glob(d + "/*.yaml")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	out := make([]interface{}, len(files))
-	for i, f := range files {
-		v := initNew()
-		if err := parseYAMLFile(f, &v); err != nil {
-			return nil, err
+	for _, f := range files {
+		if err := fn(f); err != nil {
+			return err
 		}
-		out[i] = v
 	}
-	return out, nil
+	return nil
 }
 
 func parseManifests(manifestsDir string) (Manifests, error) {
@@ -98,7 +100,7 @@ func parseManifests(manifestsDir string) (Manifests, error) {
 }
 
 func parseManifest(manifestsDir, path string) (*Manifest, error) {
-	var manifest *Manifest
+	manifest := Manifest{}
 	if err := parseYAMLFile(path, &manifest); err != nil {
 		return nil, err
 	}
@@ -109,10 +111,10 @@ func parseManifest(manifestsDir, path string) (*Manifest, error) {
 	// Check manifest SourceRepo matches path
 	expectedSourceRepo := strings.TrimSuffix(relPath, ".yaml")
 	if manifest.App.SourceRepo != expectedSourceRepo {
-		return nil, fmt.Errorf("SourceRepo was %s; want %s (%s)",
-			manifest.App.SourceRepo, expectedSourceRepo, path)
+		return nil, fmt.Errorf("SourceRepo was %q; want %q (%s)\nREST:%+v",
+			manifest.App.SourceRepo, expectedSourceRepo, path, manifest)
 	}
-	return manifest, nil
+	return &manifest, nil
 }
 
 type State struct {
@@ -139,7 +141,7 @@ const (
 	STRING_VARTYPE = VarType("string")
 )
 
-type Datacentres []*Datacentre
+type Datacentres map[string]*Datacentre
 
 type Datacentre struct {
 	Name string
@@ -151,7 +153,7 @@ type DatacentreEnv map[string]string
 type Manifests map[string]*Manifest
 
 type Manifest struct {
-	App         *App
+	App         App
 	Deployments Deployments
 }
 
@@ -167,9 +169,9 @@ type Deployment struct {
 }
 
 type Instance struct {
-	Count  int
-	CPUs   float32
-	Memory MemorySize
+	Count  string
+	CPUs   string
+	Memory string
 }
 
 type MemorySize string

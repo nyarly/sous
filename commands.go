@@ -78,5 +78,9 @@ func loadCommands() map[string]*core.Command {
 		"config": {
 			commands.Config, commands.ConfigHelp,
 			"get/set config properties"},
+
+		"parse": {
+			commands.ParseState, commands.ParseStateHelp,
+			"parse global state directory"},
 	}
 }
