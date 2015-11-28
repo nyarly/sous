@@ -6,6 +6,7 @@ import (
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/yaml"
 )
 
 func ParseStateHelp() string {
@@ -18,7 +19,11 @@ func ParseState(sous *core.Sous, args []string) {
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}
-	cli.Outf("%+v", state)
+	out, err := yaml.Marshal(state)
+	if err != nil {
+		cli.Fatalf("%s", err)
+	}
+	cli.Outf(string(out))
 	cli.Success()
 }
 

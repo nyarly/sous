@@ -7,11 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	// Awaiting merge of https://github.com/go-yaml/yaml/pull/149
-	// before going back to the upstream repo.
-	"github.com/samsalisbury/yaml"
-
 	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/yaml"
 )
 
 func Parse(configDir string) (*State, error) {
@@ -58,7 +55,7 @@ func parseYAMLFile(f string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := yaml.Unmarshal(b, v, yaml.OPT_NOLOWERCASE); err != nil {
+	if err := yaml.Unmarshal(b, v); err != nil {
 		return fmt.Errorf("unable to parse %s as %T: %s", f, v, err)
 	}
 	return nil
