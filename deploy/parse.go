@@ -141,8 +141,10 @@ const (
 type Datacentres map[string]*Datacentre
 
 type Datacentre struct {
-	Name string
-	Env  DatacentreEnv
+	Name, Desc         string
+	SingularityURL     string
+	DockerRegistryHost string
+	Env                DatacentreEnv
 }
 
 type DatacentreEnv map[string]string
