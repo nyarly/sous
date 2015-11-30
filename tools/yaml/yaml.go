@@ -11,5 +11,5 @@ func Marshal(in interface{}) ([]byte, error) {
 }
 
 func Unmarshal(in []byte, out interface{}) error {
-	return y.Unmarshal(in, y.OPT_NOLOWERCASE)
+	return y.Unmarshal(in, out, y.OPT_NOLOWERCASE)
 }
