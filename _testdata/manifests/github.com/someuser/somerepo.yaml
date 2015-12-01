@@ -40,7 +40,7 @@ Deployments:
     # environment of the applcation. Note that some variables are protected and may not
     # be specified here. Please see /config.yaml for details.
     Environment:
-			SOME_ENV_VAR: github.com/someuser/somerepo
+			SOME_ENV_VAR: Hello, somerepo!
   # pp-uswest2 is an override for deployment in the pp-uswest2 datacentre.
   # The settings here are deep-merged over settings from Global.
 	north-america:
