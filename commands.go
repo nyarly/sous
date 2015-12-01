@@ -82,5 +82,9 @@ func loadCommands() map[string]*core.Command {
 		"parse": {
 			commands.ParseState, commands.ParseStateHelp,
 			"parse global state directory"},
+
+		"state": {
+			commands.State, commands.StateHelp,
+			"global deployment state"},
 	}
 }
