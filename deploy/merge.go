@@ -1,38 +1,19 @@
 package deploy
 
-import (
-	"fmt"
+import "github.com/imdario/mergo"
 
-	"github.com/imdario/mergo"
-)
+type MergedState State
 
-func (s *State) Validate() error {
-	// Check that none of the manifests overwrite the protected
-	// env vars.
-	for _, manifest := range s.Manifests {
-		for _, deployment := range manifest.Deployments {
-			for _, envVar := range *s.EnvironmentDefs["Universal"] {
-				if _, exists := deployment.Environment[envVar.Name]; exists {
-					return fmt.Errorf(
-						"%s overrides protected environment variable %s",
-						manifest.App.SourceRepo, envVar)
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func (s *State) Merge() (State, error) {
+func (s *State) Merge() (MergedState, error) {
 	m := *s
 	for sourceRepo, source := range s.Manifests {
 		mergedManifest, err := MergeManifest(source, s)
 		if err != nil {
-			return State{}, err
+			return MergedState{}, err
 		}
 		m.Manifests[sourceRepo] = mergedManifest
 	}
-	return m, nil
+	return MergedState(m), nil
 }
 
 func MergeManifest(source Manifest, s *State) (Manifest, error) {

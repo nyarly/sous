@@ -1,12 +1,12 @@
 package commands
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
-	"github.com/opentable/sous/tools/singularity"
 )
 
 func StateHelp() string {
@@ -19,18 +19,21 @@ func State(sous *core.Sous, args []string) {
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}
+	merged, err := state.Merge()
+	if err != nil {
+		cli.Fatalf("%s", err)
+	}
 	wg := sync.WaitGroup{}
-	results := make(chan []singularity.RequestParent, len(state.Datacentres))
-	wg.Add(len(state.Datacentres))
-	for _, dc := range state.Datacentres {
-		go func(dc *deploy.Datacentre) {
-			c := singularity.NewClient(dc.SingularityURL)
-			rs, err := c.Requests()
-			if err != nil {
-				cli.Fatalf("%s", err)
+	results := make(chan DiffResult, len(merged.Datacentres))
+	wg.Add(len(merged.Datacentres))
+	for name := range merged.Datacentres {
+		dc := merged.CompiledDatacentre(name)
+		go func(dc deploy.CompiledDatacentre) {
+			r := dc.DiffRequests()
+			results <- DiffResult{
+				Datacentre: dc,
+				Diffs:      r,
 			}
-			cli.Logf("%s: %d", dc.SingularityURL, len(rs))
-			results <- rs
 			wg.Done()
 		}(dc)
 	}
@@ -39,7 +42,16 @@ func State(sous *core.Sous, args []string) {
 		close(results)
 	}()
 	for rs := range results {
-		cli.Logf("RESULT! %d", len(rs))
+		fmt.Printf(" ===> %s\n", rs.Datacentre.Name)
+		fmt.Printf("  Diffs (%d)\n", len(rs.Diffs))
+		for i, d := range rs.Diffs {
+			fmt.Printf("  diff %00d: %s\n", i, d.Desc)
+		}
 	}
 	cli.Success()
+}
+
+type DiffResult struct {
+	Datacentre deploy.CompiledDatacentre
+	Diffs      []deploy.Diff
 }
