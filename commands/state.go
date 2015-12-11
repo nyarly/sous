@@ -42,8 +42,7 @@ func State(sous *core.Sous, args []string) {
 		close(results)
 	}()
 	for rs := range results {
-		fmt.Printf(" ===> %s\n", rs.Datacentre.Name)
-		fmt.Printf("  Diffs (%d)\n", len(rs.Diffs))
+		fmt.Printf(" ===> %s diffs (%d)\n", rs.Datacentre.Name, len(rs.Diffs))
 		for i, d := range rs.Diffs {
 			fmt.Printf("  diff %00d: %s\n", i, d.Desc)
 		}
