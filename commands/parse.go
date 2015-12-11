@@ -19,7 +19,11 @@ func ParseState(sous *core.Sous, args []string) {
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}
-	out, err := yaml.Marshal(state)
+	merged, err := state.Merge()
+	if err != nil {
+		cli.Fatalf("%s", err)
+	}
+	out, err := yaml.Marshal(merged)
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}
