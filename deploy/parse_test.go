@@ -1,10 +1,9 @@
 package deploy
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/opentable/sous/tools/yaml"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestMergeValidConfig(t *testing.T) {
@@ -14,9 +13,20 @@ func TestMergeValidConfig(t *testing.T) {
 	assertErrNil(t, state.Validate())
 	merged, err := state.Merge()
 	assertErrNil(t, err)
-	y, err := yaml.Marshal(merged)
-	assertErrNil(t, err)
-	fmt.Println(string(y))
+	mergedApp := merged.Manifests["github.com/someuser/somerepo"]
+	apDeploy := mergedApp.Deployments["asia-pacific"]
+	naDeploy := mergedApp.Deployments["north-america"]
+	Convey("Merged config", t, func() {
+		So(apDeploy.Instance.Count, ShouldEqual, 3)
+		So(naDeploy.Instance.Count, ShouldEqual, 2)
+		So(apDeploy.Environment["SINGULARITY_URL"], ShouldEqual,
+			"http://singularity-asia-pacific.company.com")
+		So(naDeploy.Environment["SINGULARITY_URL"], ShouldEqual,
+			"http://singularity-north-america.company.com")
+	})
+	//y, err := yaml.Marshal(merged)
+	//assertErrNil(t, err)
+	//fmt.Println(string(y))
 }
 
 func assertErrNil(t *testing.T, err error) {
