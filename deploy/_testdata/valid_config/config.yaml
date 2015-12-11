@@ -5,7 +5,7 @@ Packs:
   NodeJS:
     AvailableVersions:
     - Name: 4.2.2
-			DefaultImage: my.docker.registry/my-node-base-4.2.2
+      DefaultImage: my.docker.registry/my-node-base-4.2.2
       TargetImages:
         compile: my.docker.registry/my-node-build-4.2.2
     - Name: 0.12.7
@@ -33,10 +33,10 @@ Packs:
 # application configurations.
 EnvironmentDefs:
   # Universal variables are set for absolutely all services.
-	Universal:
-		SINGULARITY_URL:
-			Type: url
-			Desc: The singularity base URL.
+  Universal:
+    SINGULARITY_URL:
+      Type: url
+      Desc: The singularity base URL.
     SOME_UNIVERSAL_URL:
       Type: url
       Desc: The description for the universal var.

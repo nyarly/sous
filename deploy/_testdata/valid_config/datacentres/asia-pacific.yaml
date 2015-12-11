@@ -5,5 +5,5 @@ SingularityURL: &singURL http://singularity-asia-pacific.company.com
 DockerRegistryHost: docker-asia-pacific.company.com
 Env:
   SINGULARITY_URL: *singURL
-	SOME_UNIVERSAL_VAR: http://something-asia-pacific.company.com
+  SOME_UNIVERSAL_VAR: http://something-asia-pacific.company.com
 

@@ -9,7 +9,7 @@ App:
   SourceRepo: github.com/someuser/somerepo
   # Owner is the name of the team who own this application's code. It will
   # be used to configure alerting.
-Owner: someteam
+  Owner: someteam
   # Kind is the kind of application this is. Currently the only available
   # kind is "http-service" meaning an application that runs indefinitely
   # and responds to HTTP requests on a port provided by the platform.
@@ -40,10 +40,10 @@ Deployments:
     # environment of the applcation. Note that some variables are protected and may not
     # be specified here. Please see /config.yaml for details.
     Environment:
-			SOME_ENV_VAR: Hello, somerepo!
+      SOME_ENV_VAR: Hello, somerepo!
   # pp-uswest2 is an override for deployment in the pp-uswest2 datacentre.
   # The settings here are deep-merged over settings from Global.
-	north-america:
+  north-america:
     Instance:
       Count: 2
       CPUs: 0.1
