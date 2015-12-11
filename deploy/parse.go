@@ -87,7 +87,7 @@ func parseManifests(manifestsDir string) (Manifests, error) {
 		if err != nil {
 			return err
 		}
-		manifests[manifest.App.SourceRepo] = manifest
+		manifests[manifest.App.SourceRepo] = *manifest
 		return nil
 	}
 	if err := filepath.Walk(manifestsDir, fn); err != nil {
@@ -149,7 +149,7 @@ type Datacentre struct {
 
 type DatacentreEnv map[string]string
 
-type Manifests map[string]*Manifest
+type Manifests map[string]Manifest
 
 type Manifest struct {
 	App         App
@@ -160,16 +160,17 @@ type App struct {
 	SourceRepo, Owner, Kind string
 }
 
-type Deployments map[string]*Deployment
+type Deployments map[string]Deployment
 
 type Deployment struct {
-	Instance                  *Instance
+	Instance                  Instance
 	SourceTag, SourceRevision string
+	Environment               map[string]string
 }
 
 type Instance struct {
-	Count  string
-	CPUs   string
+	Count  int
+	CPUs   float32
 	Memory string
 }
 
