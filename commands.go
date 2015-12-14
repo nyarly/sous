@@ -86,5 +86,11 @@ func loadCommands() map[string]*core.Command {
 		"state": {
 			commands.State, commands.StateHelp,
 			"global deployment state"},
+		"task_host": {
+			commands.TaskHost, commands.TaskHostHelp,
+			"get task host"},
+		"task_port": {
+			commands.TaskPort, commands.TaskPortHelp,
+			"get task port"},
 	}
 }
