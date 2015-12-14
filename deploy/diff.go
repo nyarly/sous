@@ -3,6 +3,7 @@ package deploy
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/singularity"
@@ -36,11 +37,22 @@ func (s *MergedState) Diff(dcName string) []Diff {
 }
 
 func (d CompiledDatacentre) DiffRequests() []Diff {
-	diffs := []Diff{}
+	ds := make(chan []Diff)
+	wg := sync.WaitGroup{}
+	wg.Add(len(d.Manifests))
 	for _, m := range d.Manifests {
-		diffs = append(diffs, m.Diff(d.SingularityURL)...)
+		m := m
+		go func() {
+			ds <- m.Diff(d.SingularityURL)
+			wg.Done()
+		}()
 	}
-	return diffs
+	go func() { wg.Wait(); close(ds) }()
+	result := []Diff{}
+	for diffs := range ds {
+		result = append(result, diffs...)
+	}
+	return result
 }
 
 func (d DatacentreManifest) Diff(singularityURL string) []Diff {
