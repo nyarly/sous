@@ -4,6 +4,7 @@ type State struct {
 	EnvironmentDefs EnvDefs
 	Datacentres     Datacentres
 	Manifests       Manifests
+	Contracts       Contracts
 }
 
 type EnvDefs map[string]*EnvDef
@@ -61,3 +62,36 @@ type Instance struct {
 }
 
 type MemorySize string
+
+type Contracts map[string]Contract
+
+type Contract struct {
+	Name, Desc    string
+	StartServers  []string
+	Servers       map[string]TestServer
+	Preconditions map[string]GetHTTPAssertion
+	Checks        map[string]Check
+}
+
+type TestServer struct {
+	Name, Desc        string
+	Values, Poperties map[string]string
+	Docker            DockerServer
+}
+
+type DockerServer struct {
+	Image         string
+	Env           map[string]string
+	Options, Args []string
+}
+
+type GetHTTPAssertion struct {
+	URL, ResponseBodyContains, ResponseJSONContains string
+	ResponseStatusCode                              int
+	AnyResponse                                     bool
+}
+
+type Check struct {
+	Desc    string
+	GetHTTP GetHTTPAssertion
+}
