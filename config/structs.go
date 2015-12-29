@@ -6,6 +6,9 @@ type Config struct {
 	GlobalDockerTags  map[string]string
 	Packs             *Packs
 	Platform          *Platform
+	// ContractDefs maps a service kind to an ordered set of contracts
+	// to run against apps of that kind.
+	ContractDefs map[string][]string
 }
 
 type Platform struct {
