@@ -13,6 +13,7 @@ type Container interface {
 	Image() string
 	String() string
 	Kill() error
+	KillIfRunning() error
 	Remove() error
 	ForceRemove() error
 	Start() error
