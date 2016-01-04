@@ -62,39 +62,6 @@ func Contracts(sous *core.Sous, args []string) {
 	cli.Success()
 }
 
-func (r *ContractRun) Execute() error {
-	c := r.Contract
-	cli.Logf("Running contract: %s", c.Name)
-	for _, serverName := range c.StartServers {
-		if err := r.StartServer(serverName); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *ContractRun) StartServer(serverName string) error {
-	c := r.Contract
-	s, ok := c.Servers[serverName]
-	if !ok {
-		return fmt.Errorf("Contract %q specifies %s in StartServers, but no server with that name exists", c.Name, serverName)
-	}
-	var err error
-	var startedServer *StartedServer
-	startedServer, values, err := startServer(s, r.GlobalValues)
-	if err != nil {
-		return err
-	}
-	cli.Logf("Started.")
-	cli.AddCleanupTask(func() error {
-		cli.Logf("Stopping container %s", startedServer.Container)
-		return startedServer.Container.KillIfRunning()
-	})
-	r.GlobalValues = values
-	r.Servers[serverName] = startedServer
-	return nil
-}
-
 type ContractRun struct {
 	Contract     deploy.Contract
 	GlobalValues map[string]string
@@ -112,56 +79,94 @@ func NewContractRun(contract deploy.Contract, initialValues map[string]string) *
 	}
 }
 
+func (r *ContractRun) Execute() error {
+	c := r.Contract
+	cli.Logf("Running contract: %s", c.Name)
+	for _, serverName := range c.StartServers {
+		if err := r.StartServer(serverName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ContractRun) StartServer(serverName string) error {
+	c := r.Contract
+	s, ok := c.Servers[serverName]
+	if !ok {
+		return fmt.Errorf("Contract %q specifies %s in StartServers, but no server with that name exists", c.Name, serverName)
+	}
+	resolvedServer, err := r.ResolveServer(s)
+	if err != nil {
+		return err
+	}
+	startedServer, err := resolvedServer.Start()
+	if err != nil {
+		return err
+	}
+	cli.Logf("Started.")
+	cli.AddCleanupTask(func() error {
+		cli.Logf("Stopping container %s", startedServer.Container)
+		return startedServer.Container.KillIfRunning()
+	})
+	r.Servers[serverName] = startedServer
+	return nil
+}
+
+// ResolvedServer is a *deploy.TestServer whose templated values
+// have all been expanded, and is thus ready to be run.
+type ResolvedServer deploy.TestServer
+
 type StartedServer struct {
-	deploy.TestServer
+	*ResolvedServer
 	Container docker.Container
 }
 
-func startServer(s deploy.TestServer, values map[string]string) (*StartedServer, map[string]string, error) {
-	// 1. Calculate s.Values (Inputs)
-	// 2. Render yaml.Marshal(s) to $template
-	// 3. Render $template using Go text templating, injecting values (1.)
-	// 4. Parse rendered template as YAML to create the runnable server def
-	// 5. Construct a docker.Run based on (4.)
-	//dockerRun := docker.NewRun(s.Docker.Image)
-	// == 1. Calculate values
+// ResolveServer fleshes out all templated values in the server in the
+// context of the current contract run.
+func (r *ContractRun) ResolveServer(s deploy.TestServer) (*ResolvedServer, error) {
 	for k, v := range s.DefaultValues {
 		// Don't use default value if we already have that value in the global agglomeration.
-		if _, ok := values[k]; ok {
+		if _, ok := r.GlobalValues[k]; ok {
 			continue
 		}
 		v = tools.TrimWhitespace(v)
 		if !strings.HasPrefix(v, "$(") {
-			values[k] = v
+			r.GlobalValues[k] = v
 			continue
 		}
 		v = trimPrefixAndSuffix(v, "$(", ")")
 		result := cmd.Stdout("/bin/sh", "-c", v)
-		values[k] = result
+		r.GlobalValues[k] = result
 		cli.Logf("DEBUG>>> %q => %q", v, result)
 	}
-	// 2&3&4:
-	err := yaml.InjectTemplatePipeline(s, &s, values)
-	// 5. Construct a docker.Run based on the fleshed-out server def
-	run, err := makeDockerRun(s)
-	if err != nil {
-		return nil, nil, err
-	}
 
-	// ... now start the server ...
+	err := yaml.InjectTemplatePipeline(s, &s, r.GlobalValues)
+	if err != nil {
+		return nil, err
+	}
+	rs := ResolvedServer(s)
+	return &rs, nil
+}
+
+func (s *ResolvedServer) Start() (*StartedServer, error) {
+	run, err := s.MakeDockerRun()
+	if err != nil {
+		return nil, err
+	}
 	cli.Logf("Starting server %q (%s)", s.Name, s.Docker.Image)
 	run.StdoutFile = "/dev/null"
 	run.StderrFile = "/dev/null"
 	container, err := run.Start()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	startedServer := &StartedServer{s, container}
 
-	return startedServer, values, nil
+	return startedServer, nil
 }
 
-func makeDockerRun(s deploy.TestServer) (*docker.Run, error) {
+func (s *ResolvedServer) MakeDockerRun() (*docker.Run, error) {
 	d := s.Docker
 	run := docker.NewRun(d.Image)
 	for k, v := range d.Env {
