@@ -1,6 +1,9 @@
 package deploy
 
+import "github.com/opentable/sous/config"
+
 type State struct {
+	config.Config
 	EnvironmentDefs EnvDefs
 	Datacentres     Datacentres
 	Manifests       Manifests
@@ -69,14 +72,15 @@ type Contract struct {
 	Name, Desc    string
 	StartServers  []string
 	Servers       map[string]TestServer
-	Preconditions map[string]GetHTTPAssertion
-	Checks        map[string]Check
+	Preconditions []Check
+	Checks        []Check
 }
 
 type TestServer struct {
-	Name, Desc        string
-	Values, Poperties map[string]string
-	Docker            DockerServer
+	Name, Desc    string
+	DefaultValues map[string]string
+	Export        []string
+	Docker        DockerServer
 }
 
 type DockerServer struct {
@@ -92,6 +96,8 @@ type GetHTTPAssertion struct {
 }
 
 type Check struct {
-	Desc    string
-	GetHTTP GetHTTPAssertion
+	Name, Desc, GET, BodyContains string
+	StatusCode                    int
+	StatusCodeRange               []int
+	BodyContainsJSON              interface{}
 }
