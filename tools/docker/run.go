@@ -17,9 +17,14 @@ type Run struct {
 	Net                    string
 	StdoutFile, StderrFile string
 	Volumes                []string
-	Command                string
-	Labels                 map[string]string
-	inBackground           bool
+	// Args are args passed to the container (as opposed to the
+	// docker run command).
+	Args []string
+	// Command is a command passed to the container before Args if
+	// it is specified.
+	Command      string
+	Labels       map[string]string
+	inBackground bool
 }
 
 func NewRun(imageTag string) *Run {
@@ -113,6 +118,7 @@ func (r *Run) prepareCommand() *cmd.CMD {
 		if r.Command != "" {
 			args = append(args, r.Command)
 		}
+		args = append(args, r.Args...)
 	}
 	c := dockerCmd(args...)
 	if r.inBackground {
