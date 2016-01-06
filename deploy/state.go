@@ -75,6 +75,7 @@ type Contracts map[string]Contract
 type Contract struct {
 	Name, Desc    string
 	StartServers  []string
+	Values        map[string]string
 	Servers       map[string]TestServer
 	Preconditions []Check
 	Checks        []Check
@@ -116,8 +117,8 @@ type Check struct {
 	// empty. The command will be executed and the exit code checked
 	// against the expected code (note that ints default to zero, so the
 	// default case is that we expect a success (0) exit code.
-	Shell           string
-	SuccessExitCode int
+	Shell    string
+	ExitCode int
 }
 
 // Validate checks that we have a well-formed check.
@@ -129,4 +130,17 @@ func (c *Check) Validate() error {
 		return fmt.Errorf("both GET and Shell are specified")
 	}
 	return nil
+}
+
+func (c Check) String() string {
+	if c.Name != "" {
+		return c.Name
+	}
+	if c.Shell != "" {
+		return c.Shell
+	}
+	if c.GET != "" {
+		return fmt.Sprintf("GET %s", c.GET)
+	}
+	return "INVALID CHECK"
 }
