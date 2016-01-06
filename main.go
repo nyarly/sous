@@ -46,9 +46,13 @@ func parseFlags(args []string) (*core.SousFlags, []string) {
 	flagSet := flag.NewFlagSet("sous", flag.ExitOnError)
 	rebuild := flagSet.Bool("rebuild", false, "force a rebuild")
 	rebuildAll := flagSet.Bool("rebuild-all", false, "force a rebuild of this target plus all dependencies")
+	verbose := flagSet.Bool("v", false, "be verbose")
 	err := flagSet.Parse(args)
 	if err != nil {
 		cli.Fatalf("%s", err)
+	}
+	if *verbose {
+		cli.BeVerbose()
 	}
 	return &core.SousFlags{
 		ForceRebuild:    *rebuild,

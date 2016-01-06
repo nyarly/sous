@@ -1,6 +1,10 @@
 package deploy
 
-import "github.com/opentable/sous/config"
+import (
+	"fmt"
+
+	"github.com/opentable/sous/config"
+)
 
 type State struct {
 	config.Config
@@ -95,9 +99,34 @@ type GetHTTPAssertion struct {
 	AnyResponse                                     bool
 }
 
+// Check MUST specify exactly one of GET, Shell, or Contract. If
+// more than one of those are specified the check is invalid.
 type Check struct {
-	Name, Desc, GET, BodyContains string
-	StatusCode                    int
-	StatusCodeRange               []int
-	BodyContainsJSON              interface{}
+	Name, Desc string
+	// GET must be a URL, or empty if Shell is not empty.
+	// The following 4 fields are assertions about
+	// the response after getting that URL via HTTP.
+	GET                string
+	StatusCode         int
+	StatusCodeRange    []int
+	BodyContainsJSON   interface{}
+	BodyContainsString string
+
+	// Shell must be a valid POSIX shell command, or empty if GET is not
+	// empty. The command will be executed and the exit code checked
+	// against the expected code (note that ints default to zero, so the
+	// default case is that we expect a success (0) exit code.
+	Shell           string
+	SuccessExitCode int
+}
+
+// Validate checks that we have a well-formed check.
+func (c *Check) Validate() error {
+	if c.GET == "" && c.Shell == "" {
+		return fmt.Errorf("none of GET, Shell are specified")
+	}
+	if c.GET != "" && c.Shell != "" {
+		return fmt.Errorf("both GET and Shell are specified")
+	}
+	return nil
 }

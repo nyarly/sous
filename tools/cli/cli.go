@@ -8,23 +8,41 @@ import (
 
 var _log *log.Logger
 
+var beVerbose = false
+
 func init() {
 	flagss := 0
 	// On TeamCity timestamp the logs
 	if os.Getenv("TEAMCITY_VERSION") != "" {
-		flagss = log.Ldate | log.Ltime | log.Lmicroseconds
-		_log = log.New(os.Stderr, "", flagss)
+		flagss |= log.Ldate | log.Ltime | log.Lmicroseconds
 	}
 	if os.Getenv("DEBUG") == "YES" {
-		flagss = log.LstdFlags | log.Lshortfile
-		_log = log.New(os.Stderr, "", flagss)
+		flagss |= log.LstdFlags | log.Lshortfile
 	}
 	_log = log.New(os.Stderr, "", flagss)
+}
+
+func BeVerbose() {
+	beVerbose = true
 }
 
 // Logf prints a formatted message to stderr
 func Logf(format string, a ...interface{}) {
 	_log.Print(ApplyStyles(fmt.Sprintf(format, a...)))
+}
+
+// Verbosef calls Logf if verbose mode is on.
+func Verbosef(format string, a ...interface{}) {
+	if beVerbose {
+		Logf(format, a...)
+	}
+}
+
+// Curtf calls Logf if verbose mode is off. Often paired with a call to Verbosef.
+func Curtf(format string, a ...interface{}) {
+	if !beVerbose {
+		Logf(format, a...)
+	}
 }
 
 // Outf prints a formatted message to stdout

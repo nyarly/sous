@@ -100,16 +100,20 @@ func (r *ContractRun) StartServer(serverName string) error {
 	if err != nil {
 		return err
 	}
-	startedServer, err := resolvedServer.Start()
+	server, err := resolvedServer.Start()
 	if err != nil {
 		return err
 	}
-	cli.Logf("Started.")
+	cli.Verbosef("Started server %q (%s) as %s", serverName, resolvedServer.Docker.Image, server.Container.CID())
 	cli.AddCleanupTask(func() error {
-		cli.Logf("Stopping container %s", startedServer.Container)
-		return startedServer.Container.KillIfRunning()
+		if err := server.Container.KillIfRunning(); err != nil {
+			cli.Logf("Failed to stop %q container (%s)", serverName, server.Container.CID())
+		} else {
+			cli.Verbosef("Stopped %q container (%s)", serverName, server.Container.CID())
+		}
+		return err
 	})
-	r.Servers[serverName] = startedServer
+	r.Servers[serverName] = server
 	return nil
 }
 
@@ -154,7 +158,6 @@ func (s *ResolvedServer) Start() (*StartedServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	cli.Logf("Starting server %q (%s)", s.Name, s.Docker.Image)
 	run.StdoutFile = "/dev/null"
 	run.StderrFile = "/dev/null"
 	container, err := run.Start()
