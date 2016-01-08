@@ -3,6 +3,8 @@ package commands
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -125,6 +127,14 @@ func (r *ContractRun) Execute() error {
 		cli.Verbosef(" ==> Precondition **%s** passed.", p)
 	}
 
+	// Finally run the actual contract checks.
+	for _, check := range c.Checks {
+		if err := r.ExecuteCheck(check); err != nil {
+			return fmt.Errorf("Check %q failed: %s", check.String(), err)
+		}
+		cli.Verbosef(" ==> Check **%s** passed.", check)
+	}
+
 	return nil
 }
 
@@ -139,7 +149,7 @@ func (r *ContractRun) ExecuteCheck(c deploy.Check) error {
 	case c.Shell != "":
 		return r.ExecuteShellCheck(c.Shell, c.ExitCode)
 	case c.GET != "":
-		return r.ExecuteGETCheck(c)
+		return r.ExecuteGETCheck(c.GET, c.BodyContainsString, c.BodyContainsJSON, c.StatusCode, c.StatusCodeRange)
 	}
 }
 
@@ -151,7 +161,27 @@ func (r *ContractRun) ExecuteShellCheck(command string, successExitCode int) err
 	return nil
 }
 
-func (r *ContractRun) ExecuteGETCheck(c deploy.Check) error {
+func (r *ContractRun) ExecuteGETCheck(url, bodyString string, bodyJSON interface{}, statusCode int, statusCodeRange []int) error {
+	response, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	if response.Body != nil {
+		defer response.Body.Close()
+	}
+	if statusCode != 0 && response.StatusCode != statusCode {
+		return fmt.Errorf("got status code %d; want %d", response.StatusCode, statusCode)
+	}
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("unable to read response body: %s", err)
+	}
+	if bodyString != "" && !strings.Contains(string(body), bodyString) {
+		return fmt.Errorf("expected to find string %q in body but did not", bodyString)
+	}
+	if bodyJSON != "" {
+		return fmt.Errorf("BodyContainsJSON is not yet implemented.")
+	}
 	return nil
 }
 
@@ -171,6 +201,10 @@ func (r *ContractRun) StartServer(serverName string) error {
 	}
 	cli.Verbosef("Started server %q (%s) as %s", serverName, resolvedServer.Docker.Image, server.Container.CID())
 	cli.AddCleanupTask(func() error {
+		if !server.Container.Running() {
+			cli.Logf("Not stopping %q container, it had already stopped.", server.ResolvedServer.Name)
+			return nil
+		}
 		if err := server.Container.KillIfRunning(); err != nil {
 			cli.Logf("Failed to stop %q container (%s)", serverName, server.Container.CID())
 		} else {
@@ -228,6 +262,7 @@ func (s *ResolvedServer) Start() (*StartedServer, error) {
 	}
 	run.StdoutFile = "/dev/null"
 	run.StderrFile = "/dev/null"
+	cli.Verbosef("shell> %s", run.CalculatedCommand())
 	container, err := run.Start()
 	if err != nil {
 		return nil, err

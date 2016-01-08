@@ -132,6 +132,10 @@ func (r *Run) ExitCode() int {
 	return r.prepareCommand().ExitCode()
 }
 
+func (r *Run) CalculatedCommand() string {
+	return r.prepareCommand().String()
+}
+
 func (r *Run) Start() (*container, error) {
 	r.inBackground = true
 	c := r.prepareCommand()
