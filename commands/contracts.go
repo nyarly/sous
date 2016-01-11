@@ -35,7 +35,7 @@ func Contracts(sous *core.Sous, args []string) {
 
 	image := args[0]
 	if !docker.ImageExists(image) {
-		cli.Logf("Image %q not found locally; pulling...")
+		cli.Logf("Image %q not found locally; pulling...", image)
 		docker.Pull(image)
 	}
 
@@ -222,7 +222,9 @@ type ResolvedServer deploy.TestServer
 
 type StartedServer struct {
 	*ResolvedServer
-	Container docker.Container
+	// ContainerID is used in contract definitions to address the container.
+	ContainerID string
+	Container   docker.Container
 }
 
 // ResolveServer fleshes out all templated values in the server in the
@@ -267,7 +269,7 @@ func (s *ResolvedServer) Start() (*StartedServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	startedServer := &StartedServer{s, container}
+	startedServer := &StartedServer{s, container.CID(), container}
 
 	return startedServer, nil
 }
