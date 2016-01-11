@@ -3,6 +3,7 @@ package deploy
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"sync"
 
 	"github.com/opentable/sous/tools/cli"
@@ -57,12 +58,13 @@ func (d CompiledDatacentre) DiffRequests() []Diff {
 
 func (d DatacentreManifest) Diff(singularityURL string) []Diff {
 	s := singularity.NewClient(singularityURL)
-	r, err := s.Request(d.App.SourceRepo)
+	requestName := filepath.Base(d.App.SourceRepo)
+	r, err := s.Request(requestName)
 	if err != nil {
 		return []Diff{ErrorDiff(err)}
 	}
 	if r == nil {
-		return []Diff{RequestMissingDiff(d.App.SourceRepo)}
+		return []Diff{RequestMissingDiff(requestName)}
 	}
 	return nil
 }
