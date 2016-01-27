@@ -46,11 +46,10 @@ func Contracts(sous *core.Sous, args []string) {
 
 	contracts := state.Contracts
 
-	initialValues := map[string]string{
-		"Image": image,
-	}
-
 	for _, name := range state.ContractDefs["http-service"] {
+		initialValues := map[string]string{
+			"Image": image,
+		}
 		contract, ok := contracts[name]
 		if !ok {
 			cli.Fatalf("Contract %q not defined but was listed in http-service contract defs.", name)
@@ -206,7 +205,7 @@ func (r *ContractRun) StartServer(serverName string) error {
 	cli.Verbosef("Started server %q (%s) as %s", serverName, resolvedServer.Docker.Image, server.Container.CID())
 	cli.AddCleanupTask(func() error {
 		if !server.Container.Running() {
-			cli.Logf("Not stopping %q container (%s), it had already stopped.", server.ResolvedServer.Name, server.ContainerID)
+			cli.Verbosef("Not stopping %q container (%s), it had already stopped.", server.ResolvedServer.Name, server.ContainerID)
 			return nil
 		}
 		if err := server.Container.KillIfRunning(); err != nil {
