@@ -53,7 +53,7 @@ func Contracts(sous *core.Sous, args []string) {
 	for _, name := range state.ContractDefs["http-service"] {
 		contract, ok := contracts[name]
 		if !ok {
-			cli.Fatalf("Contract %q not defined but was listed in http-service contract defs.")
+			cli.Fatalf("Contract %q not defined but was listed in http-service contract defs.", name)
 		}
 		run := NewContractRun(contract, initialValues)
 		if err := run.Execute(); err != nil {
@@ -154,6 +154,10 @@ func (r *ContractRun) ExecuteCheck(c deploy.Check) error {
 }
 
 func (r *ContractRun) ExecuteShellCheck(command string, successExitCode int) error {
+	// Wrap the command in a subshell so the command can contain pipelines.
+	// Note that the spaces between the parentheses are mandatory for compatibility
+	// with further subshells defined in the contract, so don't remove them.
+	command = fmt.Sprintf("( %s )", command)
 	code := cmd.ExitCode("/bin/sh", "-c", command)
 	if code != successExitCode {
 		return fmt.Errorf("got exit code %d; want %d", code, successExitCode)
@@ -179,7 +183,7 @@ func (r *ContractRun) ExecuteGETCheck(url, bodyString string, bodyJSON interface
 	if bodyString != "" && !strings.Contains(string(body), bodyString) {
 		return fmt.Errorf("expected to find string %q in body but did not", bodyString)
 	}
-	if bodyJSON != "" {
+	if bodyJSON != nil {
 		return fmt.Errorf("BodyContainsJSON is not yet implemented.")
 	}
 	return nil

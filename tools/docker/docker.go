@@ -112,28 +112,21 @@ func Push(tag string) {
 	cmd.EchoAll("docker", "push", tag)
 }
 
+func ImagesMatchingTag(tag string) []string {
+	return cmd.Lines("docker", "images", "--no-trunc", "-q", tag)
+}
+
 func ImageExists(tag string) bool {
-	rows := cmd.Table("docker", "images")
-	for _, r := range rows {
-		comp := r[0] + ":" + r[1]
-		if comp == tag {
-			return true
-		}
-	}
-	return false
+	return len(ImagesMatchingTag(tag)) != 0
+}
+
+func ExactlyOneImageExists(tag string) bool {
+	return len(ImagesMatchingTag(tag)) == 1
 }
 
 func Pull(image string) string {
 	cmd.EchoAll("docker", "pull", image)
-	var i []Image
-	cmd.JSON(&i, "docker", "inspect", image)
-	if len(i) == 0 {
-		cli.Fatalf("image missing after pull: %s", image)
-	}
-	if len(i) != 1 {
-		cli.Fatalf("multiple images match %s; ensure sous is using unique tags", image)
-	}
-	return i[0].ID
+	return ImageID(image)
 }
 
 func Layers(image string) []string {
@@ -146,15 +139,14 @@ func Layers(image string) []string {
 }
 
 func ImageID(image string) string {
-	var i []Image
-	cmd.JSON(&i, "docker", "inspect", image)
-	if len(i) == 0 {
-		cli.Fatalf("image missing after pull: %s", image)
+	ids := ImagesMatchingTag(image)
+	if len(ids) == 0 || ids[0] == "" {
+		cli.Fatalf("image missing: %s", image)
 	}
-	if len(i) != 1 {
-		cli.Fatalf("multiple images match %s; ensure sous is using unique tags", image)
+	if len(ids) != 1 {
+		cli.Fatalf("multiple images match %s; sous requires exact tags", image)
 	}
-	return i[0].ID
+	return ids[0]
 }
 
 func Commit(cid, tag string) error {

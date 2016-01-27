@@ -38,14 +38,14 @@ func NewRun(imageTag string) *Run {
 }
 
 func getLabelsFromImage(imageTag string) map[string]string {
-	var images []*Image
-	cmd.JSON(&images, "docker", "inspect", imageTag)
-	if len(images) == 0 {
+	if !ImageExists(imageTag) {
 		cli.Fatalf("cannot find image %s", imageTag)
 	}
-	if len(images) > 1 {
+	if !ExactlyOneImageExists(imageTag) {
 		cli.Fatalf("multiple images named %s, cannot continue", imageTag)
 	}
+	var images []*Image
+	cmd.JSON(&images, "docker", "inspect", imageTag)
 	image := images[0]
 	return image.Config.Labels
 }
