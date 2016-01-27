@@ -84,7 +84,6 @@ type Contract struct {
 type TestServer struct {
 	Name, Desc    string
 	DefaultValues map[string]string
-	Export        []string
 	Docker        DockerServer
 }
 
