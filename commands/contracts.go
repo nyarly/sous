@@ -206,7 +206,7 @@ func (r *ContractRun) StartServer(serverName string) error {
 	cli.Verbosef("Started server %q (%s) as %s", serverName, resolvedServer.Docker.Image, server.Container.CID())
 	cli.AddCleanupTask(func() error {
 		if !server.Container.Running() {
-			cli.Logf("Not stopping %q container, it had already stopped.", server.ResolvedServer.Name)
+			cli.Logf("Not stopping %q container (%s), it had already stopped.", server.ResolvedServer.Name, server.ContainerID)
 			return nil
 		}
 		if err := server.Container.KillIfRunning(); err != nil {
@@ -262,6 +262,16 @@ func (r *ContractRun) ResolveServer(s deploy.TestServer) (*ResolvedServer, error
 }
 
 func (s *ResolvedServer) Start() (*StartedServer, error) {
+	if !docker.ImageExists(s.Docker.Image) {
+		cli.Logf("Image %q does not exist, beginning pull...", s.Docker.Image)
+		docker.Pull(s.Docker.Image)
+		if !docker.ImageExists(s.Docker.Image) {
+			return nil, fmt.Errorf("Docker image %q still missing after pull", s.Docker.Image)
+		}
+	}
+	if !docker.ExactlyOneImageExists(s.Docker.Image) {
+		return nil, fmt.Errorf("Docker tag %q points to multiple images", s.Docker.Image)
+	}
 	run, err := s.MakeDockerRun()
 	if err != nil {
 		return nil, err
