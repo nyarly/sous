@@ -120,7 +120,7 @@ func (r *ContractRun) Execute() error {
 	// Next execute all the precondition checks to ensure we can meaningfully
 	// run the main contract checks.
 	for _, p := range c.Preconditions {
-		if err := r.ExecuteCheck(p); err != nil {
+		if err := ExecuteCheck(p); err != nil {
 			return fmt.Errorf("Precondition %q failed: %s", p.String(), err)
 		}
 		cli.Verbosef(" ==> Precondition **%s** passed.", p)
@@ -128,7 +128,7 @@ func (r *ContractRun) Execute() error {
 
 	// Finally run the actual contract checks.
 	for _, check := range c.Checks {
-		if err := r.ExecuteCheck(check); err != nil {
+		if err := ExecuteCheck(check); err != nil {
 			return fmt.Errorf("Check %q failed: %s", check.String(), err)
 		}
 		cli.Verbosef(" ==> Check **%s** passed.", check)
@@ -137,7 +137,7 @@ func (r *ContractRun) Execute() error {
 	return nil
 }
 
-func (r *ContractRun) ExecuteCheck(c deploy.Check) error {
+func ExecuteCheck(c deploy.Check) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
@@ -146,13 +146,13 @@ func (r *ContractRun) ExecuteCheck(c deploy.Check) error {
 	default:
 		return fmt.Errorf("Check %q is invalid: %s", c, err)
 	case c.Shell != "":
-		return r.ExecuteShellCheck(c.Shell, c.ExitCode)
+		return ExecuteShellCheck(c.Shell, c.ExitCode)
 	case c.GET != "":
-		return r.ExecuteGETCheck(c.GET, c.BodyContainsString, c.BodyContainsJSON, c.StatusCode, c.StatusCodeRange)
+		return ExecuteGETCheck(c.GET, c.BodyContainsString, c.BodyContainsJSON, c.StatusCode, c.StatusCodeRange)
 	}
 }
 
-func (r *ContractRun) ExecuteShellCheck(command string, successExitCode int) error {
+func ExecuteShellCheck(command string, successExitCode int) error {
 	// Wrap the command in a subshell so the command can contain pipelines.
 	// Note that the spaces between the parentheses are mandatory for compatibility
 	// with further subshells defined in the contract, so don't remove them.
@@ -164,7 +164,7 @@ func (r *ContractRun) ExecuteShellCheck(command string, successExitCode int) err
 	return nil
 }
 
-func (r *ContractRun) ExecuteGETCheck(url, bodyString string, bodyJSON interface{}, statusCode int, statusCodeRange []int) error {
+func ExecuteGETCheck(url, bodyString string, bodyJSON interface{}, statusCode int, statusCodeRange []int) error {
 	response, err := http.Get(url)
 	if err != nil {
 		return err
@@ -283,6 +283,21 @@ func (s *ResolvedServer) Start() (*StartedServer, error) {
 		return nil, err
 	}
 	startedServer := &StartedServer{s, container.CID(), container}
+
+	// TODO: this nasty
+	if s.Startup != nil && s.Startup.CompleteWhen != nil {
+		// Block until the container is verified as having started
+		if s.Startup.Timeout == 0 {
+			s.Startup.Timeout = 30 * time.Second
+		}
+		var err error
+		if within(s.Startup.Timeout, func() bool {
+			err = ExecuteCheck(*s.Startup.CompleteWhen)
+			return err == nil
+		}) != 0 {
+			return nil, fmt.Errorf("%s failed to start within the timeout (%s): %s", s.Docker.Image, s.Startup.Timeout, err)
+		}
+	}
 
 	return startedServer, nil
 }

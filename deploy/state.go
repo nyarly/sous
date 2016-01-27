@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/opentable/sous/config"
 )
@@ -84,7 +85,13 @@ type Contract struct {
 type TestServer struct {
 	Name, Desc    string
 	DefaultValues map[string]string
+	Startup       *StartupInfo
 	Docker        DockerServer
+}
+
+type StartupInfo struct {
+	Timeout      time.Duration
+	CompleteWhen *Check
 }
 
 type DockerServer struct {
@@ -100,7 +107,9 @@ type GetHTTPAssertion struct {
 }
 
 // Check MUST specify exactly one of GET, Shell, or Contract. If
-// more than one of those are specified the check is invalid.
+// more than one of those are specified the check is invalid. This
+// slightly ugly switching makes the YAML contract definitions
+// much more readable, and is easily verifiable.
 type Check struct {
 	Name, Desc string
 	// GET must be a URL, or empty if Shell is not empty.
