@@ -3,8 +3,6 @@ package commands
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 
@@ -45,6 +43,10 @@ func Contracts(sous *core.Sous, args []string) {
 	}
 
 	contracts := state.Contracts
+
+	if err := contracts.Validate(); err != nil {
+		cli.Fatalf("Unable to run: %s", err)
+	}
 
 	for _, name := range state.ContractDefs["http-service"] {
 		initialValues := map[string]string{
@@ -150,63 +152,9 @@ func ExecuteCheck(c deploy.Check, progressTitle ...string) error {
 		title = progressTitle[0]
 		showProgress = true
 	}
-	switch {
-	default:
-		return fmt.Errorf("You must specify either Shell or GET in every check.", c)
-	case c.Shell != "":
-		return Within(c.Timeout, title, showProgress, func() error {
-			return ExecuteShellCheck(c.Shell, c.ExitCode)
-		})
-	case c.GET != "":
-		return Within(c.Timeout, title, showProgress, func() error {
-			return ExecuteGETCheck(c.GET, c.BodyContainsString, c.BodyContainsJSON, c.StatusCode, c.StatusCodeRange)
-		})
-	}
-}
-
-func ExecuteShellCheck(command string, successExitCode int) error {
-	// Wrap the command in a subshell so the command can contain pipelines.
-	// Note that the spaces between the parentheses are mandatory for compatibility
-	// with further subshells defined in the contract, so don't remove them.
-	command = fmt.Sprintf("( %s )", command)
-	code := cmd.ExitCode("/bin/sh", "-c", command)
-	if code != successExitCode {
-		return fmt.Errorf("got exit code %d; want %d", code, successExitCode)
-	}
-	return nil
-}
-
-func ExecuteGETCheck(url, bodyString string, bodyJSON interface{}, statusCode int, statusCodeRange []int) error {
-	// Validate
-	if statusCode == 0 && bodyString == "" && bodyJSON == nil && statusCodeRange == nil {
-		return fmt.Errorf("Check malformed: you must specify an assertion")
-	}
-	response, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	if response.Body != nil {
-		defer response.Body.Close()
-	}
-	if statusCode != 0 && response.StatusCode != statusCode {
-		return fmt.Errorf("got status code %d; want %d", response.StatusCode, statusCode)
-	}
-	if statusCodeRange != nil && len(statusCodeRange) != 0 {
-		if len(statusCodeRange) != 2 {
-			return fmt.Errorf("StatusCodeRange must be an array of length 2; got % +v", statusCodeRange)
-		}
-		if response.StatusCode < statusCodeRange[0] || response.StatusCode > statusCodeRange[1] {
-			return fmt.Errorf("got status code %s; want something in the range %d..%d", response.StatusCode, statusCodeRange[0], statusCodeRange[1])
-		}
-	}
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return fmt.Errorf("unable to read response body: %s", err)
-	}
-	if bodyString != "" && !strings.Contains(string(body), bodyString) {
-		return fmt.Errorf("expected to find string %q in body but did not", bodyString)
-	}
-	return nil
+	return Within(c.Timeout, title, showProgress, func() error {
+		return c.Execute()
+	})
 }
 
 func (r *ContractRun) StartServer(serverName string) error {
@@ -308,7 +256,7 @@ func (s *ResolvedServer) Start() (*StartedServer, error) {
 	startedServer := &StartedServer{s, container.CID(), container}
 	if s.Startup != nil {
 		if err := ExecuteCheck(*s.Startup.CompleteWhen, fmt.Sprintf("Waiting for %s server", s.Name)); err != nil {
-			return nil, fmt.Errorf("%s failed to start within the timeout (%s): %s", s.Docker.Image, s.Startup.Timeout, err)
+			return nil, fmt.Errorf("%s failed to start within the timeout (%s): %s", s.Docker.Image, s.Startup.CompleteWhen.Timeout, err)
 		}
 	}
 	return startedServer, nil
@@ -353,23 +301,4 @@ func Within(d time.Duration, action string, showProgress bool, f func() error) e
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-}
-
-func within(d time.Duration, f func() bool) int {
-	start := time.Now()
-	end := start.Add(d)
-	p := cli.BeginProgress("Polling")
-	for {
-		if f() {
-			p.Done("Success!")
-			return 0
-		}
-		if time.Now().After(end) {
-			break
-		}
-		p.Increment()
-		time.Sleep(time.Second)
-	}
-	p.Done("Timeout")
-	return 1
 }

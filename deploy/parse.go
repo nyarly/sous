@@ -49,6 +49,7 @@ func ParseContracts(contractsDir string) (Contracts, error) {
 		if err := parseYAMLFile(path, &c); err != nil {
 			return err
 		}
+		c.Filename = path
 		contracts[c.Name] = c
 		return nil
 	})
