@@ -45,10 +45,10 @@ type GetHTTPAssertion struct {
 // slightly ugly switching makes the YAML contract definitions
 // much more readable, and is easily verifiable.
 type Check struct {
-	Name    string
-	Timeout time.Duration
-	HTTPCheck
-	ShellCheck
+	Name       string
+	Timeout    time.Duration
+	HTTPCheck  `yaml:",inline"`
+	ShellCheck `yaml:",inline"`
 }
 
 type HTTPCheck struct {
