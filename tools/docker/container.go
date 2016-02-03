@@ -53,7 +53,7 @@ func (c *container) Inspect() (*DockerContainer, bool) {
 		cli.Fatalf("Docker inspect %s returned more than one result, please open a GitHub issue about this",
 			c.effectiveName())
 	}
-	// The seond return value checks that the thing we inspected was, in fact, the
+	// The second return value checks that the thing we inspected was, in fact, the
 	// relevant container, since docker inpect takes both container and image
 	// names and IDs, so it's a bit ambiguous otherwise.
 	cont := dc[0]
