@@ -112,6 +112,7 @@ type GetHTTPAssertion struct {
 // much more readable, and is easily verifiable.
 type Check struct {
 	Name, Desc string
+	Timeout    time.Duration
 	// GET must be a URL, or empty if Shell is not empty.
 	// The following 4 fields are assertions about
 	// the response after getting that URL via HTTP.

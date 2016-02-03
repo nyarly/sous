@@ -129,26 +129,38 @@ func (r *ContractRun) Execute() error {
 	// Finally run the actual contract checks.
 	for _, check := range c.Checks {
 		if err := ExecuteCheck(check); err != nil {
-			return fmt.Errorf("Check %q failed: %s", check.String(), err)
+			return fmt.Errorf("     check failed: %s; %s", check, err)
 		}
-		cli.Verbosef(" ==> Check **%s** passed.", check)
+		cli.Logf("     check passed: **%s**", check)
 	}
 
 	return nil
 }
 
-func ExecuteCheck(c deploy.Check) error {
+func ExecuteCheck(c deploy.Check, progressTitle ...string) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
-	var err error
+	if c.Timeout == 0 {
+		c.Timeout = 1 * time.Second
+	}
+	title := ""
+	showProgress := false
+	if len(progressTitle) != 0 {
+		title = progressTitle[0]
+		showProgress = true
+	}
 	switch {
 	default:
-		return fmt.Errorf("Check %q is invalid: %s", c, err)
+		return fmt.Errorf("You must specify either Shell or GET in every check.", c)
 	case c.Shell != "":
-		return ExecuteShellCheck(c.Shell, c.ExitCode)
+		return Within(c.Timeout, title, showProgress, func() error {
+			return ExecuteShellCheck(c.Shell, c.ExitCode)
+		})
 	case c.GET != "":
-		return ExecuteGETCheck(c.GET, c.BodyContainsString, c.BodyContainsJSON, c.StatusCode, c.StatusCodeRange)
+		return Within(c.Timeout, title, showProgress, func() error {
+			return ExecuteGETCheck(c.GET, c.BodyContainsString, c.BodyContainsJSON, c.StatusCode, c.StatusCodeRange)
+		})
 	}
 }
 
@@ -165,6 +177,10 @@ func ExecuteShellCheck(command string, successExitCode int) error {
 }
 
 func ExecuteGETCheck(url, bodyString string, bodyJSON interface{}, statusCode int, statusCodeRange []int) error {
+	// Validate
+	if statusCode == 0 && bodyString == "" && bodyJSON == nil && statusCodeRange == nil {
+		return fmt.Errorf("Check malformed: you must specify an assertion")
+	}
 	response, err := http.Get(url)
 	if err != nil {
 		return err
@@ -175,15 +191,20 @@ func ExecuteGETCheck(url, bodyString string, bodyJSON interface{}, statusCode in
 	if statusCode != 0 && response.StatusCode != statusCode {
 		return fmt.Errorf("got status code %d; want %d", response.StatusCode, statusCode)
 	}
+	if statusCodeRange != nil && len(statusCodeRange) != 0 {
+		if len(statusCodeRange) != 2 {
+			return fmt.Errorf("StatusCodeRange must be an array of length 2; got % +v", statusCodeRange)
+		}
+		if response.StatusCode < statusCodeRange[0] || response.StatusCode > statusCodeRange[1] {
+			return fmt.Errorf("got status code %s; want something in the range %d..%d", response.StatusCode, statusCodeRange[0], statusCodeRange[1])
+		}
+	}
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return fmt.Errorf("unable to read response body: %s", err)
 	}
 	if bodyString != "" && !strings.Contains(string(body), bodyString) {
 		return fmt.Errorf("expected to find string %q in body but did not", bodyString)
-	}
-	if bodyJSON != nil {
-		return fmt.Errorf("BodyContainsJSON is not yet implemented.")
 	}
 	return nil
 }
@@ -231,7 +252,8 @@ type StartedServer struct {
 }
 
 // ResolveServer fleshes out all templated values in the server in the
-// context of the current contract run.
+// context of the current contract run, adding values to the .GlobalValues
+// map if they aren't yet set.
 func (r *ContractRun) ResolveServer(s deploy.TestServer) (*ResolvedServer, error) {
 	cli.Verbosef("Resolving values for server %q", s.Name)
 	for k, v := range s.DefaultValues {
@@ -252,11 +274,12 @@ func (r *ContractRun) ResolveServer(s deploy.TestServer) (*ResolvedServer, error
 		cli.Verbosef(" ==> %s=%q (%s)", k, result, v)
 	}
 
-	err := yaml.InjectTemplatePipeline(s, &s, r.GlobalValues)
-	if err != nil {
+	var ss deploy.TestServer
+	if err := yaml.InjectTemplatePipeline(s, &ss, r.GlobalValues); err != nil {
 		return nil, err
 	}
-	rs := ResolvedServer(s)
+
+	rs := ResolvedServer(ss)
 	return &rs, nil
 }
 
@@ -283,22 +306,11 @@ func (s *ResolvedServer) Start() (*StartedServer, error) {
 		return nil, err
 	}
 	startedServer := &StartedServer{s, container.CID(), container}
-
-	// TODO: this nasty
-	if s.Startup != nil && s.Startup.CompleteWhen != nil {
-		// Block until the container is verified as having started
-		if s.Startup.Timeout == 0 {
-			s.Startup.Timeout = 30 * time.Second
-		}
-		var err error
-		if within(s.Startup.Timeout, func() bool {
-			err = ExecuteCheck(*s.Startup.CompleteWhen)
-			return err == nil
-		}) != 0 {
+	if s.Startup != nil {
+		if err := ExecuteCheck(*s.Startup.CompleteWhen, fmt.Sprintf("Waiting for %s server", s.Name)); err != nil {
 			return nil, fmt.Errorf("%s failed to start within the timeout (%s): %s", s.Docker.Image, s.Startup.Timeout, err)
 		}
 	}
-
 	return startedServer, nil
 }
 
@@ -314,6 +326,33 @@ func (s *ResolvedServer) MakeDockerRun() (*docker.Run, error) {
 
 func trimPrefixAndSuffix(s, prefix, suffix string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, prefix), suffix)
+}
+
+func Within(d time.Duration, action string, showProgress bool, f func() error) error {
+	start := time.Now()
+	end := start.Add(d)
+	tryCount := 0
+	var p cli.Progress
+	for {
+		tryCount++
+		err := f()
+		if err == nil {
+			p.Done("Success")
+			return nil
+		}
+		if time.Now().After(end) {
+			p.Done("Timeout")
+			return err
+		}
+		// Don't show progress until we've tried a hundred times.
+		if tryCount > 100 && p == "" && showProgress {
+			p = cli.BeginProgress(action)
+		}
+		if tryCount%100 == 0 {
+			p.Increment()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 func within(d time.Duration, f func() bool) int {

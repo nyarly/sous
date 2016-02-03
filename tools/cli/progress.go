@@ -13,9 +13,14 @@ func BeginProgress(title string) Progress {
 }
 
 func (p Progress) Increment() {
-	fmt.Fprintf(os.Stderr, ".")
+	if p != "" {
+		fmt.Fprintf(os.Stderr, ".")
+		return
+	}
 }
 
 func (p Progress) Done(message string) {
-	fmt.Fprintf(os.Stderr, message+"\n")
+	if p != "" {
+		fmt.Fprintf(os.Stderr, message+"\n")
+	}
 }
