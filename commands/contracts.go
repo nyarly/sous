@@ -146,15 +146,7 @@ func ExecuteCheck(c deploy.Check, progressTitle ...string) error {
 	if c.Timeout == 0 {
 		c.Timeout = 1 * time.Second
 	}
-	title := ""
-	showProgress := false
-	if len(progressTitle) != 0 {
-		title = progressTitle[0]
-		showProgress = true
-	}
-	return Within(c.Timeout, title, showProgress, func() error {
-		return c.Execute()
-	})
+	return c.Execute()
 }
 
 func (r *ContractRun) StartServer(serverName string) error {
@@ -274,31 +266,4 @@ func (s *ResolvedServer) MakeDockerRun() (*docker.Run, error) {
 
 func trimPrefixAndSuffix(s, prefix, suffix string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, prefix), suffix)
-}
-
-func Within(d time.Duration, action string, showProgress bool, f func() error) error {
-	start := time.Now()
-	end := start.Add(d)
-	tryCount := 0
-	var p cli.Progress
-	for {
-		tryCount++
-		err := f()
-		if err == nil {
-			p.Done("Success")
-			return nil
-		}
-		if time.Now().After(end) {
-			p.Done("Timeout")
-			return err
-		}
-		// Don't show progress until we've tried a hundred times.
-		if tryCount > 100 && p == "" && showProgress {
-			p = cli.BeginProgress(action)
-		}
-		if tryCount%100 == 0 {
-			p.Increment()
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
 }

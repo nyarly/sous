@@ -14,6 +14,7 @@ type Container interface {
 	String() string
 	Kill() error
 	KillIfRunning() error
+	Stop(signal string) error
 	Remove() error
 	ForceRemove() error
 	Start() error
@@ -97,6 +98,13 @@ func (c *container) KillIfRunning() error {
 		if c.Running() {
 			return err
 		}
+	}
+	return nil
+}
+
+func (c *container) Stop(signal string) error {
+	if ex := cmd.ExitCode("docker", "stop", "-s", signal, c.effectiveName()); ex != 0 {
+		return fmt.Errorf("Unable to send %s signal to docker container %s", signal, c)
 	}
 	return nil
 }

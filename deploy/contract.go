@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 )
 
@@ -117,11 +118,22 @@ func (c *Check) Validate() error {
 }
 
 func (c *Check) Execute() error {
+	if c.Setup.Shell != "" {
+		cli.Verbosef("Running setup command...")
+		cli.Verbosef("shell> %s", c.Setup.Shell)
+		if code := wrapShellCommand(c.Setup.Shell).ExitCode(); code != 0 {
+			return fmt.Errorf("Setup command failed: exit code %d", code)
+		}
+	}
 	if c.HTTPCheck.Validate() == nil {
-		return c.HTTPCheck.Execute()
+		return Within(c.Timeout, "", false, func() error {
+			return c.HTTPCheck.Execute()
+		})
 	}
 	if c.ShellCheck.Validate() == nil {
-		return c.ShellCheck.Execute()
+		return Within(c.Timeout, "", false, func() error {
+			return c.ShellCheck.Execute()
+		})
 	}
 	return c.Validate()
 }
@@ -130,11 +142,9 @@ type HTTPCheck struct {
 	// GET must be a URL, or empty if Shell is not empty.
 	// The following 4 fields are assertions about
 	// the response after getting that URL via HTTP.
-	GET             string
-	StatusCode      int
-	StatusCodeRange []int
-	// TODO: Either implement this somehow or remove it
-	//BodyContainsJSON   interface{}
+	GET                      string
+	StatusCode               int
+	StatusCodeRange          []int
 	BodyContainsString       string
 	BodyDoesNotContainString string
 }
@@ -202,13 +212,15 @@ func (c ShellCheck) Validate() error {
 	return nil
 }
 
+// Wrap the command in a subshell so the command can contain pipelines.
+// Note that the spaces between the parentheses are mandatory for compatibility
+// with further subshells defined in the contract, so don't remove them.
+func wrapShellCommand(command string) *cmd.CMD {
+	return cmd.New("/bin/sh", "-c", fmt.Sprintf("( %s )", command))
+}
+
 func (c ShellCheck) Execute() error {
-	// Wrap the command in a subshell so the command can contain pipelines.
-	// Note that the spaces between the parentheses are mandatory for compatibility
-	// with further subshells defined in the contract, so don't remove them.
-	command := fmt.Sprintf("( %s )", c.Shell)
-	code := cmd.ExitCode("/bin/sh", "-c", command)
-	if code != c.ExitCode {
+	if code := wrapShellCommand(c.Shell).ExitCode(); code != c.ExitCode {
 		return fmt.Errorf("got exit code %d; want %d", code, c.ExitCode)
 	}
 	return nil
@@ -225,4 +237,30 @@ func (c Check) String() string {
 		return fmt.Sprintf("GET %s", c.GET)
 	}
 	return "INVALID CHECK"
+}
+func Within(d time.Duration, action string, showProgress bool, f func() error) error {
+	start := time.Now()
+	end := start.Add(d)
+	tryCount := 0
+	var p cli.Progress
+	for {
+		tryCount++
+		err := f()
+		if err == nil {
+			p.Done("Success")
+			return nil
+		}
+		if time.Now().After(end) {
+			p.Done("Timeout")
+			return err
+		}
+		// Don't show progress until we've tried a hundred times.
+		if tryCount > 100 && p == "" && showProgress {
+			p = cli.BeginProgress(action)
+		}
+		if tryCount%100 == 0 {
+			p.Increment()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
