@@ -11,6 +11,19 @@ import (
 	"github.com/opentable/sous/tools/version"
 )
 
+type Repo struct {
+	Remotes  map[string]Remote
+	Branches map[string]Branch
+}
+
+type Remote struct {
+	Fetch, Push *url.URL
+}
+
+type Branch struct {
+	Remote, Merge string
+}
+
 func RequireVersion(r *version.R) {
 	if c := cmd.ExitCode("git", "--version"); c != 0 {
 		cli.Fatalf("git required")
@@ -79,11 +92,37 @@ func RequireCleanWorkingTree() {
 //    github.com/user/repo
 //
 func (g *Info) CanonicalRepoName() string {
-	host := g.OriginURL.Host
-	path := g.OriginURL.Path
+	// We can safely ignore the error here because ToCanonicalRepoName only
+	// errors on an invalid URL, but we are using a pre-validated URL here.
+	n, _ := ToCanonicalRepoName(g.OriginURL.String())
+	return n
+	//host := g.OriginURL.Host
+	//path := g.OriginURL.Path
+	//if host == "" {
+	//	if !strings.ContainsRune(path, ':') {
+	//		cli.Fatalf("git origin URL not recognised: %s", g.OriginURL)
+	//	}
+	//	p := strings.SplitN(path, ":", 2)
+	//	host = p[0]
+	//	path = "/" + p[1]
+	//}
+	//if strings.ContainsRune(host, '@') {
+	//	p := strings.SplitN(host, "@", 2)
+	//	host = p[1]
+	//}
+	//return host + strings.TrimSuffix(path, ".git")
+}
+
+func ToCanonicalRepoName(name string) (string, error) {
+	u, err := url.Parse(name)
+	if err != nil {
+		return "", fmt.Errorf("only valid URLs can be canonicalised: %s", err)
+	}
+	host := u.Host
+	path := u.Path
 	if host == "" {
 		if !strings.ContainsRune(path, ':') {
-			cli.Fatalf("git origin URL not recognised: %s", g.OriginURL)
+			cli.Fatalf("git origin URL not recognised: %s", u)
 		}
 		p := strings.SplitN(path, ":", 2)
 		host = p[0]
@@ -93,7 +132,12 @@ func (g *Info) CanonicalRepoName() string {
 		p := strings.SplitN(host, "@", 2)
 		host = p[1]
 	}
-	return host + strings.TrimSuffix(path, ".git")
+	return host + strings.TrimSuffix(path, ".git"), nil
+}
+
+func IsCanonicalRepoName(name string) bool {
+	c, err := ToCanonicalRepoName(name)
+	return err == nil && c == name
 }
 
 func getOriginURL() *url.URL {
