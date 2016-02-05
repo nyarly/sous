@@ -34,8 +34,12 @@ func Contracts(sous *core.Sous, args []string) {
 	if len(args) == 1 {
 		image = args[0]
 	} else {
-		_, t := sous.AssembleTargetContext("app")
-		image = t.DockerTag()
+		t, c := sous.AssembleTargetContext("app")
+		if yes, reason := sous.NeedsToBuildNewImage(t, c, false); yes {
+			cli.Logf("Building new image because %s", reason)
+			sous.RunTarget(t, c)
+		}
+		image = c.DockerTag()
 	}
 
 	if !docker.ImageExists(image) {

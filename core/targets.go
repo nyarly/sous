@@ -123,7 +123,12 @@ type Stater interface {
 	State(*Context) interface{}
 }
 
-// RunTarget is used to run the top-level target from build commands.
+// RunTarget is used to run the top-level target from build commands, it returns
+// a bool: true if the build took place, false if not. The build will not happen
+// unless there are relevant changes since the last build. It also returns a state
+// object, which can be anything the target decides. This is used in general to allow
+// targets in a build chain to communicate with each other, things like the location
+// of artifacts built by a target go here, for example.
 func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
 	if !c.ChangesSinceLastBuild().Any() {
 		if !s.Flags.ForceRebuild {
