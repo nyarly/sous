@@ -1,9 +1,7 @@
 package deploy
 
-import "github.com/opentable/sous/config"
-
 type State struct {
-	config.Config
+	Config
 	EnvironmentDefs EnvDefs
 	Datacentres     Datacentres
 	Manifests       Manifests

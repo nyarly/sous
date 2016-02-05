@@ -7,9 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/core"
+	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/file"
 )
 
 //go:generate ./scripts/generate-resources core/resources
@@ -20,14 +21,14 @@ func main() {
 	}
 	sousFlags, args := parseFlags(os.Args[2:])
 	command := os.Args[1]
-	var cfg *config.Config
+	var state *deploy.State
 	var sous *core.Sous
-	if command != "config" {
+	if command != "config" && command != "update" {
 		updateHourly()
-		cfg = config.Load()
+		file.ReadJSON(&state, "~/.sous/config")
 		trapSignals()
 		defer cli.Cleanup()
-		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(cfg), sousFlags, cfg)
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(&state.Config), sousFlags, state)
 	} else {
 		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags, nil)
 	}
@@ -77,7 +78,7 @@ func trapSignals() {
 
 func updateHourly() {
 	key := "last-update-check"
-	props := config.Properties()
+	props := deploy.Properties()
 	d, err := time.Parse(time.RFC3339, props[key])
 	if err != nil || d.Sub(time.Now()) > time.Hour {
 		checkForUpdates()
@@ -86,7 +87,7 @@ func updateHourly() {
 
 func checkForUpdates() {
 	cli.Logf("Checking for updates...")
-	if err := config.Update(); err != nil {
+	if err := deploy.Update(); err != nil {
 		cli.Logf("Unable to check: %s", err)
 	}
 }

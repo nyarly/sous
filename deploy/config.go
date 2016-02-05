@@ -1,4 +1,4 @@
-package config
+package deploy
 
 import (
 	"encoding/json"
@@ -49,7 +49,7 @@ func Update() error {
 		return fmt.Errorf("sous-server not set; use `sous config sous-server http://your.sous.server`")
 	}
 	var c *Config
-	if err := getJSON(&c, "%s/config", serverURL); err != nil {
+	if err := getJSON(&c, "%s/state", serverURL); err != nil {
 		p.Done("Failed")
 		return err
 	}

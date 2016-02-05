@@ -5,7 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/opentable/sous/config"
+	"github.com/opentable/old_sous/config"
+	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/docker"
@@ -17,7 +18,8 @@ type Sous struct {
 	Commands                    map[string]*Command
 	cleanupTasks                []func() error
 	Flags                       *SousFlags
-	Config                      *config.Config
+	Config                      *deploy.Config
+	State                       *deploy.State
 	flagSet                     *flag.FlagSet
 }
 
@@ -33,7 +35,11 @@ type Command struct {
 
 var sous *Sous
 
-func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags, config *config.Config) *Sous {
+func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags, state *deploy.State) *Sous {
+	var cfg *deploy.Config
+	if state != nil {
+		cfg = &state.Config
+	}
 	if sous == nil {
 		sous = &Sous{
 			Version:      version,
@@ -43,7 +49,8 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 			Packs:        packs,
 			Commands:     commands,
 			Flags:        flags,
-			Config:       config,
+			State:        state,
+			Config:       cfg,
 			cleanupTasks: []func() error{},
 		}
 	}
@@ -53,7 +60,7 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 func (s *Sous) UpdateBaseImage(image string) {
 	// First, keep track of which images we are interested in...
 	key := "usedBaseImages"
-	images := config.Properties()[key]
+	images := deploy.Properties()[key]
 	var list []string
 	if len(images) != 0 {
 		json.Unmarshal([]byte(images), &list)

@@ -3,17 +3,17 @@ package golang
 import (
 	"fmt"
 
-	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/core"
+	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/file"
 )
 
 type Pack struct {
-	Config *config.GoConfig
+	Config *deploy.GoConfig
 }
 
-func New(c *config.GoConfig) *Pack {
+func New(c *deploy.GoConfig) *Pack {
 	return &Pack{Config: c}
 }
 

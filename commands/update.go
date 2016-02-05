@@ -3,8 +3,8 @@ package commands
 import (
 	"time"
 
-	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/core"
+	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 )
 
@@ -14,9 +14,9 @@ func UpdateHelp() string {
 
 func Update(sous *core.Sous, args []string) {
 	key := "last-update-check"
-	if err := config.Update(); err != nil {
+	if err := deploy.Update(); err != nil {
 		cli.Fatal()
 	}
-	config.Set(key, time.Now().Format(time.RFC3339))
+	deploy.Set(key, time.Now().Format(time.RFC3339))
 	cli.Success()
 }

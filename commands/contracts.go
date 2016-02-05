@@ -27,21 +27,23 @@ func ContractsHelp() string {
 func Contracts(sous *core.Sous, args []string) {
 	contractsFlags.Parse(args)
 	args = contractsFlags.Args()
-	if len(args) != 1 {
-		cli.Fatalf("You must supply one argument: the docker image you want to run contracts against.")
+	image := ""
+	if len(args) > 1 {
+		cli.Fatalf("You must supply at most one argument: the docker image you want to run contracts against.")
+	}
+	if len(args) == 1 {
+		image = args[0]
+	} else {
+		_, t := sous.AssembleTargetContext("app")
+		image = t.DockerTag()
 	}
 
-	image := args[0]
 	if !docker.ImageExists(image) {
 		cli.Logf("Image %q not found locally; pulling...", image)
 		docker.Pull(image)
 	}
 
-	state, err := deploy.Parse(".")
-	if err != nil {
-		cli.Fatalf("Unable to parse state: %s", err)
-	}
-
+	state := sous.State
 	contracts := state.Contracts
 
 	if err := contracts.Validate(); err != nil {

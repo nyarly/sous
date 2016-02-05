@@ -1,4 +1,4 @@
-package config
+package deploy
 
 type Config struct {
 	DockerRegistry    string

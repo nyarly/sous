@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opentable/sous/config"
 	"github.com/opentable/sous/core/resources"
+	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/docker"
@@ -34,7 +34,7 @@ func (bc *Context) IsCI() bool {
 }
 
 func GetContext(action string) *Context {
-	var c = config.Load()
+	var c = deploy.Load()
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
 	bs := GetBuildState(action, gitInfo)
