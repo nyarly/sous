@@ -27,6 +27,10 @@ func loadCommands() map[string]*core.Command {
 			commands.Run, commands.RunHelp,
 			"run your project"},
 
+		"server": {
+			commands.Server, commands.ServerHelp,
+			"run the sous server"},
+
 		"contracts": {
 			commands.Contracts, commands.ContractsHelp,
 			"check project against platform contracts",
