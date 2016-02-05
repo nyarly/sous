@@ -20,6 +20,7 @@ type CMD struct {
 	rawEnv                   map[string]string
 	EchoStdout, EchoStderr   bool
 	Stdout, Stderr           *bytes.Buffer
+	WorkingDir               string
 	WriteStdout, WriteStderr io.Writer
 }
 
@@ -34,6 +35,9 @@ func New(name string, args ...string) *CMD {
 
 func (C *CMD) execute() (code int, err error) {
 	c := exec.Command(C.Name, C.Args...)
+	if C.WorkingDir != "" {
+		c.Dir = C.WorkingDir
+	}
 	c.Stdout = C.Stdout
 	c.Stderr = C.Stderr
 	c.Env = os.Environ()
@@ -164,4 +168,8 @@ func (c *CMD) JSON(v interface{}) {
 	if v == nil {
 		cli.Fatalf("Unmarshalled nil")
 	}
+}
+
+func (c *CMD) Setwd(path string) {
+	c.WorkingDir = path
 }

@@ -135,3 +135,27 @@ func IndexIsDirty() bool {
 func UntrackedUnignoredFiles() []string {
 	return cmd.New("git", "ls-files", "--exclude-standard", "--others").OutLines()
 }
+
+func Clone(repo, dir string) error {
+	c := cmd.New("git", "clone", repo, dir)
+	code := c.ExitCode()
+	if code == 0 {
+		return nil
+	}
+	defer cli.Logf("shell> %s\n%s\n%s", c, c.Stderr, c.Stdout)
+	return fmt.Errorf("clone of %s into %q failed with exit code %d", repo, dir, code)
+}
+
+func Forcepull(repoDir, remote, branch string) error {
+	if !dir.Exists(repoDir) {
+		return fmt.Errorf("Directory %q not found", repoDir)
+	}
+	c := cmd.New("git", "pull", "-f", remote, branch)
+	c.Setwd(repoDir)
+	code := c.ExitCode()
+	if code == 0 {
+		return nil
+	}
+	defer cli.Logf("shell> %s\n%s\n%s", c, c.Stderr, c.Stdout)
+	return fmt.Errorf("%s failed in %q with exit code %d", c, repoDir, code)
+}
