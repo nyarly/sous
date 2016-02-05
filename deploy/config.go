@@ -22,24 +22,24 @@ func Properties() Props {
 	return c
 }
 
-var c *Config
+var s *State
 
 func Load() *Config {
-	if c == nil {
-		if !file.ReadJSON(&c, "~/.sous/config") {
+	if s == nil {
+		if !file.ReadJSON(&s, "~/.sous/config") {
 			if err := Update(); err != nil {
 				cli.Fatalf("Unable to load config: %s", err)
 			}
-			if !file.ReadJSON(&c, "~/.sous/config") {
+			if !file.ReadJSON(&s, "~/.sous/config") {
 				cli.Fatalf("Unable to read %s", "~/.sous/config")
 			}
 		}
 	}
-	return c
+	return &s.Config
 }
 
 func Update() error {
-	c = nil
+	s = nil
 	p := cli.BeginProgress("Updating config")
 	Set("last-update-check", time.Now().Format(time.RFC3339))
 	props := Properties()
@@ -48,7 +48,7 @@ func Update() error {
 		p.Done("Failed")
 		return fmt.Errorf("sous-server not set; use `sous config sous-server http://your.sous.server`")
 	}
-	var c *Config
+	var c *State
 	if err := getJSON(&c, "%s/state", serverURL); err != nil {
 		p.Done("Failed")
 		return err
