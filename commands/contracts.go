@@ -158,7 +158,7 @@ func ExecuteCheck(c deploy.Check, progressTitle ...string) error {
 		return err
 	}
 	if c.Timeout == 0 {
-		c.Timeout = 1 * time.Second
+		c.Timeout = 5 * time.Second
 	}
 	return c.Execute()
 }
