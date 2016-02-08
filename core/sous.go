@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/opentable/old_sous/config"
 	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
@@ -74,7 +73,7 @@ func (s *Sous) UpdateBaseImage(image string) {
 	if err != nil {
 		cli.Fatalf("Unable to marshal base image list as JSON: %+v; %s", list, err)
 	}
-	config.Set(key, string(listJSON))
+	deploy.Set(key, string(listJSON))
 	// Now lets grab the actual image
 	docker.Pull(image)
 }

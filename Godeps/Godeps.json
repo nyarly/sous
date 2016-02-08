@@ -8,10 +8,6 @@
 			"Rev": "bb554f9fd6ee4cd190eef868de608ced813aeda1"
 		},
 		{
-			"ImportPath": "github.com/opentable/old_sous/config",
-			"Rev": "c8c721b8876a01f7bcc63e4ebb66b3d13199bf98"
-		},
-		{
 			"ImportPath": "github.com/samsalisbury/yaml",
 			"Rev": "47bc14906f408f98d35bfb508fd25fb2640febc1"
 		},
