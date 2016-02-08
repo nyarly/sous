@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
 log() { echo "$@" 1>&2; }
 die() { log "$@"; exit 1; }
 if [ -z "$1" ]; then
 	die "usage: $0 self | all | TARGET..."
 fi
+set -euo pipefail
 REQUESTED_TARGETS=($@)
 STANDARD_TARGETS=(linux/amd64 darwin/amd64)
 if [[ "$1" == "all" ]]; then
