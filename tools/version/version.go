@@ -89,3 +89,7 @@ func (r *R) IsSatisfiedBy(v *V) bool {
 func (v *V) String() string {
 	return v.Original
 }
+
+func (r *R) String() string {
+	return r.Original
+}

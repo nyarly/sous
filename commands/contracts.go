@@ -12,6 +12,7 @@ import (
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/docker"
+	"github.com/opentable/sous/tools/version"
 	"github.com/opentable/sous/tools/yaml"
 )
 
@@ -19,6 +20,8 @@ var contractsFlags = flag.NewFlagSet("contracts", flag.ExitOnError)
 
 var timeoutFlag = contractsFlags.Duration("timeout", 10*time.Second, "per-contract timeout")
 var dockerImage = contractsFlags.String("image", "", "run contracts against a pre-built Docker image")
+var contractName = contractsFlags.String("contract", "", "run a single, named contract")
+var listContracts = contractsFlags.Bool("list", false, "list all contracts")
 
 func ContractsHelp() string {
 	return `sous contracts tests your project conforms to necessary contracts to run successfully on the OpenTable Mesos platform.`
@@ -27,9 +30,14 @@ func ContractsHelp() string {
 func Contracts(sous *core.Sous, args []string) {
 	contractsFlags.Parse(args)
 	args = contractsFlags.Args()
+	docker.RequireVersion(version.Range("^1.8.3"))
+	docker.RequireDaemon()
 	image := ""
-	if len(args) > 1 {
-		cli.Fatalf("You must supply at most one argument: the docker image you want to run contracts against.")
+	if dockerImage != nil {
+		image = *dockerImage
+	}
+	if len(args) > 2 {
+		cli.Fatalf("usage: sous contracts [")
 	}
 	if len(args) == 1 {
 		image = args[0]
