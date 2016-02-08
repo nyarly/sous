@@ -1,9 +1,6 @@
 {
 	"ImportPath": "github.com/opentable/sous",
 	"GoVersion": "go1.5.1",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/imdario/mergo",
@@ -11,13 +8,12 @@
 			"Rev": "bb554f9fd6ee4cd190eef868de608ced813aeda1"
 		},
 		{
-			"ImportPath": "github.com/samsalisbury/yaml",
-			"Rev": "47bc14906f408f98d35bfb508fd25fb2640febc1"
+			"ImportPath": "github.com/opentable/old_sous/config",
+			"Rev": "c8c721b8876a01f7bcc63e4ebb66b3d13199bf98"
 		},
 		{
-			"ImportPath": "github.com/smartystreets/goconvey/convey",
-			"Comment": "1.5.0-264-ge4cef38",
-			"Rev": "e4cef38b8924b3cff6d84a524e8fe938ad0bcbf2"
+			"ImportPath": "github.com/samsalisbury/yaml",
+			"Rev": "47bc14906f408f98d35bfb508fd25fb2640febc1"
 		},
 		{
 			"ImportPath": "github.com/wmark/semver",
