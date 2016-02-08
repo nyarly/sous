@@ -25,6 +25,9 @@ func main() {
 	var sous *core.Sous
 	if command != "config" && command != "update" {
 		updateHourly()
+		if !file.Exists("~/.sous/config") {
+			cli.Fatalf("~/.sous/config not found, please run `sous update`")
+		}
 		file.ReadJSON(&state, "~/.sous/config")
 		trapSignals()
 		defer cli.Cleanup()

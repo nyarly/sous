@@ -50,13 +50,14 @@ func WriteJSON(data interface{}, pathFormat string, a ...interface{}) {
 	Write(b, pathFormat, a...)
 }
 
-func Exists(path string) bool {
-	i, err := os.Stat(path)
+func Exists(filePath string) bool {
+	filePath = path.Resolve(filePath)
+	i, err := os.Stat(filePath)
 	if err == nil {
 		return !i.IsDir()
 	}
 	if !os.IsNotExist(err) {
-		cli.Fatalf("Unable to determine if file exists at '%s'; %s", path, err)
+		cli.Fatalf("Unable to determine if file exists at '%s'; %s", filePath, err)
 	}
 	return false
 }
