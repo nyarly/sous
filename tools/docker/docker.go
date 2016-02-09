@@ -27,15 +27,15 @@ func RequireVersion(r *version.R) {
 func GetDockerHost() string {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	if dockerHost == "" {
-		return "localhost"
+		return cmd.Stdout("hostname")
 	}
 	u, err := url.Parse(dockerHost)
 	if err != nil {
-		return "localhost" // Giving up
+		return cmd.Stdout("hostname")
 	}
 	host, _, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		return "localhost"
+		return cmd.Stdout("hostname")
 	}
 	return host
 }
