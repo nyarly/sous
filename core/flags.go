@@ -56,18 +56,26 @@ func (fs *Flags) AddFlag(name, usage string, value interface{}) {
 
 func init() {
 	f := NewFlags()
+	// Universal (almost) flags
 	f.AddFlag("rebuild", "force rebuild of the target", false)
 	f.AddFlag("rebuild-all", "force rebuild of the target and all dependencies", false)
+
+	// Contracts flags
 	f.AddFlag("timeout", "per-contract timeout", 5*time.Second)
+	f.AddFlag("timeout-all", "total contract run timeout", 5*time.Second)
+	f.AddFlag("parallelism", "how many contracts to run at once", 1)
+	f.AddFlag("image", "run contracts against a specific docker image", "")
 
 	var rebuild, rebuildAll bool
 	var timeout time.Duration
+	var parallelism int
 	f.Bind("rebuild", &rebuild)
 	f.Bind("rebuild-all", &rebuildAll)
 	f.Bind("timeout", &timeout)
+	f.Bind("parallelism", &parallelism)
 
-	f.Parse([]string{"-timeout", "7m", "-rebuild", "some", "args"})
+	f.Parse([]string{"-timeout", "7m", "-rebuild", "-parallelism", "3", "some", "args"})
 	f.PrintDefaults()
-	fmt.Printf("Program name: %s; Duration: %s; Rebuild: %v; Remaining args: %+v",
-		f.Arg(0), timeout, rebuild, f.Args()[1:])
+	fmt.Printf("Program name: %s; Parallelism: %d, Duration: %s; Rebuild: %v; Remaining args: %+v",
+		f.Arg(0), parallelism, timeout, rebuild, f.Args()[1:])
 }
