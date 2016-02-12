@@ -54,7 +54,7 @@ func (fs *Flags) AddFlag(name, usage string, value interface{}) {
 	fs.flags[name] = f
 }
 
-func init() {
+func _init() {
 	f := NewFlags()
 	// Universal (almost) flags
 	f.AddFlag("rebuild", "force rebuild of the target", false)
