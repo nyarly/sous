@@ -52,8 +52,8 @@ func (s *Server) WriteState(to, from *deploy.State) {
 }
 
 func (s *Server) GetState() *deploy.State {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return &s.state
 }
 

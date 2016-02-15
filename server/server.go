@@ -13,7 +13,7 @@ import (
 
 type Server struct {
 	Repo, Workdir string
-	mutex         sync.Mutex
+	mutex         sync.RWMutex
 	state         deploy.State
 }
 
@@ -21,7 +21,7 @@ func NewServer(repo string, workdir string) *Server {
 	return &Server{
 		Repo:    repo,
 		Workdir: workdir,
-		mutex:   sync.Mutex{},
+		mutex:   sync.RWMutex{},
 	}
 }
 
