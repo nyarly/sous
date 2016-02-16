@@ -39,8 +39,31 @@ func Contracts(sous *core.Sous, args []string) {
 		image = *dockerImage
 	}
 	if len(args) != 0 {
-		cli.Fatalf("usage: sous contracts [-image <docker-image>]")
+		contractsFlags.Usage()
+		cli.Fatal()
 	}
+	getInitialValues := func() map[string]string {
+		return map[string]string{"Image": image}
+	}
+
+	cc := NewConfiguredContracts(sous.State, getInitialValues)
+
+	contract := *contractName
+	check := *checkNumber
+	if check != 0 {
+		if contract == "" {
+			cli.Fatalf("you specified -check but not -contract")
+		}
+		singleContract, ok := cc.Contracts[contract]
+		if !ok {
+			cli.Fatalf("Contract %q does not exist, try `contracts -list`", contract)
+		}
+		if len(singleContract.Checks) < check {
+			cli.Fatalf("Contract %q has %d checks, you asked to run %d",
+				contract, len(singleContract.Checks), check)
+		}
+	}
+
 	// If a docker image is not passed in, fall back to normal
 	// sous project context to generate an image if necessary.
 	if image == "" {
@@ -52,20 +75,10 @@ func Contracts(sous *core.Sous, args []string) {
 		image = c.DockerTag()
 	}
 
-	contract := *contractName
-	check := *checkNumber
-	if check != 0 && contract == "" {
-		cli.Fatalf("you specified -check but not -contract")
-	}
-
 	if !docker.ImageExists(image) {
 		cli.Logf("Image %q not found locally; pulling...", image)
 		docker.Pull(image)
 	}
-
-	getInitialValues := func() map[string]string { return map[string]string{"Image": image} }
-
-	cc := NewConfiguredContracts(sous.State, getInitialValues)
 
 	var err error
 	if check != 0 {
