@@ -23,6 +23,7 @@ var (
 	contractName   = contractsFlags.String("contract", "", "run a single, named contract")
 	checkNumber    = contractsFlags.Int("check", 0, "run a single check within the named contract (only available in conjunction with -contract)")
 	listContracts  = contractsFlags.Bool("list", false, "list all contracts")
+	listChecks     = contractsFlags.Bool("list-checks", false, "list all checks")
 )
 
 func ContractsHelp() string {
@@ -49,6 +50,16 @@ func Contracts(sous *core.Sous, args []string) {
 	if *listContracts {
 		for name, _ := range sous.State.Contracts {
 			cli.Outf("%s", name)
+		}
+		cli.Success()
+	}
+
+	if *listChecks {
+		for name, c := range sous.State.Contracts {
+			cli.Outf("* %s", name)
+			for _, check := range c.Checks {
+				cli.Outf("  - %s", check)
+			}
 		}
 		cli.Success()
 	}
