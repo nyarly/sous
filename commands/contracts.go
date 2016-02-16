@@ -32,8 +32,6 @@ func ContractsHelp() string {
 func Contracts(sous *core.Sous, args []string) {
 	contractsFlags.Parse(args)
 	args = contractsFlags.Args()
-	docker.RequireVersion(version.Range("^1.8.3"))
-	docker.RequireDaemon()
 	image := ""
 	if dockerImage != nil {
 		image = *dockerImage
@@ -47,6 +45,13 @@ func Contracts(sous *core.Sous, args []string) {
 	}
 
 	cc := NewConfiguredContracts(sous.State, getInitialValues)
+
+	if *listContracts {
+		for name, _ := range sous.State.Contracts {
+			cli.Outf("%s", name)
+		}
+		cli.Success()
+	}
 
 	contract := *contractName
 	check := *checkNumber
@@ -63,6 +68,9 @@ func Contracts(sous *core.Sous, args []string) {
 				contract, len(singleContract.Checks), check)
 		}
 	}
+
+	docker.RequireVersion(version.Range("^1.8.3"))
+	docker.RequireDaemon()
 
 	// If a docker image is not passed in, fall back to normal
 	// sous project context to generate an image if necessary.
