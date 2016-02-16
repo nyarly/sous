@@ -19,8 +19,8 @@ func main() {
 	if len(os.Args) < 2 {
 		usage()
 	}
-	sousFlags, args := parseFlags(os.Args[2:])
-	command := os.Args[1]
+	sousFlags, args := parseFlags(os.Args[1:])
+	command := args[0]
 	var state *deploy.State
 	var sous *core.Sous
 	if command != "config" && command != "update" {
@@ -41,7 +41,7 @@ func main() {
 	}
 	// It is the responsibility of the command to exit with an appropriate
 	// error code...
-	c.Func(sous, args)
+	c.Func(sous, args[1:])
 	// If it does not, we assume it failed...
 	cli.Fatalf("Command did not complete correctly")
 }

@@ -16,12 +16,14 @@ import (
 	"github.com/opentable/sous/tools/yaml"
 )
 
-var contractsFlags = flag.NewFlagSet("contracts", flag.ExitOnError)
-
-var timeoutFlag = contractsFlags.Duration("timeout", 10*time.Second, "per-contract timeout")
-var dockerImage = contractsFlags.String("image", "", "run contracts against a pre-built Docker image")
-var contractName = contractsFlags.String("contract", "", "run a single, named contract")
-var listContracts = contractsFlags.Bool("list", false, "list all contracts")
+var (
+	contractsFlags = flag.NewFlagSet("contracts", flag.ExitOnError)
+	timeoutFlag    = contractsFlags.Duration("timeout", 10*time.Second, "per-contract timeout")
+	dockerImage    = contractsFlags.String("image", "", "run contracts against a pre-built Docker image")
+	contractName   = contractsFlags.String("contract", "", "run a single, named contract")
+	checkNumber    = contractsFlags.Int("check", 0, "run a single check within the named contract (only available in conjunction with -contract)")
+	listContracts  = contractsFlags.Bool("list", false, "list all contracts")
+)
 
 func ContractsHelp() string {
 	return `sous contracts tests your project conforms to necessary contracts to run successfully on the OpenTable Mesos platform.`
@@ -36,12 +38,12 @@ func Contracts(sous *core.Sous, args []string) {
 	if dockerImage != nil {
 		image = *dockerImage
 	}
-	if len(args) > 2 {
-		cli.Fatalf("usage: sous contracts [")
+	if len(args) != 0 {
+		cli.Fatalf("usage: sous contracts [-image <docker-image>]")
 	}
-	if len(args) == 1 {
-		image = args[0]
-	} else {
+	// If a docker image is not passed in, fall back to normal
+	// sous project context to generate an image if necessary.
+	if image == "" {
 		t, c := sous.AssembleTargetContext("app")
 		if yes, reason := sous.NeedsToBuildNewImage(t, c, false); yes {
 			cli.Logf("Building new image because %s", reason)
@@ -50,33 +52,83 @@ func Contracts(sous *core.Sous, args []string) {
 		image = c.DockerTag()
 	}
 
+	contract := *contractName
+	check := *checkNumber
+	if check != 0 && contract == "" {
+		cli.Fatalf("you specified -check but not -contract")
+	}
+
 	if !docker.ImageExists(image) {
 		cli.Logf("Image %q not found locally; pulling...", image)
 		docker.Pull(image)
 	}
 
-	state := sous.State
-	contracts := state.Contracts
+	getInitialValues := func() map[string]string { return map[string]string{"Image": image} }
 
-	if err := contracts.Validate(); err != nil {
-		cli.Fatalf("Unable to run: %s", err)
+	cc := NewConfiguredContracts(sous.State, getInitialValues)
+
+	var err error
+	if check != 0 {
+		err = cc.RunSingleCheck(contract, check)
+	} else if contract != "" {
+		err = cc.RunSingleContract(contract)
+	} else {
+		err = cc.RunContractsForKind("http-service")
 	}
 
-	for _, name := range state.ContractDefs["http-service"] {
-		initialValues := map[string]string{
-			"Image": image,
-		}
-		contract, ok := contracts[name]
-		if !ok {
-			cli.Fatalf("Contract %q not defined but was listed in http-service contract defs.", name)
-		}
-		run := NewContractRun(contract, initialValues)
-		if err := run.Execute(); err != nil {
-			cli.Fatalf("Contract %q failed: %s", name, err)
-		}
+	if err != nil {
+		cli.Fatalf("%s", err)
 	}
 
 	cli.Success()
+}
+
+type ConfiguredContracts struct {
+	Contracts     deploy.Contracts
+	ContractDefs  map[string][]string
+	InitialValues func() map[string]string
+}
+
+func NewConfiguredContracts(state *deploy.State, initialValues func() map[string]string) ConfiguredContracts {
+	if err := state.Contracts.Validate(); err != nil {
+		cli.Fatalf("Unable to run: %s", err)
+	}
+	return ConfiguredContracts{state.Contracts, state.ContractDefs, initialValues}
+}
+
+func (cc ConfiguredContracts) RunContractsForKind(kind string) error {
+	for _, name := range cc.ContractDefs[kind] {
+		if err := cc.RunSingleContract(name); err != nil {
+			return fmt.Errorf("running contracts for %q; %s", kind, err)
+		}
+	}
+	return nil
+}
+
+func (cc ConfiguredContracts) RunSingleContract(name string) error {
+	initialValues := cc.InitialValues()
+	contract, ok := cc.Contracts[name]
+	if !ok {
+		return fmt.Errorf("contract %q not found.", name)
+	}
+	run := NewContractRun(contract, initialValues)
+	if err := run.Execute(); err != nil {
+		return fmt.Errorf("contract %q failed: %s", contract.Name, err)
+	}
+	return nil
+}
+
+func (cc ConfiguredContracts) RunSingleCheck(name string, check int) error {
+	initialValues := cc.InitialValues()
+	contract, ok := cc.Contracts[name]
+	if !ok {
+		return fmt.Errorf("contract %q not found.", name)
+	}
+	run := NewContractRun(contract, initialValues)
+	if err := run.ExecuteUpToCheck(check); err != nil {
+		return fmt.Errorf("contract %q failed: %s", contract.Name, err)
+	}
+	return nil
 }
 
 // ContractRun is a single execution of a contract. It is also the struct passed
@@ -107,7 +159,9 @@ func NewContractRun(contract deploy.Contract, initialValues map[string]string) *
 	}
 }
 
-func (r *ContractRun) Execute() error {
+// ExecuteUpToCheck executes the first n checks. It is mainly used for
+// testing.
+func (r *ContractRun) ExecuteUpToCheck(n int) error {
 	c := r.Contract
 	cli.Logf("** ==> Running contract: %q**", c.Name)
 
@@ -143,7 +197,8 @@ func (r *ContractRun) Execute() error {
 	}
 
 	// Finally run the actual contract checks.
-	for _, check := range c.Checks {
+	for i := 0; i < n; i++ {
+		check := c.Checks[i]
 		if err := ExecuteCheck(check); err != nil {
 			return fmt.Errorf("     check failed: %s; %s", check, err)
 		}
@@ -151,6 +206,11 @@ func (r *ContractRun) Execute() error {
 	}
 
 	return nil
+}
+
+// Execute executes the entire contract.
+func (r *ContractRun) Execute() error {
+	return r.ExecuteUpToCheck(len(r.Contract.Checks))
 }
 
 func ExecuteCheck(c deploy.Check, progressTitle ...string) error {
