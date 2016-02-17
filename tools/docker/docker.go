@@ -11,7 +11,7 @@ import (
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dockermachine"
 	"github.com/opentable/sous/tools/file"
-	"github.com/opentable/sous/tools/path"
+	"github.com/opentable/sous/tools/resolve"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -76,7 +76,7 @@ func dockerCmd(args ...string) *cmd.CMD {
 
 // Build builds the dockerfile in the specified directory and returns the image ID
 func Build(dir, tag string) string {
-	dir = path.Resolve(dir)
+	dir = resolve.Resolve(dir)
 	return dockerCmd("build", "-t", tag, dir).Out()
 }
 
@@ -86,7 +86,7 @@ func BuildFile(dockerfile, dir, tag string) string {
 	if !file.Exists(dockerfile) {
 		cli.Fatalf("File does not exist: %s", dockerfile)
 	}
-	dir = path.Resolve(dir)
+	dir = resolve.Resolve(dir)
 	localDockerfile := ".SousDockerfile"
 	if file.Exists(localDockerfile) {
 		file.Remove(localDockerfile)

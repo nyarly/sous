@@ -14,7 +14,7 @@ import (
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
-	"github.com/opentable/sous/tools/path"
+	"github.com/opentable/sous/tools/resolve"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -188,18 +188,22 @@ func (bc *Context) Commit() {
 }
 
 // CanonicalPackageName returns the last path component of the canonical git
-// repo name, plus the relative path within that repo, which is used as the
-// name of the application.
+// repo name, plus the last path component of the relative path within that repo,
+// which is used as the name of the application.
+// TODO: Name collisions are possible, we cannot use the entire sub-path as this
+// often leads to names that are too long. We could use a hash of the path, but
+// this won't be human-readable. We should build a check that looks for potential
+// name collisions.
 func (bc *Context) CanonicalPackageName() string {
 	c := bc.Git.CanonicalRepoName()
 	sep := string(os.PathSeparator)
 	p := strings.Split(c, sep)
 	repoName := p[len(p)-1]
 	pathOffset := strings.TrimPrefix(dir.Current(), bc.Git.Dir)
-	pathOffset = strings.Trim(pathOffset, sep)
+	//pathOffset = path.Base(pathOffset)
 	cleanedPathOffset := strings.Replace(pathOffset, sep, "-", -1)
 	if len(cleanedPathOffset) != 0 {
-		return fmt.Sprintf("%s_%s", repoName, cleanedPathOffset)
+		return fmt.Sprintf("%s-%s", repoName, cleanedPathOffset)
 	}
 	return repoName
 }
@@ -249,12 +253,12 @@ func (c *Context) TemporaryLinkResource(name string) {
 // of the current build target. This is used for things like passing
 // artifacts from one build step to the next.
 func (c *Context) FilePath(name string) string {
-	return path.Resolve(c.BaseDir() + "/" + name)
+	return resolve.Resolve(c.BaseDir() + "/" + name)
 }
 
 // BaseDir return the build state base directory for the current target.
 func (c *Context) BaseDir() string {
-	return path.BaseDir(c.BuildState.path)
+	return resolve.Dir(c.BuildState.path)
 }
 
 func tryGetBuildNumberFromEnv() (int, bool) {

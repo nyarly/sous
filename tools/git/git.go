@@ -35,8 +35,9 @@ func RequireVersion(r *version.R) {
 }
 
 func RequireRepo() {
-	if !dir.Exists(".git") {
-		cli.Fatalf("you must be in the base of a git repository")
+	ec := cmd.ExitCode("git", "rev-parse", "--show-toplevel")
+	if ec != 0 {
+		cli.Fatalf("you must be in a git repository")
 	}
 }
 

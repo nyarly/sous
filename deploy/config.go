@@ -8,7 +8,7 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/file"
-	"github.com/opentable/sous/tools/path"
+	"github.com/opentable/sous/tools/resolve"
 )
 
 type Props map[string]string
@@ -69,10 +69,10 @@ func save(c Props) {
 }
 
 func propertiesFilePath() string {
-	return path.Resolve("~/.sous/properties")
+	return resolve.Resolve("~/.sous/properties")
 }
 func configFilePath() string {
-	return path.Resolve("~/.sous/config")
+	return resolve.Resolve("~/.sous/config")
 }
 
 func getJSON(v interface{}, urlFormat string, a ...interface{}) error {
