@@ -82,6 +82,6 @@ func LogBulletList(bullet string, list []string) {
 }
 
 func Warn(format string, a ...interface{}) {
-	format = fmt.Sprintf("**sous> 👹  WARNING: %s **", format)
+	format = fmt.Sprintf("**sous> WARNING: %s **", format)
 	Logf(format, a...)
 }
