@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/opentable/sous/tools/cli"
@@ -56,6 +57,8 @@ type Info struct {
 	Dirty bool
 	// Dir is the absolute directory of this repo on disk
 	Dir string
+	// RepoWorkDirPathOffset is os.Getwd() - Dir
+	RepoWorkDirPathOffset string
 }
 
 func GetInfo() *Info {
@@ -66,12 +69,18 @@ func GetInfo() *Info {
 	} else {
 		nearestTagSHA = cmd.Stdout("git", "rev-parse", nearestTag)
 	}
+	repoBaseDir := cmd.Stdout("git", "rev-parse", "--show-toplevel")
+	dirOffset, err := filepath.Rel(repoBaseDir, dir.Current())
+	if err != nil {
+		cli.Fatalf("unable to find dir offset; %s", err)
+	}
 	return &Info{
 		CommitSHA:     cmd.Stdout("git", "rev-parse", "HEAD"),
 		OriginURL:     getOriginURL(),
 		NearestTag:    nearestTag,
 		NearestTagSHA: nearestTagSHA,
-		Dir:           cmd.Stdout("git", "rev-parse", "--show-toplevel"),
+		Dir:           repoBaseDir,
+		RepoWorkDirPathOffset: dirOffset,
 	}
 }
 

@@ -189,22 +189,16 @@ func (bc *Context) Commit() {
 // CanonicalPackageName returns the last path component of the canonical git
 // repo name, plus the last path component of the relative path within that repo,
 // which is used as the name of the application.
-// TODO: Name collisions are possible, we cannot use the entire sub-path as this
-// often leads to names that are too long. We could use a hash of the path, but
-// this won't be human-readable. We should build a check that looks for potential
-// name collisions.
 func (bc *Context) CanonicalPackageName() string {
 	c := bc.Git.CanonicalRepoName()
 	sep := string(os.PathSeparator)
 	p := strings.Split(c, sep)
-	repoName := p[len(p)-1]
-	pathOffset := strings.TrimPrefix(dir.Current(), bc.Git.Dir)
-	//pathOffset = path.Base(pathOffset)
-	cleanedPathOffset := strings.Replace(pathOffset, sep, "-", -1)
-	if len(cleanedPathOffset) != 0 {
-		return fmt.Sprintf("%s-%s", repoName, cleanedPathOffset)
+	name := p[len(p)-1]
+	cleanedPathOffset := strings.Replace(bc.Git.RepoWorkDirPathOffset, sep, "_", -1)
+	if len(cleanedPathOffset) != 0 && cleanedPathOffset != "." {
+		name = fmt.Sprintf("%s_%s", name, cleanedPathOffset)
 	}
-	return repoName
+	return strings.ToLower(name)
 }
 
 func buildingInCI() bool {

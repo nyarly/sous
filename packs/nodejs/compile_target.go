@@ -102,6 +102,7 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	run := docker.NewRun(c.DockerTag())
 	run.Name = containerName
 	run.AddEnv("ARTIFACT_NAME", t.artifactName(c))
+	run.AddEnv("REPO_WORKDIR", "/"+c.Git.RepoWorkDirPathOffset)
 	uid := cmd.Stdout("id", "-u")
 	gid := cmd.Stdout("id", "-g")
 	artifactOwner := fmt.Sprintf("%s:%s", uid, gid)
@@ -109,7 +110,7 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	artDir := t.artifactDir(c)
 	dir.EnsureExists(artDir)
 	run.AddVolume(artDir, "/artifacts")
-	run.AddVolume(c.WorkDir, "/wd")
+	run.AddVolume(c.Git.Dir, "/repo")
 	run.Command = "npm install"
 	return run
 }

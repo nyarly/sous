@@ -7,6 +7,8 @@ die() { log "$@"; exit 1; }
 BUILD_COMMAND="$@"
 [ -z "$BUILD_COMMAND" ] && die "You must pass a build command to execute, e.g. 'npm install'"
 
+[ -z "$REPO_WORKDIR" ] && die "You must set REPO_WORKDIR, use / for repo root."
+
 if [ -z "$ARTIFACT_NAME" ]; then
 	log "WARNING: ARTIFACT_NAME env var nor set; using 'artifact'"
 	ARTIFACT_NAME=artifact
@@ -14,7 +16,7 @@ fi
 
 set -eu
 
-[ ! -d /wd ] && die "You must mount your working dir to /wd using docker run -v \$PWD:/wd"
+[ ! -d /repo ] && die "You must mount your working dir to /repo using docker run -v \$PWD:/repo"
 [ ! -d /artifacts ] && die "You must mount your artifact output dir to /artifacts using \$somepath:/artifacts"
 
 # Ensure the build dir exists
@@ -25,7 +27,7 @@ set -eu
 # The --exclude-standard and --others flags together ensure that
 # new unindexed, unignored files get copied along with everything in
 # the index.
-cd /wd
+cd "/repo$REPO_WORKDIR"
 git ls-files --exclude-standard --others --cached | while read f; do
 	# Ensure the dir heirarcy exists, as cp is unable to do this in a cross-platform way
 	if ! [[ $(dirname $f) == "$f" ]]; then

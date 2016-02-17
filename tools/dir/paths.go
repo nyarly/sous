@@ -10,7 +10,7 @@ import (
 
 func Resolve(pathFormat string, a ...interface{}) string {
 	p := fmt.Sprintf(pathFormat, a...)
-	if p[:2] != "~/" {
+	if len(p) < 2 || p[:2] != "~/" {
 		return p
 	}
 	u, err := user.Current()
