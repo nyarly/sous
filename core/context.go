@@ -257,7 +257,7 @@ func (c *Context) FilePath(name string) string {
 
 // BaseDir return the build state base directory for the current target.
 func (c *Context) BaseDir() string {
-	return dir.Dir(c.BuildState.path)
+	return dir.DirName(c.BuildState.path)
 }
 
 func tryGetBuildNumberFromEnv() (int, bool) {

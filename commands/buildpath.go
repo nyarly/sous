@@ -18,6 +18,6 @@ func BuildPath(sous *core.Sous, args []string) {
 		target = args[0]
 	}
 	_, context := sous.AssembleTargetContext(target)
-	fmt.Println(dir.Resolve(dir.Dir(context.BaseDir())))
+	fmt.Println(dir.Resolve(dir.DirName(context.BaseDir())))
 	cli.Success()
 }

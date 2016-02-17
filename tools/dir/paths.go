@@ -20,6 +20,6 @@ func Resolve(pathFormat string, a ...interface{}) string {
 	return path.Join(u.HomeDir, p[2:])
 }
 
-func Dir(p string) string {
+func DirName(p string) string {
 	return path.Dir(p)
 }

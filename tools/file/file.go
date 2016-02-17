@@ -13,7 +13,7 @@ import (
 
 func Write(data []byte, pathFormat string, a ...interface{}) {
 	p := dir.Resolve(pathFormat, a...)
-	dir.EnsureExists(dir.Dir(p))
+	dir.EnsureExists(dir.DirName(p))
 	err := ioutil.WriteFile(p, data, 0777)
 	if err != nil {
 		cli.Fatalf("unable to write file %s; %s", p, err)
