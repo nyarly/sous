@@ -86,7 +86,6 @@ func buildVersion(i *git.Info) *BuildVersion {
 	// the current commit, to find the nearest semver tag, so consider doing
 	// that, if this becomes an issue.
 	if i.NearestTag == "" {
-		cli.Warn("No git tags found in the format X.Y.Z, defaulting to v0.0.0")
 		return defaultBuildVersion(i.CommitSHA)
 	}
 	v, err := version.NewVersion(i.NearestTag)
