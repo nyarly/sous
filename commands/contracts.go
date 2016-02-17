@@ -87,13 +87,13 @@ func Contracts(sous *core.Sous, args []string) {
 	}
 
 	var err error
-	if check != 0 {
-		err = cc.RunSingleCheck(contract, check)
-	} else if contract != "" {
-		err = cc.RunSingleContract(contract)
-	} else {
-		err = cc.RunContractsForKind("http-service")
-	}
+	//if check != 0 {
+	//	err = cc.RunSingleCheck(contract, check)
+	//} else if contract != "" {
+	//	err = cc.RunSingleContract(contract)
+	//} else {
+	err = cc.RunContractsForKind("http-service")
+	//}
 
 	if err != nil {
 		cli.Fatalf("%s", err)
@@ -383,5 +383,4 @@ func handleListFlags(contracts deploy.Contracts, listContracts, listChecks bool,
 			cli.Outf("%s", check.Name)
 		}
 	}
-	cli.Success()
 }
