@@ -41,3 +41,11 @@ func EnsureExists(pathFormat string, a ...interface{}) {
 	}
 	cli.Fatalf("unable to stat or create directory %s", path)
 }
+
+func Current() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		cli.Fatalf("%s", err)
+	}
+	return wd
+}

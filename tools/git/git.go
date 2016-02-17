@@ -53,6 +53,8 @@ type Info struct {
 	NearestTagSHA string
 	// If there are any changed or new untracked fils, the tree is dirty
 	Dirty bool
+	// Dir is the absolute directory of this repo on disk
+	Dir string
 }
 
 func GetInfo() *Info {
@@ -68,6 +70,7 @@ func GetInfo() *Info {
 		OriginURL:     getOriginURL(),
 		NearestTag:    nearestTag,
 		NearestTagSHA: nearestTagSHA,
+		Dir:           cmd.Stdout("git", "rev-parse", "--show-toplevel"),
 	}
 }
 

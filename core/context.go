@@ -10,6 +10,7 @@ import (
 	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
+	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
@@ -187,11 +188,20 @@ func (bc *Context) Commit() {
 }
 
 // CanonicalPackageName returns the last path component of the canonical git
-// repo name, which is used as the name of the application.
+// repo name, plus the relative path within that repo, which is used as the
+// name of the application.
 func (bc *Context) CanonicalPackageName() string {
 	c := bc.Git.CanonicalRepoName()
-	p := strings.Split(c, "/")
-	return p[len(p)-1]
+	sep := string(os.PathSeparator)
+	p := strings.Split(c, sep)
+	repoName := p[len(p)-1]
+	pathOffset := strings.TrimPrefix(dir.Current(), bc.Git.Dir)
+	pathOffset = strings.Trim(pathOffset, sep)
+	cleanedPathOffset := strings.Replace(pathOffset, sep, "-", -1)
+	if len(cleanedPathOffset) != 0 {
+		return fmt.Sprintf("%s_%s", repoName, cleanedPathOffset)
+	}
+	return repoName
 }
 
 func buildingInCI() bool {
