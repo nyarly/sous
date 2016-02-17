@@ -9,12 +9,11 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
-	"github.com/opentable/sous/tools/resolve"
 )
 
 func Write(data []byte, pathFormat string, a ...interface{}) {
-	p := resolve.Resolve(pathFormat, a...)
-	dir.EnsureExists(resolve.Dir(p))
+	p := dir.Resolve(pathFormat, a...)
+	dir.EnsureExists(dir.Dir(p))
 	err := ioutil.WriteFile(p, data, 0777)
 	if err != nil {
 		cli.Fatalf("unable to write file %s; %s", p, err)
@@ -51,7 +50,7 @@ func WriteJSON(data interface{}, pathFormat string, a ...interface{}) {
 }
 
 func Exists(filePath string) bool {
-	filePath = resolve.Resolve(filePath)
+	filePath = dir.Resolve(filePath)
 	i, err := os.Stat(filePath)
 	if err == nil {
 		return !i.IsDir()
@@ -112,7 +111,7 @@ func ReadJSON(v interface{}, pathFormat string, a ...interface{}) bool {
 }
 
 func Read(pathFormat string, a ...interface{}) ([]byte, bool, string) {
-	path := resolve.Resolve(pathFormat, a...)
+	path := dir.Resolve(pathFormat, a...)
 	contents, err := ioutil.ReadFile(path)
 	if err == nil {
 		return contents, true, path

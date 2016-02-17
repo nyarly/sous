@@ -9,9 +9,9 @@ import (
 
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
+	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/dockermachine"
 	"github.com/opentable/sous/tools/file"
-	"github.com/opentable/sous/tools/resolve"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -75,18 +75,17 @@ func dockerCmd(args ...string) *cmd.CMD {
 }
 
 // Build builds the dockerfile in the specified directory and returns the image ID
-func Build(dir, tag string) string {
-	dir = resolve.Resolve(dir)
-	return dockerCmd("build", "-t", tag, dir).Out()
+func Build(directory, tag string) string {
+	return dockerCmd("build", "-t", tag, dir.Resolve(directory)).Out()
 }
 
 // BuildFile builds the specified docker file in the context of the specified
 // directory.
-func BuildFile(dockerfile, dir, tag string) string {
+func BuildFile(dockerfile, directory, tag string) string {
 	if !file.Exists(dockerfile) {
 		cli.Fatalf("File does not exist: %s", dockerfile)
 	}
-	dir = resolve.Resolve(dir)
+	directory = dir.Resolve(directory)
 	localDockerfile := ".SousDockerfile"
 	if file.Exists(localDockerfile) {
 		file.Remove(localDockerfile)
@@ -105,7 +104,7 @@ func BuildFile(dockerfile, dir, tag string) string {
 	file.TemporaryLink(dockerfile, localDockerfile)
 	// We try to clean the local Dockerfile up early, in preperation for the next build step
 	defer file.Remove(localDockerfile)
-	return dockerCmd("build", "-f", localDockerfile, "-t", tag, dir).Out()
+	return dockerCmd("build", "-f", localDockerfile, "-t", tag, directory).Out()
 }
 
 func Push(tag string) {

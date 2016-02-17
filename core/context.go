@@ -14,7 +14,6 @@ import (
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/git"
-	"github.com/opentable/sous/tools/resolve"
 	"github.com/opentable/sous/tools/version"
 )
 
@@ -253,12 +252,12 @@ func (c *Context) TemporaryLinkResource(name string) {
 // of the current build target. This is used for things like passing
 // artifacts from one build step to the next.
 func (c *Context) FilePath(name string) string {
-	return resolve.Resolve(c.BaseDir() + "/" + name)
+	return dir.Resolve(c.BaseDir() + "/" + name)
 }
 
 // BaseDir return the build state base directory for the current target.
 func (c *Context) BaseDir() string {
-	return resolve.Dir(c.BuildState.path)
+	return dir.Dir(c.BuildState.path)
 }
 
 func tryGetBuildNumberFromEnv() (int, bool) {

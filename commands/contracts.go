@@ -33,36 +33,23 @@ func ContractsHelp() string {
 func Contracts(sous *core.Sous, args []string) {
 	contractsFlags.Parse(args)
 	args = contractsFlags.Args()
-	image := ""
-	if dockerImage != nil {
-		image = *dockerImage
-	}
 	if len(args) != 0 {
-		contractsFlags.Usage()
+		cli.Logf("Usage of sous contracts:")
+		contractsFlags.PrintDefaults()
 		cli.Fatal()
 	}
+	if *contractName != "" {
+		if _, ok := sous.State.Contracts[*contractName]; !ok {
+			cli.Fatalf("Contract %q is not defined.", *contractName)
+		}
+	}
+	handleListFlags(sous.State.Contracts, *listContracts, *listChecks, *contractName)
+
 	getInitialValues := func() map[string]string {
-		return map[string]string{"Image": image}
+		return map[string]string{"Image": *dockerImage}
 	}
 
 	cc := NewConfiguredContracts(sous.State, getInitialValues)
-
-	if *listContracts {
-		for name, _ := range sous.State.Contracts {
-			cli.Outf("%s", name)
-		}
-		cli.Success()
-	}
-
-	if *listChecks {
-		for name, c := range sous.State.Contracts {
-			cli.Outf("* %s", name)
-			for _, check := range c.Checks {
-				cli.Outf("  - %s", check)
-			}
-		}
-		cli.Success()
-	}
 
 	contract := *contractName
 	check := *checkNumber
@@ -85,18 +72,18 @@ func Contracts(sous *core.Sous, args []string) {
 
 	// If a docker image is not passed in, fall back to normal
 	// sous project context to generate an image if necessary.
-	if image == "" {
+	if *dockerImage == "" {
 		t, c := sous.AssembleTargetContext("app")
 		if yes, reason := sous.NeedsToBuildNewImage(t, c, false); yes {
 			cli.Logf("Building new image because %s", reason)
 			sous.RunTarget(t, c)
 		}
-		image = c.DockerTag()
+		*dockerImage = c.DockerTag()
 	}
 
-	if !docker.ImageExists(image) {
-		cli.Logf("Image %q not found locally; pulling...", image)
-		docker.Pull(image)
+	if !docker.ImageExists(*dockerImage) {
+		cli.Logf("Image %q not found locally; pulling...", *dockerImage)
+		docker.Pull(*dockerImage)
 	}
 
 	var err error
@@ -372,4 +359,29 @@ func (s *ResolvedServer) MakeDockerRun() (*docker.Run, error) {
 
 func trimPrefixAndSuffix(s, prefix, suffix string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, prefix), suffix)
+}
+
+func handleListFlags(contracts deploy.Contracts, listContracts, listChecks bool, contractName string) {
+	if listContracts {
+		for name, _ := range contracts {
+			cli.Outf("%s", name)
+		}
+		cli.Success()
+	}
+
+	if listChecks && contractName == "" {
+		for name, c := range contracts {
+			cli.Outf("* %s", name)
+			for _, check := range c.Checks {
+				cli.Outf("  - %s", check)
+			}
+		}
+		cli.Success()
+	}
+	if listChecks {
+		for _, check := range contracts[contractName].Checks {
+			cli.Outf("%s", check.Name)
+		}
+	}
+	cli.Success()
 }

@@ -4,11 +4,10 @@ import (
 	"os"
 
 	"github.com/opentable/sous/tools/cli"
-	"github.com/opentable/sous/tools/resolve"
 )
 
 func Exists(pathFormat string, a ...interface{}) bool {
-	path := resolve.Resolve(pathFormat, a...)
+	path := Resolve(pathFormat, a...)
 	s, err := os.Stat(path)
 	if err == nil {
 		if s.IsDir() {
@@ -24,7 +23,7 @@ func Exists(pathFormat string, a ...interface{}) bool {
 }
 
 func EnsureExists(pathFormat string, a ...interface{}) {
-	path := resolve.Resolve(pathFormat, a...)
+	path := Resolve(pathFormat, a...)
 	s, err := os.Stat(path)
 	if err == nil {
 		if s.IsDir() {

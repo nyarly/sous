@@ -5,7 +5,7 @@ import (
 
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
-	"github.com/opentable/sous/tools/resolve"
+	"github.com/opentable/sous/tools/dir"
 )
 
 func BuildPathHelp() string {
@@ -18,6 +18,6 @@ func BuildPath(sous *core.Sous, args []string) {
 		target = args[0]
 	}
 	_, context := sous.AssembleTargetContext(target)
-	fmt.Println(resolve.Resolve(resolve.Dir(context.BaseDir())))
+	fmt.Println(dir.Resolve(dir.Dir(context.BaseDir())))
 	cli.Success()
 }
