@@ -2,6 +2,7 @@ package file
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/opentable/sous/tools/cli"
 )
@@ -23,7 +24,8 @@ func RemoveOnExit(path string) {
 
 func TemporaryLink(path, newPath string) {
 	if Exists(newPath) {
-		cli.Fatalf("Unable to link file to %s, it already exists", newPath)
+		wd, _ := os.Getwd()
+		cli.Fatalf("Unable to link file to %s, it already exists; workdir is %s", newPath, wd)
 	}
 	RemoveOnExit(newPath)
 	Link(path, newPath)
