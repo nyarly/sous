@@ -20,17 +20,30 @@ func (s *State) Validate() error {
 }
 
 func (c *Contract) ValidateTest() error {
+	e := func(f string, a ...interface{}) error {
+		return fmt.Errorf("contract test %q %s", c.Name,
+			fmt.Sprintf(f, a...))
+	}
 	numTests := len(c.SelfTest.CheckTests)
 	numChecks := len(c.Checks)
 	if numTests != numChecks {
-		return fmt.Errorf("contract test %q has %d check tests; want %d",
-			c.SelfTest.ContractName, numTests, numChecks)
+		return e("has %d check tests; want %d", numTests, numChecks)
 	}
-	// Check that each check has a test in the right order
+	// Check that each check has a test in the right order, with both
+	// pass and fail specified.
 	for i, check := range c.Checks {
+		te := func(f string, a ...interface{}) error {
+			return e("check test at position %d %s", i, fmt.Sprintf(f, a...))
+		}
 		test := c.SelfTest.CheckTests[i]
 		if test.CheckName != check.Name {
-			return fmt.Errorf("Contract test %q has check test %q at position %d; want %q", c.SelfTest.ContractName, test.CheckName, i, check.Name)
+			return te("got test for %q; want %q", test.CheckName, check.Name)
+		}
+		if test.TestImages.Pass == "" {
+			return te("missing Pass image")
+		}
+		if test.TestImages.Fail == "" {
+			return te("missing Fail image")
 		}
 	}
 	return nil
