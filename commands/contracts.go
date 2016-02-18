@@ -24,6 +24,7 @@ var (
 	checkNumber    = contractsFlags.Int("check", 0, "run a single check within the named contract (only available in conjunction with -contract)")
 	listContracts  = contractsFlags.Bool("list", false, "list all contracts")
 	listChecks     = contractsFlags.Bool("list-checks", false, "list all checks")
+	selfTest       = contractsFlags.Bool("self-test", false, "run contract self tests")
 )
 
 func ContractsHelp() string {
@@ -43,6 +44,7 @@ func Contracts(sous *core.Sous, args []string) {
 			cli.Fatalf("Contract %q is not defined.", *contractName)
 		}
 	}
+	handleSelfTestFlags(sous.State, *selfTest, *contractName)
 	handleListFlags(sous.State.Contracts, *listContracts, *listChecks, *contractName)
 
 	getInitialValues := func() map[string]string {
@@ -113,6 +115,55 @@ func NewConfiguredContracts(state *deploy.State, initialValues func() map[string
 		cli.Fatalf("Unable to run: %s", err)
 	}
 	return ConfiguredContracts{state.Contracts, state.ContractDefs, initialValues}
+}
+
+func handleSelfTestFlags(state *deploy.State, selfTest bool, singleContract string) {
+	if !selfTest {
+		return
+	}
+	// pass in nil here, since we want to make sure it crashes
+	// if the test does not pass initialvalues.
+	cc := NewConfiguredContracts(state, nil)
+	if singleContract != "" {
+		if err := cc.RunSingleSelfTest(singleContract); err != nil {
+			cli.Fatalf("%s", err)
+		}
+		cli.Success()
+	}
+	if err := cc.RunAllSelfTests(); err != nil {
+		cli.Fatalf("%s", err)
+	}
+	cli.Success()
+}
+
+func (cc ConfiguredContracts) RunSingleSelfTest(contractName string) error {
+	c := cc.Contracts[contractName]
+	if len(c.SelfTest.CheckTests) == 0 {
+		return fmt.Errorf("contract %q has no check tests", contractName)
+	}
+	for i, check := range c.Checks {
+		ct := c.SelfTest.CheckTests[i]
+		passRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Pass})
+		if err := passRun.ExecuteUpToCheck(i + 1); err != nil {
+			return fmt.Errorf("expected image %s to pass check %d (%q) in contract %q, but it failed with error: %s",
+				ct.TestImages.Pass, i, check.Name, c.Name, err)
+		}
+		failRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Fail})
+		if err := failRun.ExecuteUpToCheck(i + 1); err == nil {
+			return fmt.Errorf("expected image %s to fail check %d (%q) in contract %q, but it passed.",
+				ct.TestImages.Pass, i, check.Name, c.Name)
+		}
+	}
+	return nil
+}
+
+func (cc ConfiguredContracts) RunAllSelfTests() error {
+	for contractName := range cc.Contracts {
+		if err := cc.RunSingleSelfTest(contractName); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (cc ConfiguredContracts) RunContractsForKind(kind string) error {
