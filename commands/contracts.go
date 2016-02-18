@@ -89,13 +89,13 @@ func Contracts(sous *core.Sous, args []string) {
 	}
 
 	var err error
-	//if check != 0 {
-	//	err = cc.RunSingleCheck(contract, check)
-	//} else if contract != "" {
-	//	err = cc.RunSingleContract(contract)
-	//} else {
-	err = cc.RunContractsForKind("http-service")
-	//}
+	if check != 0 {
+		err = cc.RunSingleCheck(contract, check)
+	} else if contract != "" {
+		err = cc.RunSingleContract(contract)
+	} else {
+		err = cc.RunContractsForKind("http-service")
+	}
 
 	if err != nil {
 		cli.Fatalf("%s", err)
@@ -123,45 +123,50 @@ func handleSelfTestFlags(state *deploy.State, selfTest bool, singleContract stri
 	}
 	// pass in nil here, since we want to make sure it crashes
 	// if the test does not pass initialvalues.
-	cc := NewConfiguredContracts(state, nil)
 	if singleContract != "" {
-		if err := cc.RunSingleSelfTest(singleContract); err != nil {
+		if err := RunSingleSelfTest(state.Contracts[singleContract]); err != nil {
 			cli.Fatalf("%s", err)
 		}
 		cli.Success()
 	}
-	if err := cc.RunAllSelfTests(); err != nil {
-		cli.Fatalf("%s", err)
+	for _, contract := range state.Contracts {
+		if err := RunSingleSelfTest(contract); err != nil {
+			cli.Fatalf("%s", err)
+		}
 	}
 	cli.Success()
 }
 
-func (cc ConfiguredContracts) RunSingleSelfTest(contractName string) error {
-	c := cc.Contracts[contractName]
+func RunSingleSelfTest(contract deploy.Contract) error {
+	c := contract
 	if len(c.SelfTest.CheckTests) == 0 {
 		return fmt.Errorf("contract %q has no check tests", contractName)
 	}
 	for i, check := range c.Checks {
+
 		ct := c.SelfTest.CheckTests[i]
+
+		cli.Logf("DEBUG>>>>>>>>>>>>>>>>>> % +v", c)
+
+		failRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Fail})
+		cli.Logf(" ==> Testing check FAILS %d (%q) in contract %q fails for image %s",
+			i, check.Name, c.Name, ct.TestImages.Fail)
+		if err := failRun.ExecuteUpToCheck(i + 1); err == nil {
+			return fmt.Errorf("expected image %s to fail check %d (%q) in contract %q, but it passed.",
+				ct.TestImages.Fail, i, check.Name, c.Name)
+		}
+		cli.Logf(" ==> Successfully failed.")
+
+		cli.Logf("DEBUG>>>>>>>>>>>>>>>>>> % +v", c)
+
 		passRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Pass})
+		cli.Logf(" ==> Testing check PASSES %d (%q) in contract %q for image %s",
+			i, check.Name, c.Name, ct.TestImages.Pass)
 		if err := passRun.ExecuteUpToCheck(i + 1); err != nil {
 			return fmt.Errorf("expected image %s to pass check %d (%q) in contract %q, but it failed with error: %s",
 				ct.TestImages.Pass, i, check.Name, c.Name, err)
 		}
-		failRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Fail})
-		if err := failRun.ExecuteUpToCheck(i + 1); err == nil {
-			return fmt.Errorf("expected image %s to fail check %d (%q) in contract %q, but it passed.",
-				ct.TestImages.Pass, i, check.Name, c.Name)
-		}
-	}
-	return nil
-}
-
-func (cc ConfiguredContracts) RunAllSelfTests() error {
-	for contractName := range cc.Contracts {
-		if err := cc.RunSingleSelfTest(contractName); err != nil {
-			return err
-		}
+		cli.Logf(" ==> Successfully passed.")
 	}
 	return nil
 }
@@ -253,13 +258,14 @@ func (r *ContractRun) ExecuteUpToCheck(n int) error {
 	// Third, resolve all the other templated values in the contract using the special
 	// Values map. (This is done in 2 stages to make the contracts significantly more
 	// readable.
-	if err := yaml.InjectTemplatePipeline(c, &c, values); err != nil {
+	d := c
+	if err := yaml.InjectTemplatePipeline(c, &d, values); err != nil {
 		return err
 	}
 
 	// Next execute all the precondition checks to ensure we can meaningfully
 	// run the main contract checks.
-	for _, p := range c.Preconditions {
+	for _, p := range d.Preconditions {
 		if err := ExecuteCheck(p); err != nil {
 			return fmt.Errorf("Precondition %q failed: %s", p.String(), err)
 		}
@@ -268,7 +274,7 @@ func (r *ContractRun) ExecuteUpToCheck(n int) error {
 
 	// Finally run the actual contract checks.
 	for i := 0; i < n; i++ {
-		check := c.Checks[i]
+		check := d.Checks[i]
 		if err := ExecuteCheck(check); err != nil {
 			return fmt.Errorf("     check failed: %s; %s", check, err)
 		}
