@@ -27,7 +27,7 @@ set -eu
 # The --exclude-standard and --others flags together ensure that
 # new unindexed, unignored files get copied along with everything in
 # the index.
-cd "/repo$REPO_WORKDIR"
+cd "/repo"
 git ls-files --exclude-standard --others --cached | while read f; do
 	# Ensure the dir heirarcy exists, as cp is unable to do this in a cross-platform way
 	if ! [[ $(dirname $f) == "$f" ]]; then
@@ -38,7 +38,7 @@ git ls-files --exclude-standard --others --cached | while read f; do
 done
 
 # Set working directory to /build; the passed "BUILD_COMMAND" is executed in here
-cd /build
+cd /build$REPO_WORKDIR
 
 # Execute the build command inside the isolated /build dir
 eval "$BUILD_COMMAND"
