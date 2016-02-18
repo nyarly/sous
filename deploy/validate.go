@@ -18,3 +18,20 @@ func (s *State) Validate() error {
 	}
 	return nil
 }
+
+func (c *Contract) ValidateTest() error {
+	numTests := len(c.SelfTest.CheckTests)
+	numChecks := len(c.Checks)
+	if numTests != numChecks {
+		return fmt.Errorf("contract test %q has %d check tests; want %d",
+			c.SelfTest.ContractName, numTests, numChecks)
+	}
+	// Check that each check has a test in the right order
+	for i, check := range c.Checks {
+		test := c.SelfTest.CheckTests[i]
+		if test.CheckName != check.Name {
+			return fmt.Errorf("Contract test %q has check test %q at position %d; want %q", c.SelfTest.ContractName, test.CheckName, i, check.Name)
+		}
+	}
+	return nil
+}

@@ -28,6 +28,19 @@ type Contract struct {
 	Values                map[string]string
 	Servers               map[string]TestServer
 	Preconditions, Checks Checks
+	SelfTest              ContractTest
+}
+
+type ContractTest struct {
+	ContractName string
+	CheckTests   []CheckTest
+}
+
+type CheckTest struct {
+	CheckName  string
+	TestImages struct {
+		Pass, Fail string
+	}
 }
 
 func (c Contract) Errorf(format string, a ...interface{}) error {

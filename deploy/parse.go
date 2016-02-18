@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/yaml"
 )
@@ -44,12 +45,36 @@ func ParseContracts(contractsDir string) (Contracts, error) {
 	if err != nil {
 		return nil, err
 	}
+	testsDir := filepath.Join(contractsDir, "tests")
+	tests, err := parseTests(testsDir)
+	// Now parse the contracts themselves, adding servers and tests
 	err = walkYAMLDir(contractsDir, func(path string) error {
 		var c Contract
 		if err := parseYAMLFile(path, &c); err != nil {
 			return err
 		}
 		c.Filename = path
+
+		// Add servers
+		c.Servers = map[string]TestServer{}
+		for _, serverName := range c.StartServers {
+			if server, ok := servers[serverName]; ok {
+				c.Servers[serverName] = server
+			} else {
+				return fmt.Errorf("Server %q not defined in %q", serverName, serversDir)
+			}
+		}
+
+		// Add test
+		if test, ok := tests[c.Name]; ok {
+			c.SelfTest = test
+			if err := c.ValidateTest(); err != nil {
+				cli.Fatalf("contract test %q invalid: %s", c.Name, err)
+			}
+		} else {
+			cli.Warn("Contract %q has no tests.", c.Name)
+		}
+
 		contracts[c.Name] = c
 		return nil
 	})
@@ -62,7 +87,6 @@ func ParseContracts(contractsDir string) (Contracts, error) {
 		for _, serverName := range contract.StartServers {
 			server, ok := servers[serverName]
 			if !ok {
-				return nil, fmt.Errorf("Server %q not defined in %q", serverName, serversDir)
 			}
 			contract.Servers[serverName] = server
 			contracts[name] = contract
@@ -85,6 +109,22 @@ func parseServers(serversDir string) (map[string]TestServer, error) {
 		return nil, err
 	}
 	return servers, nil
+}
+
+func parseTests(testsDir string) (map[string]ContractTest, error) {
+	tests := map[string]ContractTest{}
+	err := walkYAMLDir(testsDir, func(path string) error {
+		var t ContractTest
+		if err := parseYAMLFile(path, &t); err != nil {
+			return err
+		}
+		tests[t.ContractName] = t
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tests, nil
 }
 
 func parseDatacentres(datacentresDir string) (Datacentres, error) {
