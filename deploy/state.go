@@ -1,5 +1,7 @@
 package deploy
 
+import "fmt"
+
 type State struct {
 	Config
 	EnvironmentDefs EnvDefs
@@ -63,3 +65,18 @@ type Instance struct {
 }
 
 type MemorySize string
+
+func (s *State) ContractsForKind(kind string) (OrderedContracts, error) {
+	if list, ok := s.Config.ContractDefs[kind]; ok {
+		oc := make(OrderedContracts, len(list))
+		for i, contractName := range list {
+			if contract, ok := s.Contracts[contractName]; ok {
+				oc[i] = contract
+			} else {
+				return nil, fmt.Errorf("contract %q not defined; it is specified for app kind %s", contractName, kind)
+			}
+		}
+		return oc, nil
+	}
+	return nil, fmt.Errorf("app kind %s is not defined", kind)
+}

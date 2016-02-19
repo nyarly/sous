@@ -56,7 +56,10 @@ func Fatalf(format string, a ...interface{}) {
 	Fatal()
 }
 
-func Fatal() {
+func Fatal(a ...interface{}) {
+	if len(a) != 0 {
+		fmt.Println(a...)
+	}
 	Exit(1)
 }
 

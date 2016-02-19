@@ -13,6 +13,8 @@ import (
 
 type Contracts map[string]Contract
 
+type OrderedContracts []Contract
+
 func (cs Contracts) Validate() error {
 	for _, c := range cs {
 		if err := c.Validate(); err != nil {

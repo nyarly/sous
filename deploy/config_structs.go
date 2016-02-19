@@ -3,12 +3,12 @@ package deploy
 type Config struct {
 	DockerRegistry    string
 	DockerLabelPrefix string
-	GlobalDockerTags  map[string]string
+	GlobalDockerTags  Values
 	Packs             *Packs
 	Platform          *Platform
 	// ContractDefs maps a service kind to an ordered set of contracts
 	// to run against apps of that kind.
-	ContractDefs map[string][]string
+	ContractDefs map[string]List
 }
 
 type Platform struct {
