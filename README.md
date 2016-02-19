@@ -1,97 +1,183 @@
 # sous
 
-Sous is your personal sous-chef for building and deploying projects
-on the OpenTable Mesos Platform.
+Sous is a tool for building, testing, and deploying applications, using
+Docker, Mesos, and Singularity.
 
 ## Features
 
-- build projects as Docker images
-- test projects as Docker containers
-- run projects locally
-- push projects as Docker images
-- deploy projects globally via a single command (coming soon)
-- ensure projects fulfil contracts of the system (coming soon)
+- Runs on Mac and Linux (may work on Windows, not tested yet)
+- Use the same tool for local development and in your CI pipeline
+- Easily distribute shared configuration using the built-in sous server
+- Automatically adds rich metadata to your Docker images
+- Run executable contracts against any Docker image, to ensure it
+  behaves appropriately for your platform.
+- Define platform contracts in terms of application interactions
+- Automatically build NodeJS and Go code using a multi-stage build
+  process that eliminates build-time dependencies from your production
+  containers. (Java, C#, Ruby, and other languages coming soon.)
+
+### Planned features
+
+- Multi-datacentre deployment orchestration (coming very soon)
+- Declarative YAML-based DSL to define deployments (coming very soon)
+- Safely deploy source code to production
+- Global event log
+- HTTP API to interrogate, and instigate changes to global state
+- Run projects locally in a simulated production environment
 
 ## Ethos
 
-Sous is designed to work with existing projects, using data already contained
+Sous is designed to work with existing projects, using data they already contain
 to determine how to properly build Docker images. It is designed to ease migrating
 existing projects onto The Mesos Platform, using sensible defaults and stack-centric
 conventions. It is also designed with operations in mind, tagging Docker images
 with lots of metadata to ease discovery and cleaunup of images.
 
-Sous works on your local dev machine, and on CI servers like TeamCity in the same
-way, so you can be sure whatever works locally will also work in CI.
+Sous works on your local dev machine, and on CI servers like TeamCity, Jenkins, etc.,
+in the same way, so you can be sure whatever works locally will also work in CI.
 
 ## Installation
 
 Sous is written in Go. If you already have Go 1.5 set up on your machine, and have
 your GOPATH set up correctly, you can install it by typing
 
-    $ go install github.com/opentable/sous
+    $ go get github.com/opentable/sous
 
-Alternatively, you can install the latest version on your Mac using homebrew:
-(coming soon)
+Alternatively, you can install the latest development version on your Mac using homebrew:
 
-    $ brew tap opentable/osx-tools
-	$ brew update
-	$ brew install sous
+	$ brew install --HEAD opentable/osx-tools/sous
+
+We plan to begin releasing versioned pre-built binaries soon.
+
+### Initial Setup
+
+Currently, sous cannot do much without a sous server instance to provide configuration.
+Therefore, the first command you'll need to issue is:
+
+    sous config sous-server http://your.sous.server
+
+More documentation on setting up the server will be coming soon, as well as a better
+experience for working offline, before you have a server set up.
 
 ## Requirements
 
-Sous needs to shell out to your system to interact with Git and Docker, so
-you will need:
+Sous shells out to your system to interact with Git and Docker. This is a design decision,
+as it enables you to easily repeat the commands Sous issues. That means that  when they fail,
+as they sometimes do, you have the power to re-play what happened, and figure out the issue.
+
+You will need:
 
 - Git >=2.2.0
-- Docker >=1.8.2
+- Docker >=1.10.0
 
 On Mac, I would recommend installing Docker by installing docker-machine via the
 Docker Toolbox available at https://www.docker.com/toolbox
 
 ## Basic Usage
 
-Sous works by interrogating your Git repo to sniff out what kind of project it is
+Sous is a CLI tool, with a subcommand-based interface inspired by Git. All sous
+commands are of the form:
+
+    sous [-v] <command> [command-options]
+
+Where `-v` means "be verbose". This is a very useful option, especially right now
+where the codebase is not stable, so things can frequiently go wrong. Being verbose
+means that you will see all the shell commands sous issues, as well as other
+diagnostic information.
+
+### Commands
+
+```shell
+$ sous help
+Sous is a tool to help with building and testing docker
+images, verifying your code against platform contracts, and
+deploying to Singularity.
+
+Commands:
+        build   build your project
+        build-path      build state directory
+        clean   delete your project's containers and images
+        config  get/set config properties
+        contracts       check project against platform contracts
+        detect  detect available actions
+        dockerfile      print current dockerfile
+        help    show this help
+        image   print last built docker image tag
+        logs    view stdout and stderr from containers
+        ls      list images, containers and other artifacts
+        parse   parse global state directory
+        push    push your project
+        run     run your project
+        server  run the sous server
+        stamp   stamp labels onto docker images
+        state   global deployment state
+        task_host       get task host
+        task_port       get task port
+        test    test your project
+        update  update sous config
+        version show version info
+
+Tip: for help with any command, use `sous help <COMMAND>`
+```
+
+
+### Building
+
+If you have a project written in NodeJS or Go, Sous may be able to build that project
+automatically. The best place to start is to `cd` into your project's directory, and
+type
+
+    sous dockerfile
+
+This will print to your terminal the dockerfile sous believes is appropriate for your
+project. If you agree, and want to use that dockerfile to build your project, it's
+as easy as:
+
+    sous build
+
+Sous build works by interrogating your Git repo to sniff out what kind of project it is
 and some other info like its name, version, what runtime version it needs etc.
-Using this data, it is able to create sensible Dockerfiles to perform various tasks
+Using this data, it attempts to create sensible Dockerfiles to perform various tasks
 like building and testing your project. It also applies labels to the Dockerfile
 which propagate through to the image, and finally the running containers, with data
 such as which Git commit was built, what stack is running inside it, which user and
 host it was built on, and a load more.
 
-This approach is inspired by Heroku's buildpacks, which are not quite suitable for
-use inside OpenTable, so we have written some of our own, which in turn can make
-some assumptions specific to us, and this keep things simple.
+This approach is inspired by Heroku's buildpacks, but with a focus on building
+efficient docker images.
 
-### Commands
+#### Build targets
 
-Note: When using these commands locally, your username will be prefixed to all
-Docker images built, e.g. If your name was Algernon Scroggins, your docker tags
-would all be of the form:
+By default, sous buildpacks can specify a number of "build targets" which are essentially
+specialised `Dockerfile`s. The most important of these is the `app` target, which is
+your actual software, i.e. the thing you would deploy to QA and Production.
 
-    docker.registry/ascroggins/product-name:v0.0.0-commitSHA-host-N
+`sous build` is shorthand for `sous build app` and will automatically build any intermediary
+targets necessary to get from your source code to a deployable application.
 
-Where `v0.0.0` is the application version, `commitSHA` is the first 8 characters of
-your currently checked-out commit, `host` is your machine's hostname, and `N` is
-the autoincrementing build number for this commit built by this user on this
-machine.
+Commonly, buildpacks will specify a `compile` target as well. This is used to build your
+project, and typically will be based on a heavier Docker base image, which includes things
+like compilers, make, and other tools which you only need at build time, not run time.
+Usually you would not want to build this target by itself. However, you can build any of
+the available targets by using:
 
-Images built on local dev boxes are not something we should be deploying anywhere,
-however it can be useful to share images with others for debugging purposes, so you
-can certainly push these images.
+    sous build <target>
 
-- `sous detect` has a look around your repo and tells you what can be done
-- `sous build` creates a Dockerfile on the fly, and builds and tags it
-- `sous run` first does a build, and then runs your container as if it were on
-  Mesos\*
-- `sous push` pushes your latest successfully built Docker image to the registry
-- `sous contracts` (coming soon) runs your container as if it were on Mesos\*, and
-  pokes it with a stick a few times to see that it conforms to certain essential
-  contracts of the platform, such as discovery announcements, the /health endpoint,
-  start-up and shut-down speed, and graceful shutdown.
-- `sous deploy` (coming soon) deploys and configures your app globally according to
-  a single manifest definition
+### Contracts
 
-\* Sort of... More details to be determined soon
+If your configuration includes contracts, you can run them for your current project by simply
+using:
 
-**That's it for now, folks, this is a work in progress...**
+    sous contracts
+
+This will attempt to build your app, if changes are detected, and then run the resultant docker
+image through the defined contracts.
+
+If you want to run the contracts against an arbitrary docker image, you can do this:
+
+    sous contracts -image <image>
+
+Replacing `<image>` with the name of the image you want to test. 
+
+
 

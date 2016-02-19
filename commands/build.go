@@ -8,8 +8,8 @@ import (
 
 func BuildHelp() string {
 	return `sous build detects your project type, and tries to find a matching
-OpenTable supported stack to build against. Right now it only supports NodeJS
-projects. It builds a docker image, tagged and labelled correctly.
+stack to build against. Right now it only supports NodeJS projects. It builds a
+docker image, tagged and labelled correctly.
 
 sous build does not have any options yet`
 }

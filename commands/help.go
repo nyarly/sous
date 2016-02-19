@@ -21,9 +21,9 @@ func Help(sous *core.Sous, args []string) {
 		}
 		cli.Fatalf("There is no command called %s; try `sous help`\n", command)
 	}
-	cli.Outf(`Sous is your personal sous chef for engineering tasks.
-It can help with building, configuring, and deploying
-your code for OpenTable's Mesos Platform.
+	cli.Outf(`Sous is a tool to help with building and testing docker
+images, verifying your code against platform contracts, and
+deploying to Singularity.
 
 Commands:`)
 

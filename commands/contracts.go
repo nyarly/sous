@@ -28,7 +28,7 @@ var (
 )
 
 func ContractsHelp() string {
-	return `sous contracts tests your project conforms to necessary contracts to run successfully on the OpenTable Mesos platform.`
+	return `sous contracts tests your project conform to contracts specified by sous state`
 }
 
 func Contracts(sous *core.Sous, args []string) {
