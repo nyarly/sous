@@ -163,7 +163,7 @@ func RunSingleSelfTest(contract deploy.Contract) error {
 		cli.Logf(" ==> Testing check %d (%q) FAILS for image %s",
 			checkNum, check.Name, ct.TestImages.Fail)
 		if err := failRun.ExecuteUpToCheck(checkNum); err == nil {
-			return fmt.Errorf("expected image %s to fail check %d (%q), but it passed.",
+			return fmt.Errorf(" ==> TEST FAILED; expected image %s to fail check %d (%q), but it passed.",
 				ct.TestImages.Fail, checkNum, check.Name)
 		}
 		cli.Logf(" ==> TEST PASSED; The check failed correctly.")
@@ -172,7 +172,7 @@ func RunSingleSelfTest(contract deploy.Contract) error {
 		cli.Logf(" ==> Testing check %d (%q) PASSES in for image %s",
 			checkNum, check.Name, ct.TestImages.Pass)
 		if err := passRun.ExecuteUpToCheck(checkNum); err != nil {
-			return fmt.Errorf("expected image %s to pass check %d (%q), but it failed with error: %s",
+			return fmt.Errorf(" ==> TEST FAILED; expected image %s to pass check %d (%q), but it failed with error: %s",
 				ct.TestImages.Pass, checkNum, check.Name, err)
 		}
 		cli.Logf(" ==> TEST PASSED; The check succeeded correctly.")
