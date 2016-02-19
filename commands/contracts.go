@@ -140,13 +140,11 @@ func handleSelfTestFlags(state *deploy.State, selfTest bool, singleContract stri
 func RunSingleSelfTest(contract deploy.Contract) error {
 	c := contract
 	if len(c.SelfTest.CheckTests) == 0 {
-		return fmt.Errorf("contract %q has no check tests", contractName)
+		return fmt.Errorf("contract %q has no check tests", contract.Name)
 	}
 	for i, check := range c.Checks {
 
 		ct := c.SelfTest.CheckTests[i]
-
-		cli.Logf("DEBUG>>>>>>>>>>>>>>>>>> % +v", c)
 
 		failRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Fail})
 		cli.Logf(" ==> Testing check FAILS %d (%q) in contract %q fails for image %s",
@@ -156,8 +154,6 @@ func RunSingleSelfTest(contract deploy.Contract) error {
 				ct.TestImages.Fail, i, check.Name, c.Name)
 		}
 		cli.Logf(" ==> Successfully failed.")
-
-		cli.Logf("DEBUG>>>>>>>>>>>>>>>>>> % +v", c)
 
 		passRun := NewContractRun(c, map[string]string{"Image": ct.TestImages.Pass})
 		cli.Logf(" ==> Testing check PASSES %d (%q) in contract %q for image %s",
@@ -235,9 +231,9 @@ func NewContractRun(contract deploy.Contract, initialValues map[string]string) *
 }
 
 // ExecuteUpToCheck executes the first n checks. It is mainly used for
-// testing.
+// self-testing.
 func (r *ContractRun) ExecuteUpToCheck(n int) error {
-	c := r.Contract
+	c := r.Contract.Clone()
 	cli.Logf("** ==> Running contract: %q**", c.Name)
 
 	// First make sure all the necessary servers are started, in the correct order.

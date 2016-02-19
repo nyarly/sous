@@ -22,13 +22,52 @@ func (cs Contracts) Validate() error {
 	return nil
 }
 
+func (cs Contracts) Clone() Contracts {
+	contracts := make(Contracts, len(cs))
+	for i, c := range cs {
+		contracts[i] = c.Clone()
+	}
+	return contracts
+}
+
 type Contract struct {
 	Name, Filename        string
-	StartServers          []string
-	Values                map[string]string
+	StartServers          List
+	Values                Values
 	Servers               map[string]TestServer
 	Preconditions, Checks Checks
 	SelfTest              ContractTest
+}
+
+type Values map[string]string
+
+type List []string
+
+func (l List) Clone() List {
+	list := make([]string, len(l))
+	copy(list, l)
+	return list
+}
+
+func (vs Values) Clone() Values {
+	values := make(map[string]string, len(vs))
+	for k, v := range vs {
+		values[k] = v
+	}
+	return values
+}
+
+func (c Contract) Clone() Contract {
+	c.StartServers = c.StartServers.Clone()
+	c.Values = c.Values.Clone()
+	servers := make(map[string]TestServer)
+	for k, v := range c.Servers {
+		servers[k] = v
+	}
+	c.Servers = servers
+	c.Preconditions = c.Preconditions.Clone()
+	c.Checks = c.Checks.Clone()
+	return c
 }
 
 type ContractTest struct {
@@ -72,21 +111,48 @@ func (cs Checks) Validate() error {
 	return nil
 }
 
+func (cs Checks) Clone() Checks {
+	checks := make([]Check, len(cs))
+	copy(checks, cs)
+	return checks
+}
+
 type TestServer struct {
 	Name          string
-	DefaultValues map[string]string
+	DefaultValues Values
 	Startup       *StartupInfo
 	Docker        DockerServer
+}
+
+func (ts TestServer) Clone() TestServer {
+	ts.DefaultValues = ts.DefaultValues.Clone()
+	ts.Startup = ts.Startup.Clone()
+	ts.Docker = ts.Docker.Clone()
+	return ts
 }
 
 type StartupInfo struct {
 	CompleteWhen *Check
 }
 
+func (si StartupInfo) Clone() *StartupInfo {
+	check := si.CompleteWhen.Clone()
+	return &StartupInfo{
+		&check,
+	}
+}
+
 type DockerServer struct {
 	Image         string
-	Env           map[string]string
-	Options, Args []string
+	Env           Values
+	Options, Args List
+}
+
+func (ds DockerServer) Clone() DockerServer {
+	ds.Env = ds.Env.Clone()
+	ds.Options = ds.Options.Clone()
+	ds.Args = ds.Args.Clone()
+	return ds
 }
 
 type GetHTTPAssertion struct {
@@ -105,6 +171,10 @@ type Check struct {
 	Setup      Action
 	HTTPCheck  `yaml:",inline"`
 	ShellCheck `yaml:",inline"`
+}
+
+func (ch Check) Clone() Check {
+	return ch
 }
 
 type Action struct {
