@@ -37,7 +37,7 @@ func (p *Pack) Problems() core.ErrorCollection {
 }
 
 func (p *Pack) AppVersion() string {
-	return "0.0.0"
+	return ""
 }
 
 func (p *Pack) AppDesc() string {
