@@ -3,6 +3,8 @@
 Sous is a tool for building, testing, and deploying applications, using
 Docker, Mesos, and Singularity.
 
+**UPDATE: You now require go 1.6+ to build this project.**
+
 ## Features
 
 - Runs on Mac and Linux (may work on Windows, not tested yet)
@@ -38,10 +40,10 @@ in the same way, so you can be sure whatever works locally will also work in CI.
 
 ## Installation
 
-Sous is written in Go. If you already have Go 1.5 set up on your machine, and have
+Sous is written in Go. If you already have Go 1.6 set up on your machine, and have
 your GOPATH set up correctly, you can install it by typing
 
-    $ go get github.com/opentable/sous
+    $ go get -u -v github.com/opentable/sous
 
 Alternatively, you can install the latest development version on your Mac using homebrew:
 
