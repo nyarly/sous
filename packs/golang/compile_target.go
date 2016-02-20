@@ -80,8 +80,7 @@ func (t *CompileTarget) DockerRun(c *core.Context) *docker.Run {
 	run.AddVolume(artDir, "/artifacts")
 	run.AddVolume(c.Git.Dir, "/repo")
 	binName := fmt.Sprintf("%s-%s", c.CanonicalPackageName(), c.BuildVersion)
-	run.Command = fmt.Sprintf("[ -d Godeps ] && godep go build -o %s || go build -o %s",
-		binName, binName)
+	run.Command = fmt.Sprintf("go build -o %s", binName)
 	return run
 }
 
