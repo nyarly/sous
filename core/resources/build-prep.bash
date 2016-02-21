@@ -16,7 +16,7 @@ fi
 
 set -eu
 
-[ ! -d /repo ] && die "You must mount your working dir to /repo using docker run -v \$PWD:/repo"
+[ ! -d /repo ] && die "You must mount your repository's root dir to /repo using docker run -v \$PWD:/repo"
 [ ! -d /artifacts ] && die "You must mount your artifact output dir to /artifacts using \$somepath:/artifacts"
 
 # Ensure the build dir exists
@@ -37,7 +37,8 @@ git ls-files --exclude-standard --others --cached | while read f; do
 	cp -f "$f" "/build/$f" || log "WARNING: Unable to copy $f - you may have deleted it but not yet committed the delete."
 done
 
-# Set working directory to /build; the passed "BUILD_COMMAND" is executed in here
+# Set working directory to the same relative place within the repo as the
+# builder's pwd was when they ran the build; the passed "BUILD_COMMAND" is executed in here
 cd /build$REPO_WORKDIR
 
 # Execute the build command inside the isolated /build dir
