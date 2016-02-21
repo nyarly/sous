@@ -9,6 +9,7 @@ This is the plan for parsing and using buildpacks contained in github.com/openta
 	 cd /mnt/repo
      cp $(git ls-files --ignore-standard --cached) /project/$PROJ_NAME
 	 cd /project/$PROJ_NAME/$REPO_WORKDIR
+	 . /buildpack/common.sh # copy the common (to all packs) script here as well
      . /buildpack/base.sh
      . /buildpack/compile.sh
 4. Create Dockerfile adding:
