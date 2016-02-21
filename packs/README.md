@@ -25,5 +25,15 @@ This is the plan for parsing and using buildpacks contained in github.com/openta
 	 ENTRYPOINT ["/build-$PROJNAME"]
 
 5. Create Docker image from Dockerfile in 5. 
-6. Create Docker container from Docker image in 5.
+6. Create Docker container from Docker image in 5. This will run and
+   if it is using the compilation step, produce artifacts as well.
+7. Assuming we created artifacts, zip them up into a file, e.g.
+     ARTIFACT_PATH=$PROJ_NAME-$PROJ-VERSION-$PROJ-REVISION.tar.gz
+8. Create the app container using something like this Dockerfile:
+     FROM some-baseimage # (will need to be defined in sous-state somewhere)
+     ENV APP_DIR="$PROJ_NAME-$PROJ_VERSION-$PROJ_REVISION"
+     ADD $ARTIFACT_PATH /srv/$APP_DIR
+     WORKDIR $APP_DIR 
+     ENTRYPOINT $(/buildpack/command.sh)
 
+9. All done!
