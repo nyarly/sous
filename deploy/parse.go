@@ -18,23 +18,33 @@ func Parse(configDir string) (*State, error) {
 	if err := parseYAMLFile(configFile, &state); err != nil {
 		return nil, err
 	}
-	dcs, err := parseDatacentres(fmt.Sprintf("%s/datacentres", configDir))
+	dcs, err := parseDatacentres(filepath.Join(configDir, "datacentres"))
 	if err != nil {
 		return nil, err
 	}
 	state.Datacentres = dcs
-	manifestsDir := fmt.Sprintf("%s/manifests", configDir)
+
+	manifestsDir := filepath.Join(configDir, "manifests")
 	manifests, err := parseManifests(manifestsDir)
 	if err != nil {
 		return nil, err
 	}
 	state.Manifests = manifests
-	contractsDir := fmt.Sprintf("%s/contracts", configDir)
+
+	contractsDir := filepath.Join(configDir, "contracts")
 	contracts, err := ParseContracts(contractsDir)
 	if err != nil {
 		return nil, err
 	}
 	state.Contracts = contracts
+
+	buildpacksDir := filepath.Join(configDir, "buildpacks")
+	buildpacks, err := ParseBuildpacks(buildpacksDir)
+	if err != nil {
+		return nil, err
+	}
+	state.Buildpacks = buildpacks
+
 	return &state, nil
 }
 

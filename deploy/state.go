@@ -8,6 +8,7 @@ type State struct {
 	Datacentres     Datacentres
 	Manifests       Manifests
 	Contracts       Contracts
+	Buildpacks      Buildpacks
 }
 
 type EnvDefs map[string]*EnvDef
