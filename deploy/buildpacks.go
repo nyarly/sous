@@ -37,6 +37,7 @@ func ParseBuildpacks(baseDir string) (Buildpacks, error) {
 		if err != nil {
 			return fmt.Errorf("error parsing buildpack at %s: %s", path, err)
 		}
+		pack.Name = info.Name()
 		pack.Scripts.Common = common
 		packs = append(packs, pack)
 		return filepath.SkipDir
