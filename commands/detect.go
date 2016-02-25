@@ -21,7 +21,7 @@ func Detect(sous *core.Sous, args []string) {
 		fmt.Println("no sous-compatible project detected")
 		os.Exit(1)
 	}
-	cli.Outf("Detected a %s %s project.", pack.Detect(c.WorkDir))
+	cli.Outf("Detected a %s project.", pack.Name)
 	cli.Outf("Build Version: %s", c.BuildVersion)
 	cli.Success()
 }

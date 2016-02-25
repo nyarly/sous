@@ -10,19 +10,15 @@ import (
 // the object returned from its detect func. This object is subsequently
 // passed into the detect step for each target supported by the pack.
 func (c *Context) DetectProjectType(packs Buildpacks) *Buildpack {
-	var err error
 	var pack *Buildpack
 	for _, p := range packs {
-		if err = p.Detect(c.WorkDir); err != nil {
+		if err := p.Detect(c.WorkDir); err != nil {
 			continue
 		}
 		if pack != nil {
 			cli.Fatalf("multiple project types detected")
 		}
 		pack = &p
-	}
-	if pack == nil {
-		cli.Fatalf("no buildable project detected")
 	}
 	return pack
 }
