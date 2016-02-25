@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 )
 
@@ -14,9 +13,9 @@ func UpdateHelp() string {
 
 func Update(sous *core.Sous, args []string) {
 	key := "last-update-check"
-	if err := deploy.Update(); err != nil {
+	if err := core.Update(); err != nil {
 		cli.Fatal()
 	}
-	deploy.Set(key, time.Now().Format(time.RFC3339))
+	core.Set(key, time.Now().Format(time.RFC3339))
 	cli.Success()
 }

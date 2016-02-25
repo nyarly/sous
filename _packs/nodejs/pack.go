@@ -5,17 +5,16 @@ import (
 	"strings"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/file"
 	"github.com/opentable/sous/tools/version"
 )
 
 type Pack struct {
-	Config      *deploy.NodeJSConfig
+	Config      *core.NodeJSConfig
 	PackageJSON *NodePackage
 }
 
-func New(c *deploy.NodeJSConfig) *Pack {
+func New(c *core.NodeJSConfig) *Pack {
 	return &Pack{Config: c}
 }
 
@@ -44,7 +43,7 @@ func (p *Pack) Problems() core.ErrorCollection {
 	}
 	np := p.PackageJSON
 	errs := core.ErrorCollection{}
-	c := deploy.Load()
+	c := core.Load()
 	if np.Engines.Node == "" {
 		errs.AddWarningf("missing node engine version in package.json, defaulting to node %s; see https://docs.npmjs.com/files/package.json#engines",
 			c.Packs.NodeJS.DefaultNodeVersion)

@@ -1,4 +1,4 @@
-package deploy
+package core
 
 type Config struct {
 	DockerRegistry    string

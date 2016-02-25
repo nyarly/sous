@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/yaml"
 )
@@ -15,7 +14,7 @@ func ParseStateHelp() string {
 
 func ParseState(sous *core.Sous, args []string) {
 	stateDir := getStateDir(args)
-	state, err := deploy.Parse(stateDir)
+	state, err := core.Parse(stateDir)
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}

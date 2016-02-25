@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/opentable/sous/core/resources"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dir"
@@ -32,7 +31,7 @@ func (bc *Context) IsCI() bool {
 }
 
 func GetContext() *Context {
-	var c = deploy.Load()
+	var c = Load()
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
 	wd, err := os.Getwd()

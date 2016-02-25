@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
@@ -95,7 +94,7 @@ func getDockerImageFromTargetContext(sous *core.Sous) string {
 	return tc.DockerTag()
 }
 
-func getContractsInScope(state *deploy.State, singleContract string) deploy.OrderedContracts {
+func getContractsInScope(state *core.State, singleContract string) core.OrderedContracts {
 	if singleContract == "" {
 		oc, err := state.ContractsForKind("http-service")
 		if err != nil {
@@ -107,10 +106,10 @@ func getContractsInScope(state *deploy.State, singleContract string) deploy.Orde
 	if !ok {
 		cli.Fatalf("contract %q is not defined", singleContract)
 	}
-	return deploy.OrderedContracts{c}
+	return core.OrderedContracts{c}
 }
 
-func validateRunSpecificCheckFlag(checkNumber int, contracts deploy.OrderedContracts, image string) {
+func validateRunSpecificCheckFlag(checkNumber int, contracts core.OrderedContracts, image string) {
 	if checkNumber == 0 {
 		return
 	}
@@ -125,12 +124,12 @@ func validateRunSpecificCheckFlag(checkNumber int, contracts deploy.OrderedContr
 }
 
 type ConfiguredContracts struct {
-	Contracts     deploy.Contracts
+	Contracts     core.Contracts
 	ContractDefs  map[string][]string
 	InitialValues func() map[string]string
 }
 
-func runSelfTests(contracts deploy.OrderedContracts) {
+func runSelfTests(contracts core.OrderedContracts) {
 	failed := false
 	for _, c := range contracts {
 		if err := RunSingleSelfTest(c); err != nil {
@@ -144,7 +143,7 @@ func runSelfTests(contracts deploy.OrderedContracts) {
 	cli.Success()
 }
 
-func RunSingleSelfTest(contract deploy.Contract) error {
+func RunSingleSelfTest(contract core.Contract) error {
 	c := contract
 	if len(c.SelfTest.CheckTests) == 0 {
 		return fmt.Errorf("contract %q has no check tests", contract.Name)
@@ -183,7 +182,7 @@ func RunSingleSelfTest(contract deploy.Contract) error {
 // ContractRun is a single execution of a contract. It is also the struct passed
 // in when resolving templated values in the contract definition YAML.
 type ContractRun struct {
-	Contract deploy.Contract
+	Contract core.Contract
 	// GlobalValues is shared between all servers started by the contract.
 	// Once written, no item in GlobalValues should ever be changed.
 	GlobalValues map[string]string
@@ -197,7 +196,7 @@ type ContractRun struct {
 	Checks        []string
 }
 
-func NewContractRun(contract deploy.Contract, initialValues map[string]string) *ContractRun {
+func NewContractRun(contract core.Contract, initialValues map[string]string) *ContractRun {
 	if initialValues == nil {
 		initialValues = map[string]string{}
 	}
@@ -263,7 +262,7 @@ func (r *ContractRun) Execute() error {
 	return r.ExecuteUpToCheck(len(r.Contract.Checks))
 }
 
-func ExecuteCheck(c deploy.Check, progressTitle ...string) error {
+func ExecuteCheck(c core.Check, progressTitle ...string) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
@@ -304,9 +303,9 @@ func (r *ContractRun) StartServer(serverName string) error {
 	return nil
 }
 
-// ResolvedServer is a *deploy.TestServer whose templated values
+// ResolvedServer is a *core.TestServer whose templated values
 // have all been expanded, and is thus ready to be run.
-type ResolvedServer deploy.TestServer
+type ResolvedServer core.TestServer
 
 type StartedServer struct {
 	*ResolvedServer
@@ -318,7 +317,7 @@ type StartedServer struct {
 // ResolveServer fleshes out all templated values in the server in the
 // context of the current contract run, adding values to the .GlobalValues
 // map if they aren't yet set.
-func (r *ContractRun) ResolveServer(s deploy.TestServer) (*ResolvedServer, error) {
+func (r *ContractRun) ResolveServer(s core.TestServer) (*ResolvedServer, error) {
 	cli.Verbosef("Resolving values for server %q", s.Name)
 	for k, v := range s.DefaultValues {
 		// Don't use default value if we already have that value in the global agglomeration.
@@ -338,7 +337,7 @@ func (r *ContractRun) ResolveServer(s deploy.TestServer) (*ResolvedServer, error
 		cli.Verbosef(" ==> %s=%q (%s)", k, result, v)
 	}
 
-	var ss deploy.TestServer
+	var ss core.TestServer
 	if err := yaml.InjectTemplatePipeline(s, &ss, r.GlobalValues); err != nil {
 		return nil, err
 	}
@@ -392,7 +391,7 @@ func trimPrefixAndSuffix(s, prefix, suffix string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, prefix), suffix)
 }
 
-func handleListFlags(contracts deploy.Contracts, listContracts, listChecks bool, contractName string) {
+func handleListFlags(contracts core.Contracts, listContracts, listChecks bool, contractName string) {
 	if listContracts {
 		for name, _ := range contracts {
 			cli.Outf("%s", name)

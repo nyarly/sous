@@ -4,16 +4,15 @@ import (
 	"fmt"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/file"
 )
 
 type Pack struct {
-	Config *deploy.GoConfig
+	Config *core.GoConfig
 }
 
-func New(c *deploy.GoConfig) *Pack {
+func New(c *core.GoConfig) *Pack {
 	return &Pack{Config: c}
 }
 

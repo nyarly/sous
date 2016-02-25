@@ -1,14 +1,13 @@
 package core
 
 import (
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/docker"
 )
 
 type TargetContext struct {
 	*Context
 	Target
-	Buildpack  *deploy.Buildpack
+	Buildpack  *Buildpack
 	BuildState *BuildState
 	TargetName string
 }

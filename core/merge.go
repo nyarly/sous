@@ -1,4 +1,4 @@
-package deploy
+package core
 
 import "github.com/imdario/mergo"
 

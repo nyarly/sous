@@ -8,13 +8,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/opentable/sous/deploy"
+	"github.com/opentable/sous/core"
 )
 
 type Server struct {
 	Repo, Workdir string
 	mutex         sync.RWMutex
-	state         deploy.State
+	state         core.State
 }
 
 func NewServer(repo string, workdir string) *Server {

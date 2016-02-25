@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os/user"
 
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
@@ -12,10 +11,10 @@ import (
 
 type CompileTarget struct {
 	Context   *Context
-	Buildpack *deploy.Buildpack
+	Buildpack *Buildpack
 }
 
-func NewCompileTarget(bp *deploy.Buildpack, c *Context) *CompileTarget {
+func NewCompileTarget(bp *Buildpack, c *Context) *CompileTarget {
 	return &CompileTarget{c, bp}
 }
 

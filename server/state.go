@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/opentable/sous/deploy"
+	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/git"
 )
@@ -41,17 +41,17 @@ func (s *Server) UpdateState() (Revision, error) {
 	return Revision(info.CommitSHA), nil
 }
 
-func (s *Server) ReadState() (*deploy.State, error) {
-	return deploy.Parse(s.Workdir)
+func (s *Server) ReadState() (*core.State, error) {
+	return core.Parse(s.Workdir)
 }
 
-func (s *Server) WriteState(to, from *deploy.State) {
+func (s *Server) WriteState(to, from *core.State) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	*to = *from
 }
 
-func (s *Server) GetState() *deploy.State {
+func (s *Server) GetState() *core.State {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return &s.state

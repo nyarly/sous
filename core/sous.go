@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/docker"
@@ -17,8 +16,8 @@ type Sous struct {
 	Commands                    map[string]*Command
 	cleanupTasks                []func() error
 	Flags                       *SousFlags
-	Config                      *deploy.Config
-	State                       *deploy.State
+	Config                      *Config
+	State                       *State
 	flagSet                     *flag.FlagSet
 }
 
@@ -34,8 +33,8 @@ type Command struct {
 
 var sous *Sous
 
-func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags, state *deploy.State) *Sous {
-	var cfg *deploy.Config
+func NewSous(version, revision, os, arch string, commands map[string]*Command, packs []Pack, flags *SousFlags, state *State) *Sous {
+	var cfg *Config
 	if state != nil {
 		cfg = &state.Config
 	}
@@ -59,7 +58,7 @@ func NewSous(version, revision, os, arch string, commands map[string]*Command, p
 func (s *Sous) UpdateBaseImage(image string) {
 	// First, keep track of which images we are interested in...
 	key := "usedBaseImages"
-	images := deploy.Properties()[key]
+	images := Properties()[key]
 	var list []string
 	if len(images) != 0 {
 		json.Unmarshal([]byte(images), &list)
@@ -73,7 +72,7 @@ func (s *Sous) UpdateBaseImage(image string) {
 	if err != nil {
 		cli.Fatalf("Unable to marshal base image list as JSON: %+v; %s", list, err)
 	}
-	deploy.Set(key, string(listJSON))
+	Set(key, string(listJSON))
 	// Now lets grab the actual image
 	docker.Pull(image)
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/file"
 )
@@ -21,7 +20,7 @@ func main() {
 	}
 	sousFlags, args := parseFlags(os.Args[1:])
 	command := args[0]
-	var state *deploy.State
+	var state *core.State
 	var sous *core.Sous
 	if command != "config" && command != "update" {
 		updateHourly()
@@ -81,7 +80,7 @@ func trapSignals() {
 
 func updateHourly() {
 	key := "last-update-check"
-	props := deploy.Properties()
+	props := core.Properties()
 	d, err := time.Parse(time.RFC3339, props[key])
 	if err != nil || d.Sub(time.Now()) > time.Hour {
 		checkForUpdates()
@@ -90,7 +89,7 @@ func updateHourly() {
 
 func checkForUpdates() {
 	cli.Logf("Checking for updates...")
-	if err := deploy.Update(); err != nil {
+	if err := core.Update(); err != nil {
 		cli.Logf("Unable to check: %s", err)
 	}
 }

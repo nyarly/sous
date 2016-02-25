@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/opentable/sous/core"
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 )
 
@@ -15,7 +14,7 @@ func StateHelp() string {
 
 func State(sous *core.Sous, args []string) {
 	stateDir := getStateDir(args)
-	state, err := deploy.Parse(stateDir)
+	state, err := core.Parse(stateDir)
 	if err != nil {
 		cli.Fatalf("%s", err)
 	}
@@ -28,7 +27,7 @@ func State(sous *core.Sous, args []string) {
 	wg.Add(len(merged.Datacentres))
 	for name := range merged.Datacentres {
 		dc := merged.CompiledDatacentre(name)
-		go func(dc deploy.CompiledDatacentre) {
+		go func(dc core.CompiledDatacentre) {
 			r := dc.DiffRequests()
 			results <- DiffResult{
 				Datacentre: dc,
@@ -51,6 +50,6 @@ func State(sous *core.Sous, args []string) {
 }
 
 type DiffResult struct {
-	Datacentre deploy.CompiledDatacentre
-	Diffs      []deploy.Diff
+	Datacentre core.CompiledDatacentre
+	Diffs      []core.Diff
 }

@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"os/user"
 
-	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 )
 
 type AppTarget struct {
 	Context   *Context
-	Buildpack *deploy.Buildpack
+	Buildpack *Buildpack
 }
 
-func NewAppTarget(bp *deploy.Buildpack, c *Context) *AppTarget {
+func NewAppTarget(bp *Buildpack, c *Context) *AppTarget {
 	return &AppTarget{c, bp}
 }
 
