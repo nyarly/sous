@@ -47,11 +47,9 @@ func (bp Buildpack) Detect(dirPath string) error {
 	return nil
 }
 
-// TODO: Do not write the file to the host wd, instead use the build path.
-// First, merge deploy with core so it's possible to reference TargetContext
-// from here.
-func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
-	path := filepath.Join(".", name)
+func (tc *TargetContext) RunScript(name, contents, inDir string) (string, error) {
+	bp := tc.Buildpack
+	path := tc.FilePath(name)
 
 	// Add common.sh and base.sh
 	contents = fmt.Sprintf("# common.sh\n%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
@@ -84,8 +82,9 @@ func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 	return stdout.String(), nil
 }
 
-func (bp Buildpack) BaseImage(dirPath, targetName string) (string, error) {
-	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
+func (tc *TargetContext) BaseImage(dirPath, targetName string) (string, error) {
+	bp := tc.Buildpack
+	detected, err := tc.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
 	if err != nil {
 		return "", err
 	}

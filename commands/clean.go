@@ -10,7 +10,7 @@ func CleanHelp() string {
 }
 
 func Clean(sous *core.Sous, args []string) {
-	_, context := sous.AssembleTargetContext("app")
+	context := core.GetContext()
 	cleanContainersSucceeded := cleanContainers(sous, context)
 	cleanImagesSucceeded := cleanImages(sous, context)
 	if cleanContainersSucceeded && cleanImagesSucceeded {

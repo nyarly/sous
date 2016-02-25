@@ -21,7 +21,7 @@ func Ls(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		cli.Fatalf("sous ls does not accept any arguments")
 	}
-	_, context := sous.AssembleTargetContext("app")
+	context := core.GetContext()
 	cli.Outf(" ===> Images")
 	images := sous.LsImages(context)
 	if len(images) == 0 {

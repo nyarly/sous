@@ -60,12 +60,6 @@ func GetTarget(bp *Buildpack, c *Context, name string) Target {
 	}
 }
 
-// TODO: Remove this func, just use TargetContext
-func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
-	tc := s.TargetContext(targetName)
-	return tc.Target, tc.Context
-}
-
 func RequireDocker() {
 	docker.RequireVersion(version.Range(">=1.8.2"))
 	docker.RequireDaemon()

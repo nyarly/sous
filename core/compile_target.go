@@ -31,7 +31,7 @@ func (t *CompileTarget) Desc() string {
 func (t *CompileTarget) Check() error { return nil }
 
 func (t *CompileTarget) Dockerfile(c *TargetContext) *docker.File {
-	image, err := t.Buildpack.BaseImage(c.WorkDir, t.Name())
+	image, err := c.BaseImage(c.WorkDir, t.Name())
 	if err != nil {
 		cli.Fatal(err)
 	}
