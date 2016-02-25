@@ -41,6 +41,20 @@ func EnsureExists(pathFormat string, a ...interface{}) {
 	cli.Fatalf("unable to stat or create directory %s", path)
 }
 
+func Remove(pathFormat string, a ...interface{}) {
+	path := Resolve(pathFormat, a...)
+	s, err := os.Stat(path)
+	if err != nil {
+		cli.Fatal(err)
+	}
+	if !s.IsDir() {
+		cli.Fatalf("%s is not a directory", path)
+	}
+	if err := os.RemoveAll(path); err != nil {
+		cli.Fatal(err)
+	}
+}
+
 func Current() string {
 	wd, err := os.Getwd()
 	if err != nil {

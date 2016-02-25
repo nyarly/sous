@@ -17,12 +17,12 @@ func Stamp(sous *core.Sous, args []string) {
 	if len(args) == 0 {
 		cli.Fatalf("sous stamp requires at least one argument (a docker label)")
 	}
-	_, context := sous.AssembleTargetContext(target)
-	if context.BuildNumber() == 0 {
+	tc := sous.TargetContext(target)
+	if tc.BuildNumber() == 0 {
 		cli.Fatalf("no builds yet; sous stamp operates on your last successful build of the app target")
 	}
 
-	tag := context.DockerTag()
+	tag := tc.DockerTag()
 	run := docker.NewRun(tag)
 	run.AddLabels(parseLabels(args))
 	run.StdoutFile = "/dev/null"

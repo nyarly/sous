@@ -2,8 +2,8 @@ package core
 
 import (
 	"os"
-	"strings"
 
+	"github.com/opentable/sous/deploy"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/docker"
 	"github.com/opentable/sous/tools/git"
@@ -26,35 +26,45 @@ func CheckForProblems(pack Pack) (fatal bool) {
 	return false
 }
 
-func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
-	packs := s.Packs
-	p := DetectProjectType(packs)
-	if p == nil {
+func (s *Sous) TargetContext(targetName string) *TargetContext {
+	context := GetContext()
+	pack := context.DetectProjectType(s.State.Buildpacks)
+	if pack == nil {
 		cli.Fatalf("no buildable project detected")
 	}
-	pack := CompiledPack{Pack: p}
-	target, ok := pack.GetTarget(targetName)
-	if !ok {
-		cli.Fatalf("The %s build pack does not support %s", pack, targetName)
-	}
-	if fatal := CheckForProblems(pack.Pack); fatal {
-		cli.Fatal()
-	}
-	context := GetContext(targetName)
+	target := GetTarget(pack, context, targetName)
 	err := target.Check()
 	if err != nil {
 		cli.Fatalf("unable to %s %s project: %s", targetName, pack, err)
 	}
-	// If the pack specifies a version, check it matches the tagged version
-	packAppVersion := strings.Split(pack.AppVersion(), "+")[0]
-	if packAppVersion != "" {
-		pv := version.Version(packAppVersion)
-		gv := version.Version(context.BuildVersion.MajorMinorPatch)
-		if !pv.Version.LimitedEqual(gv.Version) {
-			cli.Warn("using latest git tagged version %s; your code reports version %s, which is ignored", gv, pv)
-		}
+	bs := GetBuildState(targetName, context.Git)
+	return &TargetContext{
+		TargetName: targetName,
+		BuildState: bs,
+		Buildpack:  pack,
+		Context:    context,
+		Target:     target,
 	}
-	return target, context
+}
+
+func GetTarget(bp *deploy.Buildpack, c *Context, name string) Target {
+	switch name {
+	default:
+		return nil
+	case "app":
+		return NewAppTarget(bp, c)
+	case "compile":
+		return NewCompileTarget(bp, c)
+	case "test":
+		return nil
+		//return NewTestTarget(bp)
+	}
+}
+
+// TODO: Remove this func, just use TargetContext
+func (s *Sous) AssembleTargetContext(targetName string) (Target, *Context) {
+	tc := s.TargetContext(targetName)
+	return tc.Target, tc.Context
 }
 
 func RequireDocker() {

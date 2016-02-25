@@ -20,10 +20,8 @@ import (
 type Context struct {
 	Git                  *git.Info
 	WorkDir              string
-	TargetName           string
 	DockerRegistry       string
 	Host, FullHost, User string
-	BuildState           *BuildState
 	BuildVersion         *BuildVersion
 	PackInfo             interface{}
 	changes              *Changes
@@ -33,11 +31,10 @@ func (bc *Context) IsCI() bool {
 	return bc.User == "ci"
 }
 
-func GetContext(action string) *Context {
+func GetContext() *Context {
 	var c = deploy.Load()
 	registry := c.DockerRegistry
 	gitInfo := git.GetInfo()
-	bs := GetBuildState(action, gitInfo)
 	wd, err := os.Getwd()
 	if err != nil {
 		cli.Fatalf("Unable to get current working directory: %s", err)
@@ -45,12 +42,10 @@ func GetContext(action string) *Context {
 	return &Context{
 		Git:            gitInfo,
 		WorkDir:        wd,
-		TargetName:     action,
 		DockerRegistry: registry,
 		Host:           cmd.Stdout("hostname"),
 		FullHost:       cmd.Stdout("hostname", "-f"),
 		User:           getUser(),
-		BuildState:     bs,
 		BuildVersion:   buildVersion(gitInfo),
 	}
 }
@@ -101,27 +96,10 @@ func buildVersion(i *git.Info) *BuildVersion {
 	return &BuildVersion{MajorMinorPatch: v.String(), PlusRevision: i.CommitSHA}
 }
 
-// DockerTag returns the docker tag used for the current build.
-func (c *Context) DockerTag() string {
-	return c.DockerTagForBuildNumber(c.BuildNumber())
-}
-
-// BuildNumber returns the build number for the current project at its
-// present commit on this machine with this user login. Heh, a mouthful.
-func (c *Context) BuildNumber() int {
-	return c.BuildState.CurrentCommit().BuildNumber
-}
-
-// PrevDockerTag returns the previously built docker tag for this project.
-// This is useful for re-using builds when appropriate.
-func (c *Context) PrevDockerTag() string {
-	return c.DockerTagForBuildNumber(c.BuildNumber() - 1)
-}
-
 // DockerTag for build number returns a full docker image name including
 // registry, repository, and tag, for the current project at the specified
 // build number.
-func (c *Context) DockerTagForBuildNumber(n int) string {
+func (c *TargetContext) DockerTagForBuildNumber(n int) string {
 	name := c.CanonicalPackageName()
 	// Special case: for primary target "app" we don't
 	// append the target name.
@@ -143,7 +121,7 @@ func (c *Context) DockerTagForBuildNumber(n int) string {
 	return fmt.Sprintf("%s/%s:%s", c.DockerRegistry, repo, tag)
 }
 
-func (c *Context) ChangesSinceLastBuild() *Changes {
+func (c *TargetContext) ChangesSinceLastBuild() *Changes {
 	cc := c.BuildState.CurrentCommit()
 	if c.changes == nil {
 		c.changes = &Changes{
@@ -170,7 +148,7 @@ func (c *Changes) Any() bool {
 // LastBuildImageExists checks that the previously build image, if any, still
 // exists on this machine. If there is no previously built image, or it's been
 // deleted, return false, otherwise true.
-func (c *Context) LastBuildImageExists() bool {
+func (c *TargetContext) LastBuildImageExists() bool {
 	return docker.ImageExists(c.PrevDockerTag())
 }
 
@@ -181,7 +159,7 @@ func (s *BuildState) CurrentCommit() *Commit {
 
 // Commit should be called after a build is successful, to permanently increment
 // the build number for this commit.
-func (bc *Context) Commit() {
+func (bc *TargetContext) Commit() {
 	bc.BuildState.Commit()
 }
 
@@ -211,7 +189,7 @@ func getUser() string {
 	return cmd.Stdout("id", "-un")
 }
 
-func (c *Context) IncrementBuildNumber() {
+func (c *TargetContext) IncrementBuildNumber() {
 	if !buildingInCI() {
 		c.BuildState.CurrentCommit().BuildNumber++
 	}
@@ -224,7 +202,7 @@ func (s *BuildState) Commit() {
 	file.WriteJSON(s, s.path)
 }
 
-func (c *Context) SaveFile(content, name string) {
+func (c *TargetContext) SaveFile(content, name string) {
 	filePath := c.FilePath(name)
 	if filePath == "" {
 		panic("Context file path was empty")
@@ -232,7 +210,7 @@ func (c *Context) SaveFile(content, name string) {
 	file.WriteString(content, filePath)
 }
 
-func (c *Context) TemporaryLinkResource(name string) {
+func (c *TargetContext) TemporaryLinkResource(name string) {
 	fileContents, ok := resources.Files[name]
 	if !ok {
 		cli.Fatalf("Cannot find resource %s, ensure go generate succeeded", name)
@@ -244,12 +222,12 @@ func (c *Context) TemporaryLinkResource(name string) {
 // FilePath returns a path to a named file within the state directory
 // of the current build target. This is used for things like passing
 // artifacts from one build step to the next.
-func (c *Context) FilePath(name string) string {
+func (c *TargetContext) FilePath(name string) string {
 	return dir.Resolve(c.BaseDir() + "/" + name)
 }
 
 // BaseDir return the build state base directory for the current target.
-func (c *Context) BaseDir() string {
+func (c *TargetContext) BaseDir() string {
 	return dir.DirName(c.BuildState.path)
 }
 

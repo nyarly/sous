@@ -17,14 +17,14 @@ func Run(sous *core.Sous, args []string) {
 	core.RequireGit()
 	core.RequireDocker()
 
-	target, context := sous.AssembleTargetContext(targetName)
-	runner, ok := target.(core.ContainerTarget)
+	tc := sous.TargetContext(targetName)
+	runner, ok := tc.Target.(core.ContainerTarget)
 	if !ok {
-		cli.Fatalf("Target %s does not support running.", target.Name())
+		cli.Fatalf("Target %s does not support running.", tc.Target.Name())
 	}
 
-	rebuilt, _ := sous.RunTarget(target, context)
-	dr, _ := sous.RunContainerTarget(runner, context, rebuilt)
+	rebuilt, _ := sous.RunTarget(tc)
+	dr, _ := sous.RunContainerTarget(runner, tc, rebuilt)
 	if exitCode := dr.ExitCode(); exitCode != 0 {
 		cli.Logf("Docker container exited with code %d", exitCode)
 		cli.Exit(exitCode)

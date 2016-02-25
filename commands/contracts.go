@@ -87,12 +87,12 @@ func Contracts(sous *core.Sous, args []string) {
 func getDockerImageFromTargetContext(sous *core.Sous) string {
 	// If a docker image is not passed in, fall back to normal
 	// sous project context to generate an image if necessary.
-	t, c := sous.AssembleTargetContext("app")
-	if yes, reason := sous.NeedsToBuildNewImage(t, c, false); yes {
+	tc := sous.TargetContext("app")
+	if yes, reason := sous.NeedsToBuildNewImage(tc, false); yes {
 		cli.Logf("Building new image because %s", reason)
-		sous.RunTarget(t, c)
+		sous.RunTarget(tc)
 	}
-	return c.DockerTag()
+	return tc.DockerTag()
 }
 
 func getContractsInScope(state *deploy.State, singleContract string) deploy.OrderedContracts {

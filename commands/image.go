@@ -14,10 +14,10 @@ func Image(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	_, context := sous.AssembleTargetContext(target)
-	if context.BuildNumber() == 0 {
+	tc := sous.TargetContext(target)
+	if tc.BuildNumber() == 0 {
 		cli.Fatalf("no builds yet")
 	}
-	cli.Outf(context.DockerTag())
+	cli.Outf(tc.DockerTag())
 	cli.Success()
 }

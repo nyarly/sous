@@ -30,16 +30,16 @@ func Logs(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	_, context := sous.AssembleTargetContext(target)
+	tc := sous.TargetContext(target)
 
-	out := makeTail(context.FilePath("stdout"), *follow, *lines, os.Stdout)
-	err := makeTail(context.FilePath("stderr"), *follow, *lines, os.Stderr)
+	out := makeTail(tc.FilePath("stdout"), *follow, *lines, os.Stdout)
+	err := makeTail(tc.FilePath("stderr"), *follow, *lines, os.Stderr)
 
 	if err := out.Start(); err != nil {
-		cli.Fatalf("Unable to begin tailing %s", context.FilePath("stdout"))
+		cli.Fatalf("Unable to begin tailing %s", tc.FilePath("stdout"))
 	}
 	if err := err.Start(); err != nil {
-		cli.Fatalf("Unable to begin tailing %s", context.FilePath("stderr"))
+		cli.Fatalf("Unable to begin tailing %s", tc.FilePath("stderr"))
 	}
 
 	c := make(chan os.Signal, 1)

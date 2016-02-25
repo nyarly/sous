@@ -22,13 +22,13 @@ func Push(sous *core.Sous, args []string) {
 		cli.Warn("Dirty working tree: %s", err)
 	}
 
-	_, context := sous.AssembleTargetContext(target)
+	tc := sous.TargetContext(target)
 
-	tag := context.DockerTag()
+	tag := tc.DockerTag()
 	if !docker.ImageExists(tag) {
 		cli.Fatalf("No built image available; try building first")
 	}
 	docker.Push(tag)
-	name := context.CanonicalPackageName()
-	cli.Successf("Successfully pushed %s v%s as %s", name, context.BuildVersion, context.DockerTag())
+	name := tc.CanonicalPackageName()
+	cli.Successf("Successfully pushed %s v%s as %s", name, tc.BuildVersion, tc.DockerTag())
 }

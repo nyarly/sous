@@ -1,9 +1,13 @@
 package deploy
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/file"
@@ -12,10 +16,92 @@ import (
 type Buildpacks []Buildpack
 
 type Buildpack struct {
-	Name, Desc string
-	Scripts    struct {
-		Common, Base, Command, Compile, Detect, Test string
+	Name, Desc          string
+	StackVersions       *StackVersions
+	DefaultStackVersion string
+	Scripts             struct {
+		Common, Base, Command, Compile, Detect, Test, ListBaseimage string
 	}
+}
+
+func (bps Buildpacks) Detect(dirPath string) Buildpacks {
+	packs := Buildpacks{}
+	for _, p := range bps {
+		if err := p.Detect(dirPath); err == nil {
+			packs = append(packs, p)
+		}
+	}
+	return packs
+}
+
+func (bp Buildpack) Detect(dirPath string) error {
+	path := "./detect.sh"
+	data := []byte(bp.Scripts.Detect)
+	file.Write(data, path)
+	file.RemoveOnExit(path)
+
+	c := exec.Command(path)
+	if allout, err := c.CombinedOutput(); err != nil {
+		return fmt.Errorf("Error: %s; output from %s:\n%s", err, path, allout)
+	}
+	return nil
+}
+
+// TODO: Do not write the file to the host wd, instead use the build path.
+// First, merge deploy with core so it's possible to reference TargetContext
+// from here.
+func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
+	path := filepath.Join(".", name)
+
+	// Add common.sh and base.sh
+	contents = fmt.Sprintf("# common.sh\n%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
+		bp.Scripts.Common, bp.Scripts.Base, name, contents)
+
+	data := []byte(contents)
+	file.Write(data, path)
+	file.RemoveOnExit(path)
+
+	stderr := &bytes.Buffer{}
+	stdout := &bytes.Buffer{}
+	combined := &bytes.Buffer{}
+
+	teeout := io.MultiWriter(stdout, combined)
+	teeerr := io.MultiWriter(stderr, combined)
+
+	c := exec.Command(path)
+	c.Dir = inDir
+	c.Stdout = teeout
+	c.Stderr = teeerr
+
+	if err := c.Start(); err != nil {
+		return "", err
+	}
+
+	if err := c.Wait(); err != nil {
+		return "", fmt.Errorf("Error: %s; output from %s:\n%s", err, name, combined.String())
+	}
+
+	return stdout.String(), nil
+}
+
+func (bp Buildpack) BaseImage(dirPath, targetName string) (string, error) {
+	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
+	if err != nil {
+		return "", err
+	}
+	parts := strings.Split(detected, " ")
+	if len(parts) != 2 || parts[0] != bp.Name {
+		return "", fmt.Errorf("detect.sh returned %s; want '%s <stackversion>' where <stackversion> is either 'default' or semver range", bp.Name)
+	}
+	stackVersion := parts[1]
+	if stackVersion == "default" {
+		stackVersion = bp.DefaultStackVersion
+	}
+	image, ok := bp.StackVersions.GetBaseImageTag(stackVersion, targetName)
+	if !ok {
+		return "", fmt.Errorf("buildpack %s does not have a base image for version %s", bp.Name, stackVersion)
+	}
+	return image, nil
 }
 
 func ParseBuildpacks(baseDir string) (Buildpacks, error) {

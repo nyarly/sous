@@ -1,8 +1,6 @@
 package core
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Pack describes a project type based on a particular dev stack.
 // It is guaranteed that Detect() will be called before any of
@@ -36,32 +34,4 @@ type Pack interface {
 	// Targets returns a slice of all targets this pack is able
 	// to build.
 	Targets() []Target
-}
-
-// CompiledPack wraps a Pack and adds some validation and
-// helper methods.
-type CompiledPack struct {
-	Pack
-	targets Targets
-}
-
-// GetTarget allows getting a target by name, returns false as
-// the second return value if that target is not defined.
-func (p *CompiledPack) GetTarget(name string) (Target, bool) {
-	if t, ok := p.Targets()[name]; ok {
-		return t, true
-	}
-	return nil, false
-}
-
-// Targets is a lazily initialised map of validated targets.
-func (p *CompiledPack) Targets() map[string]Target {
-	if p.targets == nil {
-		ts := p.Pack.Targets()
-		p.targets = Targets{}
-		for _, t := range ts {
-			p.targets.Add(t)
-		}
-	}
-	return p.targets
 }

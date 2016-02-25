@@ -25,14 +25,14 @@ func Build(sous *core.Sous, args []string) {
 		cli.Warn("Dirty working tree: %s", err)
 	}
 
-	target, context := sous.AssembleTargetContext(targetName)
+	tc := sous.TargetContext(targetName)
 
-	built, _ := sous.RunTarget(target, context)
+	built, _ := sous.RunTarget(tc)
 
 	if !built {
-		cli.Successf("Already built: %s", context.DockerTag())
+		cli.Successf("Already built: %s", tc.DockerTag())
 	}
 
-	name := context.CanonicalPackageName()
-	cli.Successf("Successfully built %s v%s as %s", name, context.BuildVersion, context.DockerTag())
+	name := tc.CanonicalPackageName()
+	cli.Successf("Successfully built %s v%s as %s", name, tc.BuildVersion, tc.DockerTag())
 }

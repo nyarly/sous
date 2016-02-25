@@ -14,12 +14,12 @@ import (
 // testing and deploying the application. Each pack under packs/ will customise its targets for
 // the specific jobs that need to be performed for that pack.
 type Target interface {
-	fmt.Stringer
+	String() string
 	// Name of the target, as used in command-line operations.
 	Name() string
 	// GenericDesc is a generic description of the target, applicable to any pack. It is
 	// used mostly for help and exposition.
-	GenericDesc() string
+	//GenericDesc() string
 	// DependsOn lists the direct dependencies of this target. Dependencies listed as "optional" will
 	// always be built when available, but if they are not available will be ignored. It is the job
 	// of each package under packs/ to correctly define these relationships.
@@ -32,9 +32,9 @@ type Target interface {
 	Check() error
 	// Dockerfile is the shebang method which writes out a functionally complete *docker.Dockerfile
 	// This method is only invoked only once the Detect func has successfully detected target availability.
-	Dockerfile(*Context) *docker.Dockerfile
+	Dockerfile(*TargetContext) *docker.File
 	// Pack is the pack this Target belongs to.
-	Pack() Pack
+	//Pack() Pack
 }
 
 // ContainerTarget is a specialisation of Target that in addition to building a Dockerfile,
@@ -44,14 +44,14 @@ type ContainerTarget interface {
 	Target
 	// DockerRun returns a Docker run command which the build process can use to
 	// create the container.
-	DockerRun(*Context) *docker.Run
+	DockerRun(*TargetContext) *docker.Run
 	// ContainerName returns the name to be given to the container built by
 	// this target.
-	ContainerName(*Context) string
+	//ContainerName(*Context) string
 	// ContainerIsStale should return true if the container needs to be rebuilt,
 	// otherwise it returns false. Certain conditions (like Sous itself being upgraded always cause root
 	// and branch rebuilds, regardless of this return value.
-	ContainerIsStale(*Context) (bool, string)
+	//ContainerIsStale(*Context) (bool, string)
 }
 
 type TargetBase struct {
@@ -129,43 +129,43 @@ type Stater interface {
 // object, which can be anything the target decides. This is used in general to allow
 // targets in a build chain to communicate with each other, things like the location
 // of artifacts built by a target go here, for example.
-func (s *Sous) RunTarget(t Target, c *Context) (bool, interface{}) {
-	if !c.ChangesSinceLastBuild().Any() {
+func (s *Sous) RunTarget(tc *TargetContext) (bool, interface{}) {
+	if !tc.ChangesSinceLastBuild().Any() {
 		if !s.Flags.ForceRebuild {
 			cli.Logf("No changes since last build.")
 			cli.Logf("TIP: use -rebuild to rebuild anyway, or -rebuild-all to rebuild all dependencies")
 			return false, nil
 		}
 	}
-	cli.Logf(`** ===> Building top-level target "%s"**`, t.Name())
-	return s.runTarget(t, c, false)
+	cli.Logf(`** ===> Building top-level target "%s"**`, tc.Name())
+	return s.runTarget(tc, false)
 }
 
-func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interface{}) {
+func (s *Sous) runTarget(tc *TargetContext, asDependency bool) (bool, interface{}) {
 	depsRebuilt := []string{}
-	deps := t.DependsOn()
+	deps := tc.DependsOn()
 	if len(deps) != 0 {
 		for _, d := range deps {
 			cli.Logf("** ===> Building dependency \"%s\"**", d.Name())
-			dt, dc := s.AssembleTargetContext(d.Name())
-			depRebuilt, state := s.runTarget(dt, dc, true)
+			depTC := s.TargetContext(d.Name())
+			depRebuilt, state := s.runTarget(depTC, true)
 			if depRebuilt {
 				depsRebuilt = append(depsRebuilt, d.Name())
 			}
-			if ss, ok := t.(SetStater); ok {
-				ss.SetState(dt.Name(), state)
+			if ss, ok := tc.Target.(SetStater); ok {
+				ss.SetState(depTC.Name(), state)
 			}
 		}
-		cli.Logf("** ===> All dependencies of %s built**", t.Name())
+		cli.Logf("** ===> All dependencies of %s built**", tc.Name())
 	}
 	// Now we have run all dependencies, run this
 	// one if necessary...
-	rebuilt := s.buildImageIfNecessary(t, c, asDependency, depsRebuilt)
+	rebuilt := s.buildImageIfNecessary(tc, asDependency, depsRebuilt)
 	// If this is a dep and target specifies a docker container, invoke it.
 	if asDependency {
-		if ct, ok := t.(ContainerTarget); ok {
+		if ct, ok := tc.Target.(ContainerTarget); ok {
 			//cli.Logf("** ===> Running target image \"%s\"**", t.Name())
-			run, _ := s.RunContainerTarget(ct, c, rebuilt)
+			run, _ := s.RunContainerTarget(ct, tc, rebuilt)
 			if run.ExitCode() != 0 {
 				cli.Fatalf("** =x=> Docker run failed.**")
 			}
@@ -173,14 +173,14 @@ func (s *Sous) runTarget(t Target, c *Context, asDependency bool) (bool, interfa
 	}
 	// Get any available state...
 	var state interface{}
-	if s, ok := t.(Stater); ok {
-		state = s.State(c)
+	if s, ok := tc.Target.(Stater); ok {
+		state = s.State(tc.Context)
 	}
 	return rebuilt, state
 }
 
-func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bool) (*docker.Run, bool) {
-	stale, reason, container := s.NewContainerNeeded(t, c, imageRebuilt)
+func (s *Sous) RunContainerTarget(t ContainerTarget, tc *TargetContext, imageRebuilt bool) (*docker.Run, bool) {
+	stale, reason, container := s.NewContainerNeeded(tc, imageRebuilt)
 	if stale {
 		cli.Logf("** ===> Creating new %s container because %s**", t.Name(), reason)
 		if container != nil {
@@ -189,44 +189,39 @@ func (s *Sous) RunContainerTarget(t ContainerTarget, c *Context, imageRebuilt bo
 				cli.Fatalf("Unable to remove outdated container %s; %s", container, err)
 			}
 		}
-		run := t.DockerRun(c)
-		run.Name = t.ContainerName(c)
+		run := t.DockerRun(tc)
+		run.Name = containerName(tc)
 		return run, true
 	}
 	cli.Logf("** ===> Re-using build container %s**", container)
 	return docker.NewReRun(container), false
 }
 
-func (s *Sous) NewContainerNeeded(t ContainerTarget, c *Context, imageRebuilt bool) (bool, string, docker.Container) {
-	containerName := t.ContainerName(c)
+func containerName(tc *TargetContext) string {
+	return fmt.Sprintf("%s-%s", tc.CanonicalPackageName(), tc.Target.Name())
+}
+
+func (s *Sous) NewContainerNeeded(tc *TargetContext, imageRebuilt bool) (bool, string, docker.Container) {
+	containerName := containerName(tc)
 	container := docker.ContainerWithName(containerName)
 	if !container.Exists() {
 		container = nil
 	}
-	if stale, reason := t.ContainerIsStale(c); stale {
-		return true, reason, container
-	}
+
 	if container == nil {
 		return true, fmt.Sprintf("no container named %s exists", containerName), nil
 	}
+
 	if imageRebuilt {
 		return true, "its underlying image was rebuilt", container
 	}
-	if stale, reason := s.OverrideContainerRebuild(t, c, container); stale {
-		return true, reason, container
+	// TODO: Check this is comparing the correct images.
+	baseImage := tc.Dockerfile().From
+	if docker.BaseImageUpdated(baseImage, container.Image()) {
+		return true, fmt.Sprintf("base image %s updated", baseImage), container
 	}
-	return false, "", container
-}
 
-// OverrideContainerRebuild returns true and a reason if this container needs to
-// be rebuilt.
-func (s *Sous) OverrideContainerRebuild(t ContainerTarget, context *Context, container docker.Container) (bool, string) {
-	image := container.Image()
-	baseImage := t.Dockerfile(context).From
-	if docker.BaseImageUpdated(baseImage, image) {
-		return true, fmt.Sprintf("base image %s updated", baseImage)
-	}
-	return false, ""
+	return false, "", container
 }
 
 // BuildImageIfNecessary usually rebuilds any target if anything of the following
@@ -239,22 +234,22 @@ func (s *Sous) OverrideContainerRebuild(t ContainerTarget, context *Context, con
 //
 // However, you may override this behaviour for a specific target by implementing
 // the Staler interface: { Stale(*Context) bool }
-func (s *Sous) BuildImageIfNecessary(t Target, c *Context) bool {
-	return s.buildImageIfNecessary(t, c, false, []string{})
+func (s *Sous) BuildImageIfNecessary(tc *TargetContext) bool {
+	return s.buildImageIfNecessary(tc, false, []string{})
 }
 
-func (s *Sous) buildImageIfNecessary(t Target, c *Context, asDependency bool, depsRebuilt []string) bool {
-	stale, reason := s.needsToBuildNewImage(t, c, asDependency, depsRebuilt)
+func (s *Sous) buildImageIfNecessary(tc *TargetContext, asDependency bool, depsRebuilt []string) bool {
+	stale, reason := s.needsToBuildNewImage(tc, asDependency, depsRebuilt)
 	if !stale {
 		return false
 	}
-	cli.Logf("** ===> Rebuilding image for %s because %s**", t.Name(), reason)
-	s.BuildImage(t, c)
+	cli.Logf("** ===> Rebuilding image for %s because %s**", tc.Name(), reason)
+	s.BuildImage(tc)
 	return true
 }
 
-func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bool, string) {
-	return s.needsToBuildNewImage(t, c, asDependency, []string{})
+func (s *Sous) NeedsToBuildNewImage(tc *TargetContext, asDependency bool) (bool, string) {
+	return s.needsToBuildNewImage(tc, asDependency, []string{})
 }
 
 // NeedsBuild detects if the project's last
@@ -262,7 +257,9 @@ func (s *Sous) NeedsToBuildNewImage(t Target, c *Context, asDependency bool) (bo
 // by implementing the Staler interfact on individual build targets. This default
 // implementation rebuilds on absolutely any change in sous (i.e. new version/new
 // config) or in the working tree (new or modified files).
-func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, depsRebuilt []string) (bool, string) {
+func (s *Sous) needsToBuildNewImage(tc *TargetContext, asDependency bool, depsRebuilt []string) (bool, string) {
+	t := tc.Target
+	c := tc.Context
 	if len(depsRebuilt) == 1 {
 		return true, fmt.Sprintf("its %s dependency was rebuilt", depsRebuilt[0])
 	}
@@ -275,7 +272,7 @@ func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, dep
 	if s.Flags.ForceRebuild && !asDependency {
 		return true, "-rebuild flag was used"
 	}
-	changes := c.ChangesSinceLastBuild()
+	changes := tc.ChangesSinceLastBuild()
 	if staler, ok := t.(ImageIsStaler); ok {
 		if stale, reason := staler.ImageIsStale(c); stale {
 			return true, reason
@@ -294,17 +291,17 @@ func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, dep
 		return true, reason
 	}
 	// Always force a rebuild if is base image has been updated.
-	baseImage := t.Dockerfile(c).From
+	baseImage := tc.Dockerfile().From
 	// TODO: This is probably a bit too aggressive, consider only asking the user to
 	// update base images every 24 hours, if they have actually been updated.
 	s.UpdateBaseImage(baseImage)
-	if c.BuildNumber() == 1 {
+	if tc.BuildNumber() == 1 {
 		return true, fmt.Sprintf("there are no successful builds yet for the current revision (%s)", c.Git.CommitSHA)
 	}
-	if !c.LastBuildImageExists() {
-		return true, fmt.Sprintf("the last successful build image no longer exists (%s)", c.PrevDockerTag())
+	if !tc.LastBuildImageExists() {
+		return true, fmt.Sprintf("the last successful build image no longer exists (%s)", tc.PrevDockerTag())
 	}
-	if docker.BaseImageUpdated(baseImage, c.PrevDockerTag()) {
+	if docker.BaseImageUpdated(baseImage, tc.PrevDockerTag()) {
 		return true, fmt.Sprintf("the base image %s was updated", baseImage)
 	}
 	// Always force a build if Sous itself has been updated
@@ -316,44 +313,46 @@ func (s *Sous) needsToBuildNewImage(t Target, c *Context, asDependency bool, dep
 	return false, ""
 }
 
-func (s *Sous) BuildImage(t Target, c *Context) {
-	c.IncrementBuildNumber()
+func (s *Sous) BuildImage(tc *TargetContext) {
+	tc.IncrementBuildNumber()
 	if file.Exists("Dockerfile") {
-		cli.Warn("./Dockerfile ignored by sous; use `sous dockerfile %s` to see the Dockerfile in effect", t.Name())
+		cli.Warn("./Dockerfile ignored by sous; use `sous dockerfile %s` to see the Dockerfile in effect", tc.Name())
 	}
-	if prebuilder, ok := t.(PreDockerBuilder); ok {
-		prebuilder.PreDockerBuild(c)
+	if prebuilder, ok := tc.Target.(PreDockerBuilder); ok {
+		prebuilder.PreDockerBuild(tc.Context)
 	}
 	// NB: Always rebuild the Dockerfile after running pre-build, since pre-build
 	// may update target state to reflect things like copied file locations etc.
-	c.SaveFile(s.Dockerfile(t, c).Render(), "Dockerfile")
-	docker.BuildFile(c.FilePath("Dockerfile"), ".", c.DockerTag())
-	c.Commit()
+	tc.SaveFile(s.Dockerfile(tc).String(), "Dockerfile")
+	docker.BuildFile(tc.FilePath("Dockerfile"), ".", tc.DockerTag())
+	tc.Commit()
 }
 
 // Sous.Dockerfile is the canonical source for all Dockerfiles. It takes
 // the Dockerfile defined by the pack target, and decorates it with additional
 // metadata.
-func (s *Sous) Dockerfile(t Target, c *Context) *docker.Dockerfile {
-	df := t.Dockerfile(c)
-	df.Maintainer = c.User
-	df.AddLabel("build.number", strconv.Itoa(c.BuildNumber()))
-	df.AddLabel("build.pack.name", t.Pack().Name())
-	df.AddLabel("build.pack.id", strings.ToLower(t.Pack().Name()))
-	df.AddLabel("build.target", t.Name())
-	df.AddLabel("build.tool.name", "sous")
-	df.AddLabel("build.tool.version", sous.Version)
-	df.AddLabel("build.tool.revision", sous.Revision)
-	df.AddLabel("build.tool.os", sous.OS)
-	df.AddLabel("build.tool.arch", sous.Arch)
-	df.AddLabel("build.machine.host", c.Host)
-	df.AddLabel("build.machine.fullhost", c.FullHost)
-	df.AddLabel("build.user", c.User)
-	df.AddLabel("build.source.repository", c.Git.CanonicalRepoName())
-	df.AddLabel("build.source.revision", c.Git.CommitSHA)
-	df.AddLabel("build.package.name", c.CanonicalPackageName())
-	df.AddLabel("build.package.version", c.BuildVersion.String())
-	df.LabelPrefix = s.Config.DockerLabelPrefix
+func (s *Sous) Dockerfile(tc *TargetContext) *docker.File {
+	df := tc.Target.Dockerfile(tc)
+	df.Maintainer = tc.User
+	p := s.Config.DockerLabelPrefix + "."
+	df.LABEL(map[string]string{
+		p + "build.number":            strconv.Itoa(tc.BuildNumber()),
+		p + "build.pack.name":         tc.Buildpack.Name,
+		p + "build.pack.id":           strings.ToLower(tc.Buildpack.Name),
+		p + "build.target":            tc.Target.Name(),
+		p + "build.tool.name":         "sous",
+		p + "build.tool.version":      sous.Version,
+		p + "build.tool.revision":     sous.Revision,
+		p + "build.tool.os":           sous.OS,
+		p + "build.tool.arch":         sous.Arch,
+		p + "build.machine.host":      tc.Host,
+		p + "build.machine.fullhost":  tc.FullHost,
+		p + "build.user":              tc.User,
+		p + "build.source.repository": tc.Git.CanonicalRepoName(),
+		p + "build.source.revision":   tc.Git.CommitSHA,
+		p + "build.package.name":      tc.CanonicalPackageName(),
+		p + "build.package.version":   tc.BuildVersion.String(),
+	})
 	return df
 }
 

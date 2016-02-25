@@ -17,7 +17,7 @@ func BuildPath(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		target = args[0]
 	}
-	_, context := sous.AssembleTargetContext(target)
-	fmt.Println(dir.Resolve(dir.DirName(context.BaseDir())))
+	tc := sous.TargetContext(target)
+	fmt.Println(dir.Resolve(dir.DirName(tc.BaseDir())))
 	cli.Success()
 }

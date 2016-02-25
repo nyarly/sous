@@ -4,90 +4,133 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"text/template"
+	"strings"
 )
 
-type Dockerfile struct {
-	From, Maintainer, Workdir string
-	Labels                    map[string]string
-	Add                       []Add
-	Run, Entrypoint           []string
-	CMD                       StringList
-	LabelPrefix               string
+type File struct {
+	From, Maintainer string
+	Instructions     Instructions
 }
 
-type StringList []string
+func (f File) String() string {
+	return fmt.Sprintf("FROM %s\nMAINTAINER %s\n%s",
+		f.From, f.Maintainer, f.Instructions)
+}
 
-func (sl StringList) String() string {
-	if len(sl) == 1 {
-		return sl[0]
+type Instructions []Instruction
+
+func (is Instructions) String() string {
+	b := &bytes.Buffer{}
+	for _, i := range is {
+		fmt.Fprintf(b, "%s\n", i)
 	}
-	j, err := json.Marshal(sl)
+	return b.String()
+}
+
+func (is *Instructions) Add(name string, args Args) {
+	*is = append(*is, Instruction{name, args})
+}
+
+type Instruction struct {
+	Name string
+	Args Args
+}
+
+func (i Instruction) String() string {
+	return fmt.Sprintf("%s %s", i.Name, i.Args)
+}
+
+type Args interface {
+	String() string
+}
+
+func (f *File) ADD(target string, files ...string) {
+	f.Instructions.Add("ADD", ArrayArgs(append(files, target)))
+}
+
+func (f *File) COPY(target string, files ...string) {
+	f.Instructions.Add("COPY", ArrayArgs(append(files, target)))
+}
+
+func (f *File) RUN(args ...string) {
+	f.Instructions.Add("RUN", SpaceSeparatedArgs(args))
+}
+
+func (f *File) LABEL(m map[string]string) {
+	f.Instructions.Add("LABEL", KeyValueArgs(m))
+}
+
+func (f *File) ENV(m map[string]string) {
+	f.Instructions.Add("ENV", KeyValueArgs(m))
+}
+
+func (f *File) CMD(args ...string) {
+	f.Instructions.Add("CMD", ArrayArgs(args))
+}
+
+func (f *File) ENTRYPOINT(args ...string) {
+	f.Instructions.Add("ENTRYPOINT", ArrayArgs(args))
+}
+
+func (f *File) WORKDIR(path string) {
+	f.Instructions.Add("WORKDIR", SingleArg(path))
+}
+
+func (f *File) USER(username string) {
+	f.Instructions.Add("USER", SingleArg(username))
+}
+
+type SingleArg string
+
+func (s SingleArg) String() string {
+	return string(s)
+}
+
+type KeyValueArgs map[string]string
+
+func (kv KeyValueArgs) String() string {
+	items := kv.Flatten()
+	return lines(items)
+}
+
+func (kv KeyValueArgs) Flatten() []string {
+	out := make([]string, len(kv))
+	for k, v := range kv {
+		out = append(out, fmt.Sprintf("%s=%s", quote(k), quote(v)))
+	}
+	return out
+}
+
+func quote(s string) string {
+	if !strings.ContainsAny(s, `' "`) {
+		return s
+	}
+	return fmt.Sprintf("%q", s)
+}
+
+type ArrayArgs []string
+
+func (a ArrayArgs) String() string {
+	b, err := json.Marshal(a)
 	if err != nil {
-		panic("Unable to marshal json array")
+		panic("unable to marshal array: " + err.Error())
 	}
-	return string(j)
+	return string(b)
 }
 
-type Add struct {
-	Files []string
-	Dest  string
+type SpaceSeparatedArgs []string
+
+func (s SpaceSeparatedArgs) String() string {
+	return strings.Join(s, " ")
 }
 
-func (d *Dockerfile) Render() string {
-	t := template.Must(template.New("Dockerfile").Parse(dockerfileTemplate))
-	buf := &bytes.Buffer{}
-	t.Execute(buf, d)
-	return buf.String()
+func lines(s []string) string {
+	out := &bytes.Buffer{}
+	lineStart := " \\\n\t"
+	for _, line := range s {
+		out.WriteString(lineStart + line)
+	}
+	return out.String()
 }
 
-func (d *Dockerfile) AddLabel(name, value string) {
-	if d.LabelPrefix != "" {
-		name = fmt.Sprintf("%s.%s", d.LabelPrefix, name)
-	}
-	if d.Labels == nil {
-		d.Labels = map[string]string{}
-	}
-	d.Labels[name] = value
-}
-
-func (d *Dockerfile) AddRun(format string, a ...interface{}) {
-	d.Run = append(d.Run, fmt.Sprintf(format, a...))
-}
-
-// AddAdd adds an Add line to the Dockerfile. The last argument
-// you pass becomes the destination, all previous arguments
-// are the source files.
-func (d *Dockerfile) AddAdd(f1, f2 string, fn ...string) {
-	sources := []string{f1}
-	dest := f2
-	if len(fn) != 0 {
-		dest = fn[len(fn)-1]
-		sources = append(sources, f2)
-		for _, f := range fn[:len(fn)-1] {
-			sources = append(sources, f)
-		}
-	}
-	add := Add{
-		Files: sources,
-		Dest:  dest,
-	}
-	if d.Add == nil {
-		d.Add = []Add{}
-	}
-	d.Add = append(d.Add, add)
-}
-
-var dockerfileTemplate = `FROM {{.From}}
-MAINTAINER {{.Maintainer}}
-{{if .Labels}}{{$first:=true}}
-LABEL {{range $name, $value := .Labels}} \
-      {{$name}}={{$value}}{{end}}{{end}}
-{{range .Add}}{{if .Files}}ADD [{{range .Files}}"{{.}}", {{end}}"{{.Dest}}"]
-{{end}}{{end}}{{if .Workdir}}
-WORKDIR {{.Workdir}}{{end}}
-{{range .Run}}RUN {{.}}
-{{end}}
-{{if .Entrypoint}}ENTRYPOINT [{{range $i, $e := .Entrypoint}}{{if $i}},{{end}}"{{$e}}"{{end}}]{{end}}
-{{if .CMD}}CMD {{.CMD}}{{end}}
-`
+type ArrayArg []string

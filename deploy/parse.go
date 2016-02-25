@@ -43,6 +43,20 @@ func Parse(configDir string) (*State, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Have base images defined by the buildpack itself, this is
+	// a quick patch to try out the new buildpacks.
+	for name := range buildpacks {
+		switch buildpacks[name].Name {
+		default:
+			return nil, fmt.Errorf("Buildpack %s not recognised.", name)
+		case "go":
+			buildpacks[name].StackVersions = state.Packs.Go.AvailableVersions
+			buildpacks[name].DefaultStackVersion = state.Packs.Go.DefaultGoVersion
+		case "nodejs":
+			buildpacks[name].StackVersions = state.Packs.NodeJS.AvailableVersions
+			buildpacks[name].DefaultStackVersion = state.Packs.NodeJS.DefaultNodeVersion
+		}
+	}
 	state.Buildpacks = buildpacks
 
 	return &state, nil

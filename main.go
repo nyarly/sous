@@ -31,7 +31,7 @@ func main() {
 		file.ReadJSON(&state, "~/.sous/config")
 		trapSignals()
 		defer cli.Cleanup()
-		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(&state.Config), sousFlags, state)
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags, state)
 	} else {
 		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags, nil)
 	}

@@ -14,7 +14,7 @@ func Dockerfile(sous *core.Sous, args []string) {
 	if len(args) != 0 {
 		targetName = args[0]
 	}
-	target, context := sous.AssembleTargetContext(targetName)
-	cli.Outf(sous.Dockerfile(target, context).Render())
+	tc := sous.TargetContext(targetName)
+	cli.Outf(tc.Dockerfile().String())
 	cli.Success()
 }
