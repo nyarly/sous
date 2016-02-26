@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opentable/sous/core/resources"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/cmd"
 	"github.com/opentable/sous/tools/dir"
@@ -233,14 +232,14 @@ func (c *TargetContext) SaveFile(content, name string) {
 	file.WriteString(content, filePath)
 }
 
-func (c *TargetContext) TemporaryLinkResource(name string) {
-	fileContents, ok := resources.Files[name]
-	if !ok {
-		cli.Fatalf("Cannot find resource %s, ensure go generate succeeded", name)
-	}
-	c.SaveFile(fileContents, name)
-	file.TemporaryLink(c.FilePath(name), name)
-}
+//func (c *TargetContext) TemporaryLinkResource(name string) {
+//	fileContents, ok := resources.Files[name]
+//	if !ok {
+//		cli.Fatalf("Cannot find resource %s, ensure go generate succeeded", name)
+//	}
+//	c.SaveFile(fileContents, name)
+//	file.TemporaryLink(c.FilePath(name), name)
+//}
 
 // FilePath returns a path to a named file within the state directory
 // of the current build target. This is used for things like passing
