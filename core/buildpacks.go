@@ -191,6 +191,9 @@ func ParseBuildpacks(baseDir string) (Buildpacks, error) {
 		if !info.IsDir() || path == baseDir {
 			return nil
 		}
+		if info.Name()[:1] == "." {
+			return filepath.SkipDir
+		}
 		pack, err := ParseBuildpack(path)
 		if err != nil {
 			return fmt.Errorf("error parsing buildpack at %s: %s", path, err)

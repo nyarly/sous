@@ -45,16 +45,20 @@ func Parse(configDir string) (*State, error) {
 	}
 	// TODO: Have base images defined by the buildpack itself, this is
 	// a quick patch to try out the new buildpacks.
-	for name := range buildpacks {
-		switch buildpacks[name].Name {
+	for i := range buildpacks {
+		switch buildpacks[i].Name {
 		default:
-			return nil, fmt.Errorf("Buildpack %s not recognised.", name)
+			return nil, fmt.Errorf("Buildpack %s not recognised.", buildpacks[i].Name)
 		case "golang":
-			buildpacks[name].StackVersions = state.Packs.Go.AvailableVersions
-			buildpacks[name].DefaultStackVersion = state.Packs.Go.DefaultGoVersion
+			buildpacks[i].StackVersions = state.Packs.Go.AvailableVersions
+			buildpacks[i].DefaultStackVersion = state.Packs.Go.DefaultGoVersion
 		case "nodejs":
-			buildpacks[name].StackVersions = state.Packs.NodeJS.AvailableVersions
-			buildpacks[name].DefaultStackVersion = state.Packs.NodeJS.DefaultNodeVersion
+			buildpacks[i].StackVersions = state.Packs.NodeJS.AvailableVersions
+			buildpacks[i].DefaultStackVersion = state.Packs.NodeJS.DefaultNodeVersion
+		case "maven":
+			// TODO: Get rid of this so maven is supported properly
+			// by its own definition.
+			continue
 		}
 	}
 	state.Buildpacks = buildpacks
