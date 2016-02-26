@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"os/user"
 
 	"github.com/opentable/sous/tools/cli"
@@ -61,13 +60,17 @@ func (t *CompileTarget) Dockerfile(c *TargetContext) *docker.File {
 // container when the old one is stale or does not exist.
 func (t *CompileTarget) DockerRun(tc *TargetContext) *docker.Run {
 	r := docker.NewRun(tc.DockerTag())
-	r.AddEnv("PROJ_NAME", tc.CanonicalPackageName())
-	r.AddEnv("PROJ_VERSION", "0.0.0") // TODO: Get project version from TargetContext
-	r.AddEnv("PROJ_REVISION", tc.Git.CommitSHA)
-	r.AddEnv("PROJ_DIRTY", YESorNO(tc.Git.Dirty))
-	r.AddEnv("BASE_DIR", fmt.Sprintf("/source"))
-	r.AddEnv("REPO_DIR", tc.CanonicalPackageName())
-	r.AddEnv("REPO_WORKDIR", tc.Git.RepoWorkDirPathOffset)
+	env := tc.Context.BuildpackEnv()
+	for k, v := range env {
+		r.AddEnv(k, v)
+	}
+	//r.AddEnv("PROJ_NAME", tc.CanonicalPackageName())
+	//r.AddEnv("PROJ_VERSION", "0.0.0") // TODO: Get project version from TargetContext
+	//r.AddEnv("PROJ_REVISION", tc.Git.CommitSHA)
+	//r.AddEnv("PROJ_DIRTY", YESorNO(tc.Git.Dirty))
+	//r.AddEnv("BASE_DIR", fmt.Sprintf("/source"))
+	//r.AddEnv("REPO_DIR", tc.CanonicalPackageName())
+	//r.AddEnv("REPO_WORKDIR", tc.Git.RepoWorkDirPathOffset)
 
 	artifactDir := GetEmptyArtifactDir(tc)
 	r.AddEnv("ARTIFACT_DIR", artifactDir)

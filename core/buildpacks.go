@@ -44,6 +44,15 @@ func (bps Buildpacks) Detect(dirPath string) RunnableBuildpacks {
 	return packs
 }
 
+func (bps Buildpacks) Get(name string) (*Buildpack, bool) {
+	for _, bp := range bps {
+		if bp.Name == name {
+			return &bp, true
+		}
+	}
+	return nil, false
+}
+
 // BuildpackError represents errors in the configuration of the buildpack
 // itself. E.g scripts that don't output expected error codes or the correct
 // stdout data, or scripts whose stack version configuration doesn't make sense.
@@ -55,7 +64,7 @@ type BuildpackError struct {
 func (bpe BuildpackError) Error() string {
 	m := bpe.Message
 	if bpe.Script != "" {
-		m = fmt.Sprintf("%s; ", bpe.Script)
+		m = fmt.Sprintf("%s; %s", bpe.Script, m)
 	}
 	return fmt.Sprintf("buildpack %s: %s", bpe.Buildpack.Name, m)
 }
@@ -76,7 +85,8 @@ func (bp Buildpack) Detect(dirPath string) (*RunnableBuildpack, error) {
 	}
 	parts := strings.Split(detected, " ")
 	if len(parts) != 2 || parts[0] != bp.Name {
-		return nil, fmt.Errorf("detect.sh returned %s; want '%s <stackversion>' where <stackversion> is either 'default' or semver range", bp.Name)
+		return nil, bp.ScriptErr("returned %q; want '%s <stackversion>' where <stackversion> is either 'default' or semver range",
+			detected, bp.Name)
 	}
 	detectedVersionRange := parts[1]
 	var stackVersionRange *version.R
@@ -109,10 +119,10 @@ func (bp Buildpack) Detect(dirPath string) (*RunnableBuildpack, error) {
 
 func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 	// Add common.sh and base.sh
-	contents = fmt.Sprintf("# common.sh\n%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
+	contents = fmt.Sprintf("%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
 		bp.Scripts.Common, bp.Scripts.Base, name, contents)
 
-	path := ""
+	path := filepath.Join(inDir, name)
 
 	data := []byte(contents)
 	file.Write(data, path)
@@ -130,6 +140,9 @@ func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 	c.Stdout = teeout
 	c.Stderr = teeerr
 
+	context := GetContext()
+	c.Env = append(c.Env, context.BuildpackEnv().Flatten()...)
+
 	if err := c.Start(); err != nil {
 		return "", err
 	}
@@ -138,7 +151,7 @@ func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 		return "", fmt.Errorf("Error: %s; output from %s:\n%s", err, name, combined.String())
 	}
 
-	return stdout.String(), nil
+	return strings.Trim(stdout.String(), "\n\r\t "), nil
 }
 
 func (tc *TargetContext) BaseImage(dirPath, targetName string) (string, error) {
@@ -149,7 +162,8 @@ func (tc *TargetContext) BaseImage(dirPath, targetName string) (string, error) {
 	}
 	parts := strings.Split(detected, " ")
 	if len(parts) != 2 || parts[0] != bp.Name {
-		return "", fmt.Errorf("detect.sh returned %s; want '%s <stackversion>' where <stackversion> is either 'default' or semver range", bp.Name)
+		return "", fmt.Errorf("detect.sh returned %q; want '%s <stackversion>' where <stackversion> is either 'default' or semver range",
+			detected, bp.Name)
 	}
 	stackVersion := parts[1]
 	if stackVersion == "default" {

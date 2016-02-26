@@ -49,7 +49,7 @@ func Parse(configDir string) (*State, error) {
 		switch buildpacks[name].Name {
 		default:
 			return nil, fmt.Errorf("Buildpack %s not recognised.", name)
-		case "go":
+		case "golang":
 			buildpacks[name].StackVersions = state.Packs.Go.AvailableVersions
 			buildpacks[name].DefaultStackVersion = state.Packs.Go.DefaultGoVersion
 		case "nodejs":

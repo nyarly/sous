@@ -49,6 +49,30 @@ func GetContext() *Context {
 	}
 }
 
+type EnvironmentVariables map[string]string
+
+func (ev EnvironmentVariables) Flatten() []string {
+	out := make([]string, len(ev))
+	i := 0
+	for k, v := range ev {
+		out[i] = fmt.Sprintf("%s=%s", k, v)
+		i++
+	}
+	return out
+}
+
+func (c Context) BuildpackEnv() EnvironmentVariables {
+	return EnvironmentVariables{
+		"PROJ_NAME":     c.CanonicalPackageName(),
+		"PROJ_VERSION":  "0.0.0", // TODO: Get project version from TargetContext
+		"PROJ_REVISION": c.Git.CommitSHA,
+		"PROJ_DIRTY":    YESorNO(c.Git.Dirty),
+		"BASE_DIR":      fmt.Sprintf("/source"),
+		"REPO_DIR":      c.CanonicalPackageName(),
+		"REPO_WORKDIR":  c.Git.RepoWorkDirPathOffset,
+	}
+}
+
 // BuildVersion represents the semver string for the current build.
 // The idea is to distinguish builds of exact tagged versions vs
 // builds in between tags, by appending +revision to those in-between
