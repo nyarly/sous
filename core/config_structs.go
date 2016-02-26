@@ -107,7 +107,7 @@ func (svs StackVersions) Version(ver *version.V) (*StackVersion, error) {
 		if err != nil {
 			return nil, err
 		}
-		if *v == *ver {
+		if ver.Version.LimitedEqual(v.Version) {
 			return sv, nil
 		}
 	}

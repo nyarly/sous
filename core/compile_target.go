@@ -64,17 +64,8 @@ func (t *CompileTarget) DockerRun(tc *TargetContext) *docker.Run {
 	for k, v := range env {
 		r.AddEnv(k, v)
 	}
-	//r.AddEnv("PROJ_NAME", tc.CanonicalPackageName())
-	//r.AddEnv("PROJ_VERSION", "0.0.0") // TODO: Get project version from TargetContext
-	//r.AddEnv("PROJ_REVISION", tc.Git.CommitSHA)
-	//r.AddEnv("PROJ_DIRTY", YESorNO(tc.Git.Dirty))
-	//r.AddEnv("BASE_DIR", fmt.Sprintf("/source"))
-	//r.AddEnv("REPO_DIR", tc.CanonicalPackageName())
-	//r.AddEnv("REPO_WORKDIR", tc.Git.RepoWorkDirPathOffset)
-
 	artifactDir := GetEmptyArtifactDir(tc)
 	r.AddEnv("ARTIFACT_DIR", artifactDir)
-
 	//uid := cmd.Stdout("id", "-u")
 	//gid := cmd.Stdout("id", "-g")
 	//artifactOwner := fmt.Sprintf("%s:%s", uid, gid)
