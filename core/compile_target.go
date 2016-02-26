@@ -11,10 +11,10 @@ import (
 
 type CompileTarget struct {
 	Context   *Context
-	Buildpack *Buildpack
+	Buildpack *RunnableBuildpack
 }
 
-func NewCompileTarget(bp *Buildpack, c *Context) *CompileTarget {
+func NewCompileTarget(bp *RunnableBuildpack, c *Context) *CompileTarget {
 	return &CompileTarget{c, bp}
 }
 

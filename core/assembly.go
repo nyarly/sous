@@ -46,7 +46,7 @@ func (s *Sous) TargetContext(targetName string) *TargetContext {
 	}
 }
 
-func GetTarget(bp *Buildpack, c *Context, name string) Target {
+func GetTarget(bp *RunnableBuildpack, c *Context, name string) Target {
 	switch name {
 	default:
 		return nil

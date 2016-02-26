@@ -1,5 +1,11 @@
 package core
 
+import (
+	"fmt"
+
+	"github.com/opentable/sous/tools/version"
+)
+
 type Config struct {
 	DockerRegistry    string
 	DockerLabelPrefix string
@@ -64,6 +70,10 @@ type StackVersion struct {
 
 type BaseImageSet map[string]string
 
+func (sv StackVersion) Version() (*version.V, error) {
+	return version.NewVersion(sv.Name)
+}
+
 func (svs StackVersions) GetBaseImageTag(version, target string) (string, bool) {
 	for _, sv := range svs {
 		if sv.Name == version {
@@ -74,4 +84,41 @@ func (svs StackVersions) GetBaseImageTag(version, target string) (string, bool) 
 		}
 	}
 	return "", false
+}
+
+// TODO: These next 3 funcs seem terribly complex for what we're trying
+// to achieve. Consider changing StackVersion to use a version range
+// which is parsed on deserialisation, to avoid all this error checking.
+func (svs StackVersions) ConcreteVersions() ([]*version.V, error) {
+	vs := make([]*version.V, len(svs))
+	for i, sv := range svs {
+		v, err := sv.Version()
+		if err != nil {
+			return nil, err
+		}
+		vs[i] = v
+	}
+	return vs, nil
+}
+
+func (svs StackVersions) Version(ver *version.V) (*StackVersion, error) {
+	for _, sv := range svs {
+		v, err := sv.Version()
+		if err != nil {
+			return nil, err
+		}
+		if *v == *ver {
+			return sv, nil
+		}
+	}
+	return nil, fmt.Errorf("version %q not found", ver)
+}
+
+func (svs StackVersions) GetBestStackVersion(versionRange *version.R) (*StackVersion, error) {
+	versionNames, err := svs.ConcreteVersions()
+	if err != nil {
+		return nil, err
+	}
+	v := versionRange.BestMatchFrom(versionNames)
+	return svs.Version(v)
 }

@@ -7,7 +7,7 @@ import (
 type TargetContext struct {
 	*Context
 	Target
-	Buildpack  *Buildpack
+	Buildpack  *RunnableBuildpack
 	BuildState *BuildState
 	TargetName string
 }

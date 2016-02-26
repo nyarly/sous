@@ -11,6 +11,7 @@ import (
 
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/file"
+	"github.com/opentable/sous/tools/version"
 )
 
 type Buildpacks []Buildpack
@@ -24,36 +25,94 @@ type Buildpack struct {
 	}
 }
 
-func (bps Buildpacks) Detect(dirPath string) Buildpacks {
-	packs := Buildpacks{}
+type RunnableBuildpack struct {
+	Buildpack
+	DetectedStackVersionRange string
+	ResolvedStackVersionRange *version.R
+	StackVersion              *StackVersion
+}
+
+type RunnableBuildpacks []RunnableBuildpack
+
+func (bps Buildpacks) Detect(dirPath string) RunnableBuildpacks {
+	packs := RunnableBuildpacks{}
 	for _, p := range bps {
-		if err := p.Detect(dirPath); err == nil {
-			packs = append(packs, p)
+		if rbp, err := p.Detect(dirPath); err == nil {
+			packs = append(packs, *rbp)
 		}
 	}
 	return packs
 }
 
-func (bp Buildpack) Detect(dirPath string) error {
-	path := "./detect.sh"
-	data := []byte(bp.Scripts.Detect)
-	file.Write(data, path)
-	file.RemoveOnExit(path)
-
-	c := exec.Command(path)
-	if allout, err := c.CombinedOutput(); err != nil {
-		return fmt.Errorf("Error: %s; output from %s:\n%s", err, path, allout)
-	}
-	return nil
+// BuildpackError represents errors in the configuration of the buildpack
+// itself. E.g scripts that don't output expected error codes or the correct
+// stdout data, or scripts whose stack version configuration doesn't make sense.
+type BuildpackError struct {
+	Buildpack       Buildpack
+	Script, Message string
 }
 
-func (tc *TargetContext) RunScript(name, contents, inDir string) (string, error) {
-	bp := tc.Buildpack
-	path := tc.FilePath(name)
+func (bpe BuildpackError) Error() string {
+	m := bpe.Message
+	if bpe.Script != "" {
+		m = fmt.Sprintf("%s; ", bpe.Script)
+	}
+	return fmt.Sprintf("buildpack %s: %s", bpe.Buildpack.Name, m)
+}
 
+func (bp Buildpack) ConfigErr(f string, a ...interface{}) BuildpackError {
+	return bp.ScriptErr("", "misconfigured; "+f, a...)
+}
+
+func (bp Buildpack) ScriptErr(scriptName, f string, a ...interface{}) BuildpackError {
+	message := fmt.Sprintf(f, a...)
+	return BuildpackError{bp, scriptName, message}
+}
+
+func (bp Buildpack) Detect(dirPath string) (*RunnableBuildpack, error) {
+	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
+	if err != nil {
+		return nil, err
+	}
+	parts := strings.Split(detected, " ")
+	if len(parts) != 2 || parts[0] != bp.Name {
+		return nil, fmt.Errorf("detect.sh returned %s; want '%s <stackversion>' where <stackversion> is either 'default' or semver range", bp.Name)
+	}
+	detectedVersionRange := parts[1]
+	var stackVersionRange *version.R
+	if detectedVersionRange == "default" {
+		stackVersionRange, err = version.NewRange(bp.DefaultStackVersion)
+		if err != nil {
+			return nil, bp.ConfigErr("unable to parse default stack version %q as semver range: %s", bp.DefaultStackVersion, err)
+		}
+	} else {
+		stackVersionRange, err = version.NewRange(detectedVersionRange)
+		if err != nil {
+			return nil, bp.ScriptErr("detect.sh", "unable to parse %q as semver range: %s", detectedVersionRange, err)
+		}
+	}
+
+	stackVersion, err := bp.StackVersions.GetBestStackVersion(stackVersionRange)
+	if err != nil {
+		return nil, bp.ConfigErr("unable to determine stack version: %s", err)
+	}
+
+	runnable := &RunnableBuildpack{
+		Buildpack:                 bp,
+		DetectedStackVersionRange: detectedVersionRange,
+		ResolvedStackVersionRange: stackVersionRange,
+		StackVersion:              stackVersion,
+	}
+
+	return runnable, nil
+}
+
+func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 	// Add common.sh and base.sh
 	contents = fmt.Sprintf("# common.sh\n%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
 		bp.Scripts.Common, bp.Scripts.Base, name, contents)
+
+	path := ""
 
 	data := []byte(contents)
 	file.Write(data, path)
@@ -84,7 +143,7 @@ func (tc *TargetContext) RunScript(name, contents, inDir string) (string, error)
 
 func (tc *TargetContext) BaseImage(dirPath, targetName string) (string, error) {
 	bp := tc.Buildpack
-	detected, err := tc.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
+	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
 	if err != nil {
 		return "", err
 	}

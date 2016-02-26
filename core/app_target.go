@@ -10,10 +10,10 @@ import (
 
 type AppTarget struct {
 	Context   *Context
-	Buildpack *Buildpack
+	Buildpack *RunnableBuildpack
 }
 
-func NewAppTarget(bp *Buildpack, c *Context) *AppTarget {
+func NewAppTarget(bp *RunnableBuildpack, c *Context) *AppTarget {
 	return &AppTarget{c, bp}
 }
 

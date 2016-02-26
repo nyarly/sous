@@ -1,6 +1,7 @@
 package version
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -56,13 +57,21 @@ func (l VL) Strings() []string {
 }
 
 func Range(s string) *R {
+	r, err := NewRange(s)
+	if err != nil {
+		cli.Fatal(err)
+	}
+	return r
+}
+
+func NewRange(s string) (*R, error) {
 	s = strings.Replace(s, "x", "0", -1)
 	s = strings.Replace(s, "X", "0", -1)
 	r, err := semver.NewRange(s)
 	if err != nil {
-		cli.Fatalf("unable to parse version range string '%s'; %s", s, err)
+		return nil, fmt.Errorf("unable to parse version range string '%s'; %s", s, err)
 	}
-	return &R{r, s}
+	return &R{r, s}, nil
 }
 
 type asc []*V
