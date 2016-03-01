@@ -21,6 +21,15 @@ func (t *CompileTarget) Name() string { return "compile" }
 
 func (t *CompileTarget) DependsOn() []Target { return nil }
 
+func (t *CompileTarget) State() interface{} {
+	command, err := t.Buildpack.RunScript("command.sh",
+		t.Buildpack.Scripts.Command, t.Context.WorkDir)
+	if err != nil {
+		cli.Fatal(err)
+	}
+	return map[string]string{"command": command}
+}
+
 func (t *CompileTarget) String() string { return t.Name() }
 
 func (t *CompileTarget) Desc() string {
@@ -51,6 +60,12 @@ func (t *CompileTarget) Dockerfile(c *TargetContext) *docker.File {
 	//   --no-log-init means do not create a 32G sparse file (which Docker commit
 	//       cannot handle properly, and tries to create a non-sparse 32G file.)
 	df.RUN("useradd", "--no-log-init", "-M", "--uid", u.Uid, "--gid", u.Gid, u.Username)
+
+	// TODO: Copy all files to the appropriate places in the image
+	// preferably using go code, but maybe using script executing on
+	// the image if that's easier. Use a mount so that the container's
+	// persistence matters, and we don't keep adding layers each time
+	// we build.
 
 	df.USER(u.Username)
 	return df
