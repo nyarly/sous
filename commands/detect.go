@@ -31,7 +31,7 @@ func Detect(sous *core.Sous, args []string) {
 			cli.Fatalf("buildpack %q does not exist", args[0])
 		}
 		var err error
-		if pack, err = p.Detect(c.WorkDir); err != nil {
+		if pack, err = p.BindStackVersion(c.WorkDir); err != nil {
 			cli.Fatal(err)
 		}
 	}

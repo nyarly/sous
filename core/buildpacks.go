@@ -34,11 +34,11 @@ type RunnableBuildpack struct {
 
 type RunnableBuildpacks []RunnableBuildpack
 
-func (bps Buildpacks) Detect(dirPath string) RunnableBuildpacks {
-	packs := RunnableBuildpacks{}
+func (bps Buildpacks) Detect(dirPath string) Buildpacks {
+	packs := Buildpacks{}
 	for _, p := range bps {
-		if rbp, err := p.Detect(dirPath); err == nil {
-			packs = append(packs, *rbp)
+		if _, err := p.Detect(dirPath); err == nil {
+			packs = append(packs, p)
 		}
 	}
 	return packs
@@ -78,7 +78,9 @@ func (bp Buildpack) ScriptErr(scriptName, f string, a ...interface{}) BuildpackE
 	return BuildpackError{bp, scriptName, message}
 }
 
-func (bp Buildpack) Detect(dirPath string) (*RunnableBuildpack, error) {
+// Detect just runs the buildpack's detect script and returns the detected
+// project stack version range (but doesn't check that it is supported)
+func (bp Buildpack) Detect(dirPath string) (*version.R, error) {
 	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
 	if err != nil {
 		return nil, err
@@ -101,15 +103,35 @@ func (bp Buildpack) Detect(dirPath string) (*RunnableBuildpack, error) {
 			return nil, bp.ScriptErr("detect.sh", "unable to parse %q as semver range: %s", detectedVersionRange, err)
 		}
 	}
+	return stackVersionRange, nil
+}
 
-	stackVersion, err := bp.StackVersions.GetBestStackVersion(stackVersionRange)
+// BindStackVersion runs detect, and then tries to bind the project to a specific
+// stack version.
+func (bp Buildpack) BindStackVersion(dirPath string) (*RunnableBuildpack, error) {
+	stackVersionRange, err := bp.Detect(dirPath)
 	if err != nil {
-		return nil, bp.ConfigErr("unable to determine stack version: %s", err)
+		return nil, err
+	}
+
+	availableVersions, err := bp.StackVersions.ConcreteVersions()
+	if err != nil {
+		return nil, bp.ConfigErr("no stack versions defined for %s buildpack",
+			bp.Name)
+	}
+	bestMatch := stackVersionRange.BestMatchFrom(availableVersions)
+	if bestMatch == nil {
+		return nil, fmt.Errorf("%s version %s not currently supported", bp.Name, stackVersionRange)
+	}
+
+	stackVersion, err := bp.StackVersions.Version(bestMatch)
+	if err != nil {
+		return nil, fmt.Errorf("programmer error: stack version %q missing", bestMatch)
 	}
 
 	runnable := &RunnableBuildpack{
 		Buildpack:                 bp,
-		DetectedStackVersionRange: detectedVersionRange,
+		DetectedStackVersionRange: stackVersionRange.String(),
 		ResolvedStackVersionRange: stackVersionRange,
 		StackVersion:              stackVersion,
 	}

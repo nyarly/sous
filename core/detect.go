@@ -12,7 +12,7 @@ import (
 func (c *Context) DetectProjectType(packs Buildpacks) *RunnableBuildpack {
 	var pack *RunnableBuildpack
 	for _, p := range packs {
-		rbp, err := p.Detect(c.WorkDir)
+		rbp, err := p.BindStackVersion(c.WorkDir)
 		if err != nil {
 			if packErr, ok := err.(BuildpackError); ok {
 				cli.Fatal(packErr)

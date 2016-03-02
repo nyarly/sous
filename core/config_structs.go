@@ -102,6 +102,9 @@ func (svs StackVersions) ConcreteVersions() ([]*version.V, error) {
 }
 
 func (svs StackVersions) Version(ver *version.V) (*StackVersion, error) {
+	if ver == nil {
+		return nil, fmt.Errorf("ver was nil")
+	}
 	for _, sv := range svs {
 		v, err := sv.Version()
 		if err != nil {
@@ -120,5 +123,8 @@ func (svs StackVersions) GetBestStackVersion(versionRange *version.R) (*StackVer
 		return nil, err
 	}
 	v := versionRange.BestMatchFrom(versionNames)
+	if v == nil {
+		return nil, fmt.Errorf("version %q not supported", versionRange)
+	}
 	return svs.Version(v)
 }
