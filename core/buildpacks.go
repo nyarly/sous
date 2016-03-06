@@ -21,8 +21,9 @@ type Buildpack struct {
 	StackVersions       *StackVersions
 	DefaultStackVersion string
 	Scripts             struct {
-		Common, Base, Command, Compile, Detect, Test, ListBaseimage string
+		Common, Base, Command, Compile, Detect, Test, Baseimages, Problems string
 	}
+	DetectedStackVersionRange *version.R
 }
 
 type RunnableBuildpack struct {
@@ -139,10 +140,14 @@ func (bp Buildpack) BindStackVersion(dirPath string) (*RunnableBuildpack, error)
 	return runnable, nil
 }
 
+func (bp Buildpack) PrepareScript(name, contents string) string {
+	return fmt.Sprintf("%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
+		bp.Scripts.Common, bp.Scripts.Base, name, contents)
+}
+
 func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 	// Add common.sh and base.sh
-	contents = fmt.Sprintf("%s\n\n# base.sh\n%s\n\n# %s\n%s\n",
-		bp.Scripts.Common, bp.Scripts.Base, name, contents)
+	contents = bp.PrepareScript(name, contents)
 
 	path := filepath.Join(inDir, name)
 
@@ -247,5 +252,7 @@ func ParseBuildpack(baseDir string) (Buildpack, error) {
 	p.Scripts.Compile = read("compile.sh")
 	p.Scripts.Detect = read("detect.sh")
 	p.Scripts.Test = read("test.sh")
+	p.Scripts.Problems = read("problems.sh")
+	p.Scripts.Baseimages = read("baseimages")
 	return p, err
 }

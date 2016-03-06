@@ -103,7 +103,7 @@ func (svs StackVersions) ConcreteVersions() ([]*version.V, error) {
 
 func (svs StackVersions) Version(ver *version.V) (*StackVersion, error) {
 	if ver == nil {
-		return nil, fmt.Errorf("ver was nil")
+		panic("ver was nil")
 	}
 	for _, sv := range svs {
 		v, err := sv.Version()

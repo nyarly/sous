@@ -16,7 +16,8 @@ A note on exit codes: Detect returns a success exit code if any project is detec
 
 func Detect(sous *core.Sous, args []string) {
 	c := core.GetContext()
-	var pack *core.RunnableBuildpack
+	var pack *core.Buildpack
+	// First determine the pack if possible
 	if len(args) == 0 {
 		pack = c.DetectProjectType(sous.State.Buildpacks)
 		if pack == nil {
@@ -25,17 +26,32 @@ func Detect(sous *core.Sous, args []string) {
 		}
 	} else if len(args) == 1 {
 		var ok bool
-		var p *core.Buildpack
-		p, ok = sous.State.Buildpacks.Get(args[0])
+		pack, ok = sous.State.Buildpacks.Get(args[0])
 		if !ok {
 			cli.Fatalf("buildpack %q does not exist", args[0])
 		}
-		var err error
-		if pack, err = p.BindStackVersion(c.WorkDir); err != nil {
+		_, err := pack.Detect(c.WorkDir)
+		if err != nil {
 			cli.Fatal(err)
 		}
 	}
-	cli.Outf("Detected a %s project.", pack.Name)
+
+	// Next determine stack version compat
+	runnable, err := pack.BindStackVersion(c.WorkDir)
+	if err != nil {
+		cli.Logf("Detected a %s %s project.", pack.Name, pack.DetectedStackVersionRange)
+		cli.Fatal(err)
+	}
+
+	actualVersion, err := runnable.StackVersion.Version()
+	if err != nil {
+		cli.Fatal(err)
+	}
+
+	cli.Outf("Detected a %s %s (%s) project.",
+		pack.Name, runnable.DetectedStackVersionRange, actualVersion.String())
+
 	cli.Outf("Build Version: %s", c.BuildVersion)
+
 	cli.Success()
 }

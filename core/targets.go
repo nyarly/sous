@@ -45,13 +45,6 @@ type ContainerTarget interface {
 	// DockerRun returns a Docker run command which the build process can use to
 	// create the container.
 	DockerRun(*TargetContext) *docker.Run
-	// ContainerName returns the name to be given to the container built by
-	// this target.
-	//ContainerName(*Context) string
-	// ContainerIsStale should return true if the container needs to be rebuilt,
-	// otherwise it returns false. Certain conditions (like Sous itself being upgraded always cause root
-	// and branch rebuilds, regardless of this return value.
-	//ContainerIsStale(*Context) (bool, string)
 }
 
 type TargetBase struct {
@@ -120,7 +113,7 @@ type SetStater interface {
 }
 
 type Stater interface {
-	State(*Context) interface{}
+	State() interface{}
 }
 
 // RunTarget is used to run the top-level target from build commands, it returns
@@ -174,7 +167,7 @@ func (s *Sous) runTarget(tc *TargetContext, asDependency bool) (bool, interface{
 	// Get any available state...
 	var state interface{}
 	if s, ok := tc.Target.(Stater); ok {
-		state = s.State(tc.Context)
+		state = s.State()
 	}
 	return rebuilt, state
 }

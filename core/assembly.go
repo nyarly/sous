@@ -31,16 +31,19 @@ func (s *Sous) TargetContext(targetName string) *TargetContext {
 	if pack == nil {
 		cli.Fatalf("no buildable project detected")
 	}
-	target := GetTarget(pack, context, targetName)
-	err := target.Check()
+	runnablePack, err := pack.BindStackVersion(context.WorkDir)
 	if err != nil {
+		cli.Fatal(err)
+	}
+	target := GetTarget(runnablePack, context, targetName)
+	if err := target.Check(); err != nil {
 		cli.Fatalf("unable to %s %s project: %s", targetName, pack, err)
 	}
 	bs := GetBuildState(targetName, context.Git)
 	return &TargetContext{
 		TargetName: targetName,
 		BuildState: bs,
-		Buildpack:  pack,
+		Buildpack:  runnablePack,
 		Context:    context,
 		Target:     target,
 	}

@@ -6,15 +6,17 @@ import (
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
+	"github.com/opentable/sous/tools/file"
 )
 
 type CompileTarget struct {
-	Context   *Context
-	Buildpack *RunnableBuildpack
+	Context      *Context
+	Buildpack    *RunnableBuildpack
+	ArtifactPath string
 }
 
 func NewCompileTarget(bp *RunnableBuildpack, c *Context) *CompileTarget {
-	return &CompileTarget{c, bp}
+	return &CompileTarget{c, bp, ""}
 }
 
 func (t *CompileTarget) Name() string { return "compile" }
@@ -27,7 +29,10 @@ func (t *CompileTarget) State() interface{} {
 	if err != nil {
 		cli.Fatal(err)
 	}
-	return map[string]string{"command": command}
+	return map[string]string{
+		"command":      command,
+		"artifactPath": t.ArtifactPath,
+	}
 }
 
 func (t *CompileTarget) String() string { return t.Name() }
@@ -61,12 +66,14 @@ func (t *CompileTarget) Dockerfile(c *TargetContext) *docker.File {
 	//       cannot handle properly, and tries to create a non-sparse 32G file.)
 	df.RUN("useradd", "--no-log-init", "-M", "--uid", u.Uid, "--gid", u.Gid, u.Username)
 
-	// TODO: Copy all files to the appropriate places in the image
-	// preferably using go code, but maybe using script executing on
-	// the image if that's easier. Use a mount so that the container's
-	// persistence matters, and we don't keep adding layers each time
-	// we build.
+	// Add the repo-copy script
+	c.TemporaryLinkResource("build-prep.bash")
 
+	compileScript := t.Buildpack.PrepareScript("compile.sh", t.Buildpack.Scripts.Compile)
+	file.RemoveOnExit("compile.sh")
+	file.WriteString(compileScript, "compile.sh")
+	df.ADD("/scripts/", "build-prep.bash", "compile.sh")
+	df.RUN("chmod", "777", "/scripts/*")
 	df.USER(u.Username)
 	return df
 }
@@ -81,12 +88,13 @@ func (t *CompileTarget) DockerRun(tc *TargetContext) *docker.Run {
 	}
 	artifactDir := GetEmptyArtifactDir(tc)
 	r.AddEnv("ARTIFACT_DIR", artifactDir)
-	//uid := cmd.Stdout("id", "-u")
-	//gid := cmd.Stdout("id", "-g")
-	//artifactOwner := fmt.Sprintf("%s:%s", uid, gid)
-	//run.AddEnv("ARTIFACT_OWNER", artifactOwner)
 	r.AddVolume(artifactDir, "/mnt/artifacts")
 	r.AddVolume(tc.Git.Dir, "/mnt/repo")
+
+	// This command makes an isolated pristine snapshot of the working tree
+	// and then invovkes the compile.sh from the buildpack.
+	r.Command = "/scripts/build-prep.bash && /scripts/compile.sh"
+
 	return r
 }
 
