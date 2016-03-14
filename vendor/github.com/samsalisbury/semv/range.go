@@ -14,17 +14,22 @@ type (
 // >, >=, <, <= as prefixes to indicate greater than, greater than or
 // equal to, less than, and less than or equal to, respectively.
 func ParseRange(s string) (Range, error) {
+	if len(s) == 0 {
+		return Range{}, fmt.Errorf("cannot parse range from empty string")
+	}
 	v, err := ParseAny(s)
 	if err != nil {
 		return Range{}, err
 	}
-	switch s[:2] {
-	case "==":
-		return EqualTo(v), nil
-	case ">=":
-		return GreaterThanOrEqualTo(v), nil
-	case "<=":
-		return LessThanOrEqualTo(v), nil
+	if len(s) >= 2 {
+		switch s[:2] {
+		case "==":
+			return EqualTo(v), nil
+		case ">=":
+			return GreaterThanOrEqualTo(v), nil
+		case "<=":
+			return LessThanOrEqualTo(v), nil
+		}
 	}
 	switch s[0] {
 	case '=', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
