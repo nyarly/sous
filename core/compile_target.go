@@ -1,8 +1,10 @@
 package core
 
 import (
+	"fmt"
 	"os/user"
 
+	"github.com/opentable/sous/core/resources"
 	"github.com/opentable/sous/tools/cli"
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/docker"
@@ -63,15 +65,15 @@ func (t *CompileTarget) Dockerfile(c *TargetContext) *docker.File {
 	//       cannot handle properly, and tries to create a non-sparse 32G file.)
 	df.RUN("useradd", "--no-log-init", "-M", "--uid", u.Uid, "--gid", u.Gid, u.Username)
 
-	// Add the repo-copy script
-	c.TemporaryLinkResource("build-prep.bash")
+	compileScript := resources.Files["build-prep.bash"] + "\n"
+	compileScript += t.Buildpack.PrepareScript("compile.sh", t.Buildpack.Scripts.Compile) + "\n"
 
-	compileScript := t.Buildpack.PrepareScript("compile.sh", t.Buildpack.Scripts.Compile)
+	compileScript += fmt.Sprintf("chown %s -R /artifacts", u.Name)
 	file.RemoveOnExit("compile.sh")
 	file.WriteString(compileScript, "compile.sh")
-	df.ADD("/scripts/", "build-prep.bash", "compile.sh")
-	df.RUN("chmod", "777", "/scripts/*")
-	df.USER(u.Username)
+	df.ADD("/scripts/", "compile.sh")
+	df.RUN("mkdir", "/build")
+	df.RUN("chmod", "777", "/scripts/*", "/build")
 	return df
 }
 
@@ -90,7 +92,7 @@ func (t *CompileTarget) DockerRun(tc *TargetContext) *docker.Run {
 
 	// This command makes an isolated pristine snapshot of the working tree
 	// and then invovkes the compile.sh from the buildpack.
-	r.Command = "/scripts/build-prep.bash && /scripts/compile.sh"
+	r.Command = "/scripts/compile.sh"
 
 	return r
 }
