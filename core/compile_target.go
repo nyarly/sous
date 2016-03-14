@@ -44,10 +44,7 @@ func (t *CompileTarget) Desc() string {
 func (t *CompileTarget) Check() error { return nil }
 
 func (t *CompileTarget) Dockerfile(c *TargetContext) *docker.File {
-	image, err := c.BaseImage(c.WorkDir, t.Name())
-	if err != nil {
-		cli.Fatal(err)
-	}
+	image := c.Buildpack.StackVersion.GetBaseImageTag(t.Name())
 	df := &docker.File{From: image}
 	// This is a non-portable container, since it includes the UID of the
 	// logged-in user. This is necessary to ensure the user in the container

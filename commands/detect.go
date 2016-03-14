@@ -1,9 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/opentable/sous/core"
 	"github.com/opentable/sous/tools/cli"
 )
@@ -21,8 +18,11 @@ func Detect(sous *core.Sous, args []string) {
 	if len(args) == 0 {
 		pack = c.DetectProjectType(sous.State.Buildpacks)
 		if pack == nil {
-			fmt.Println("no sous-compatible project detected")
-			os.Exit(1)
+			cli.Fatal("no sous-compatible project detected")
+		}
+		_, err := pack.Detect(c.WorkDir)
+		if err != nil {
+			cli.Fatal(err)
 		}
 	} else if len(args) == 1 {
 		var ok bool
@@ -43,13 +43,10 @@ func Detect(sous *core.Sous, args []string) {
 		cli.Fatal(err)
 	}
 
-	actualVersion, err := runnable.StackVersion.Version()
-	if err != nil {
-		cli.Fatal(err)
-	}
+	actualVersion := runnable.StackVersion
 
 	cli.Outf("Detected a %s %s (%s) project.",
-		pack.Name, runnable.DetectedStackVersionRange, actualVersion.String())
+		pack.Name, runnable.DetectedStackVersionRange, actualVersion)
 
 	cli.Outf("Build Version: %s", c.BuildVersion)
 

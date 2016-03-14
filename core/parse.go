@@ -50,10 +50,10 @@ func Parse(configDir string) (*State, error) {
 		default:
 			return nil, fmt.Errorf("Buildpack %s not recognised.", buildpacks[i].Name)
 		case "golang":
-			buildpacks[i].StackVersions = state.Packs.Go.AvailableVersions
+			buildpacks[i].StackVersions = *state.Packs.Go.AvailableVersions
 			buildpacks[i].DefaultStackVersion = state.Packs.Go.DefaultGoVersion
 		case "nodejs":
-			buildpacks[i].StackVersions = state.Packs.NodeJS.AvailableVersions
+			buildpacks[i].StackVersions = *state.Packs.NodeJS.AvailableVersions
 			buildpacks[i].DefaultStackVersion = state.Packs.NodeJS.DefaultNodeVersion
 		case "maven":
 			// TODO: Get rid of this so maven is supported properly

@@ -1,9 +1,6 @@
 package core
 
-import (
-	"github.com/opentable/sous/tools/cli"
-	"github.com/opentable/sous/tools/docker"
-)
+import "github.com/opentable/sous/tools/docker"
 
 type AppTarget struct {
 	Context      *Context
@@ -52,10 +49,7 @@ func (t *AppTarget) Desc() string {
 func (t *AppTarget) Check() error { return nil }
 
 func (t *AppTarget) Dockerfile(c *TargetContext) *docker.File {
-	image, err := c.BaseImage(c.WorkDir, "app")
-	if err != nil {
-		cli.Fatal(err)
-	}
+	image := c.Buildpack.StackVersion.GetBaseImageTag("app")
 	df := &docker.File{From: image}
 	df.Maintainer = c.User
 	df.WORKDIR("/srv/app")

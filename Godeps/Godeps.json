@@ -8,6 +8,10 @@
 			"Rev": "bb554f9fd6ee4cd190eef868de608ced813aeda1"
 		},
 		{
+			"ImportPath": "github.com/samsalisbury/semv",
+			"Rev": "abb20ffac586d923a97d0e116f7567f5eb5531ef"
+		},
+		{
 			"ImportPath": "github.com/samsalisbury/yaml",
 			"Rev": "47bc14906f408f98d35bfb508fd25fb2640febc1"
 		},

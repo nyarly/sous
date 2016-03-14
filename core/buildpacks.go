@@ -11,39 +11,29 @@ import (
 
 	"github.com/opentable/sous/tools/dir"
 	"github.com/opentable/sous/tools/file"
-	"github.com/opentable/sous/tools/version"
+	"github.com/samsalisbury/semv"
 )
 
 type Buildpacks []Buildpack
 
 type Buildpack struct {
 	Name, Desc          string
-	StackVersions       *StackVersions
+	StackVersions       StackVersions
 	DefaultStackVersion string
 	Scripts             struct {
 		Common, Base, Command, Compile, Detect, Test, Baseimages, Problems string
 	}
-	DetectedStackVersionRange *version.R
+	DetectedStackVersionRange *semv.Range
 }
 
 type RunnableBuildpack struct {
 	Buildpack
 	DetectedStackVersionRange string
-	ResolvedStackVersionRange *version.R
+	ResolvedStackVersionRange *semv.Range
 	StackVersion              *StackVersion
 }
 
 type RunnableBuildpacks []RunnableBuildpack
-
-func (bps Buildpacks) Detect(dirPath string) Buildpacks {
-	packs := Buildpacks{}
-	for _, p := range bps {
-		if _, err := p.Detect(dirPath); err == nil {
-			packs = append(packs, p)
-		}
-	}
-	return packs
-}
 
 func (bps Buildpacks) Get(name string) (*Buildpack, bool) {
 	for _, bp := range bps {
@@ -81,7 +71,7 @@ func (bp Buildpack) ScriptErr(scriptName, f string, a ...interface{}) BuildpackE
 
 // Detect just runs the buildpack's detect script and returns the detected
 // project stack version range (but doesn't check that it is supported)
-func (bp Buildpack) Detect(dirPath string) (*version.R, error) {
+func (bp Buildpack) Detect(dirPath string) (*semv.Range, error) {
 	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
 	if err != nil {
 		return nil, err
@@ -92,19 +82,19 @@ func (bp Buildpack) Detect(dirPath string) (*version.R, error) {
 			detected, bp.Name)
 	}
 	detectedVersionRange := parts[1]
-	var stackVersionRange *version.R
+	var stackVersionRange semv.Range
 	if detectedVersionRange == "default" {
-		stackVersionRange, err = version.NewRange(bp.DefaultStackVersion)
+		stackVersionRange, err = semv.ParseRange(bp.DefaultStackVersion)
 		if err != nil {
 			return nil, bp.ConfigErr("unable to parse default stack version %q as semver range: %s", bp.DefaultStackVersion, err)
 		}
 	} else {
-		stackVersionRange, err = version.NewRange(detectedVersionRange)
+		stackVersionRange, err = semv.ParseRange(detectedVersionRange)
 		if err != nil {
 			return nil, bp.ScriptErr("detect.sh", "unable to parse %q as semver range: %s", detectedVersionRange, err)
 		}
 	}
-	return stackVersionRange, nil
+	return &stackVersionRange, nil
 }
 
 // BindStackVersion runs detect, and then tries to bind the project to a specific
@@ -114,27 +104,17 @@ func (bp Buildpack) BindStackVersion(dirPath string) (*RunnableBuildpack, error)
 	if err != nil {
 		return nil, err
 	}
-
-	availableVersions, err := bp.StackVersions.ConcreteVersions()
+	bestMatch, err := bp.StackVersions.GetBestStackVersion(*stackVersionRange)
 	if err != nil {
-		return nil, bp.ConfigErr("no stack versions defined for %s buildpack",
-			bp.Name)
-	}
-	bestMatch := stackVersionRange.BestMatchFrom(availableVersions)
-	if bestMatch == nil {
-		return nil, fmt.Errorf("%s version %s not currently supported", bp.Name, stackVersionRange)
-	}
-
-	stackVersion, err := bp.StackVersions.Version(bestMatch)
-	if err != nil {
-		return nil, fmt.Errorf("programmer error: stack version %q missing", bestMatch)
+		return nil, fmt.Errorf("%s version %s not currently supported, pick from:",
+			bp.Name, stackVersionRange, bp.StackVersions)
 	}
 
 	runnable := &RunnableBuildpack{
 		Buildpack:                 bp,
 		DetectedStackVersionRange: stackVersionRange.String(),
 		ResolvedStackVersionRange: stackVersionRange,
-		StackVersion:              stackVersion,
+		StackVersion:              bestMatch,
 	}
 
 	return runnable, nil
@@ -179,28 +159,6 @@ func (bp Buildpack) RunScript(name, contents, inDir string) (string, error) {
 	}
 
 	return strings.Trim(stdout.String(), "\n\r\t "), nil
-}
-
-func (tc *TargetContext) BaseImage(dirPath, targetName string) (string, error) {
-	bp := tc.Buildpack
-	detected, err := bp.RunScript("detect.sh", bp.Scripts.Detect, dirPath)
-	if err != nil {
-		return "", err
-	}
-	parts := strings.Split(detected, " ")
-	if len(parts) != 2 || parts[0] != bp.Name {
-		return "", fmt.Errorf("detect.sh returned %q; want '%s <stackversion>' where <stackversion> is either 'default' or semver range",
-			detected, bp.Name)
-	}
-	stackVersion := parts[1]
-	if stackVersion == "default" {
-		stackVersion = bp.DefaultStackVersion
-	}
-	image, ok := bp.StackVersions.GetBaseImageTag(stackVersion, targetName)
-	if !ok {
-		return "", fmt.Errorf("buildpack %s does not have a base image for version %s", bp.Name, stackVersion)
-	}
-	return image, nil
 }
 
 func ParseBuildpacks(baseDir string) (Buildpacks, error) {

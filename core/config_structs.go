@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/opentable/sous/tools/version"
+	"github.com/samsalisbury/semv"
 )
 
 type Config struct {
@@ -70,61 +70,42 @@ type StackVersion struct {
 
 type BaseImageSet map[string]string
 
-func (sv StackVersion) Version() (*version.V, error) {
-	return version.NewVersion(sv.Name)
+func (svs StackVersions) VersionList() (semv.VersionList, error) {
+	vs := make([]string, len(svs))
+	for i, v := range svs {
+		vs[i] = v.Name
+	}
+	return semv.ParseList(vs...)
 }
 
-func (svs StackVersions) GetBaseImageTag(version, target string) (string, bool) {
-	for _, sv := range svs {
-		if sv.Name == version {
-			if specificImage, ok := sv.TargetImages[target]; ok {
-				return specificImage, true
-			}
-			return sv.DefaultImage, true
-		}
+func (sv StackVersion) GetBaseImageTag(target string) string {
+	if specificImage, ok := sv.TargetImages[target]; ok {
+		return specificImage
 	}
-	return "", false
+	return sv.DefaultImage
 }
 
-// TODO: These next 3 funcs seem terribly complex for what we're trying
-// to achieve. Consider changing StackVersion to use a version range
-// which is parsed on deserialisation, to avoid all this error checking.
-func (svs StackVersions) ConcreteVersions() ([]*version.V, error) {
-	vs := make([]*version.V, len(svs))
-	for i, sv := range svs {
-		v, err := sv.Version()
-		if err != nil {
-			return nil, err
-		}
-		vs[i] = v
-	}
-	return vs, nil
-}
-
-func (svs StackVersions) Version(ver *version.V) (*StackVersion, error) {
-	if ver == nil {
-		panic("ver was nil")
-	}
-	for _, sv := range svs {
-		v, err := sv.Version()
-		if err != nil {
-			return nil, err
-		}
-		if ver.Version.LimitedEqual(v.Version) {
-			return sv, nil
-		}
-	}
-	return nil, fmt.Errorf("version %q not found", ver)
-}
-
-func (svs StackVersions) GetBestStackVersion(versionRange *version.R) (*StackVersion, error) {
-	versionNames, err := svs.ConcreteVersions()
+func (svs StackVersions) GetBestStackVersion(r semv.Range) (*StackVersion, error) {
+	vl, err := svs.VersionList()
 	if err != nil {
 		return nil, err
 	}
-	v := versionRange.BestMatchFrom(versionNames)
-	if v == nil {
-		return nil, fmt.Errorf("version %q not supported", versionRange)
+	v, ok := vl.GreatestSatisfying(r)
+	if !ok {
+		return nil, fmt.Errorf("version %q not supported", r)
 	}
-	return svs.Version(v)
+	return svs.GetVersion(v)
+}
+
+func (svs StackVersions) GetVersion(version semv.Version) (*StackVersion, error) {
+	for _, sv := range svs {
+		v, err := semv.Parse(sv.Name)
+		if err != nil {
+			return nil, err
+		}
+		if v == version {
+			return sv, nil
+		}
+	}
+	return nil, fmt.Errorf("no version matching %s", version)
 }
