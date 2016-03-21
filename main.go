@@ -1,75 +1,96 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/opentable/sous/cli"
+	"github.com/opentable/sous/core"
+	"github.com/opentable/sous/deploy"
+	"github.com/opentable/sous/tools/cli"
+	"github.com/opentable/sous/tools/file"
 )
 
+//go:generate ./scripts/generate-resources core/resources
+
 func main() {
-
-	defer handlePanic()
-
-	// Create the dependency graph.
-	g, err := cli.BuildGraph()
-	if err != nil {
-		die(err)
+	if len(os.Args) < 2 {
+		usage()
 	}
-
-	// Create a CLI
-	c := &cli.CLI{
-		OutWriter: os.Stdout,
-		ErrWriter: os.Stderr,
-		Env:       map[string]string{},
-		Hooks: cli.Hooks{
-			PreExecute: func(c cli.Command) error { return g.Inject(c) },
-		},
+	sousFlags, args := parseFlags(os.Args[1:])
+	command := args[0]
+	var state *deploy.State
+	var sous *core.Sous
+	if command != "config" && command != "update" {
+		updateHourly()
+		if !file.Exists("~/.sous/config") {
+			cli.Fatalf("~/.sous/config not found, please run `sous update`")
+		}
+		file.ReadJSON(&state, "~/.sous/config")
+		trapSignals()
+		defer cli.Cleanup()
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), BuildPacks(&state.Config), sousFlags, state)
+	} else {
+		sous = core.NewSous(Version, Revision, OS, Arch, loadCommands(), nil, sousFlags, nil)
 	}
-
-	// Create a new Sous command
-	s := &cli.Sous{Version: Version}
-
-	// Invoke Sous command, and let it handle exiting.
-	c.InvokeAndExit(s, os.Args)
+	c, ok := sous.Commands[command]
+	if !ok {
+		cli.Fatalf("Command %s not recognised; try `sous help`", command)
+	}
+	// It is the responsibility of the command to exit with an appropriate
+	// error code...
+	c.Func(sous, args[1:])
+	// If it does not, we assume it failed...
+	cli.Fatalf("Command did not complete correctly")
 }
 
-func die(v ...interface{}) {
-	fmt.Fprintln(os.Stderr, v...)
-	os.Exit(70)
+func parseFlags(args []string) (*core.SousFlags, []string) {
+	flagSet := flag.NewFlagSet("sous", flag.ContinueOnError)
+	rebuild := flagSet.Bool("rebuild", false, "force a rebuild")
+	rebuildAll := flagSet.Bool("rebuild-all", false, "force a rebuild of this target plus all dependencies")
+	verbose := flagSet.Bool("v", false, "be verbose")
+	flagSet.Parse(args)
+	//if err != nil {
+	//	cli.Fatalf("%s", err)
+	//}
+	if *verbose {
+		cli.BeVerbose()
+	}
+	return &core.SousFlags{
+		ForceRebuild:    *rebuild,
+		ForceRebuildAll: *rebuildAll,
+	}, flagSet.Args()
 }
 
-// handlePanic gives us one last chance to send a message to the user in case a
-// panic leaks right up to the top of the program.
-//
-// To see the real panic message, disable panic handling by setting DEBUG=YES.
-func handlePanic() {
-	if os.Getenv("DEBUG") == "YES" {
-		return
-	}
-	if r := recover(); r != nil {
-		fmt.Println(panicMessage)
-		fmt.Printf("Sous Version: %s\n\n", Version)
-		panic(r)
+func usage() {
+	cli.Fatalf("usage: sous <command>; try `sous help`")
+}
+
+// trapSignals traps both SIGINT and SIGTERM and defers to cli.Exit
+// to do a graceful exit.
+func trapSignals() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		s := <-c
+		cli.Exit(128 + int(s.(syscall.Signal)))
+	}()
+}
+
+func updateHourly() {
+	key := "last-update-check"
+	props := deploy.Properties()
+	d, err := time.Parse(time.RFC3339, props[key])
+	if err != nil || d.Sub(time.Now()) > time.Hour {
+		checkForUpdates()
 	}
 }
 
-const panicMessage = `
-################################################################################
-#                                                                              #
-#                                       OOPS                                   #
-#                                                                              #
-#        Sous has panicked, due to programmer error. Please report this        #
-#        to the project maintainers at:                                        #
-#                                                                              #
-#                https://github.com/opentable/sous/issues                      #
-#                                                                              #
-#        Please include this entire message and the stack trace below          # 
-#        and we will investigate and fix it as soon as possible.               #
-#                                                                              #
-#        Thanks for your help in improving Sous for all!                       #
-#                                                                              #
-#        - The OpenTable DevTools Team                                         #
-#                                                                              #
-################################################################################
-`
+func checkForUpdates() {
+	cli.Logf("Checking for updates...")
+	if err := deploy.Update(); err != nil {
+		cli.Logf("Unable to check: %s", err)
+	}
+}
