@@ -28,6 +28,7 @@ func Example() {
 	w := ilog.NewWatcher(10, writeLog, writeDebug)
 	g := &Goat{Name: "Algernon", Age: 6}
 	w.Watch(g)
+	w.WatchDebug(g)
 	g.AddYear()
 	g.AddYear()
 	w.CloseWait()
