@@ -24,6 +24,7 @@ before_install:
 - cd test-registry
 - docker-compose pull
 - docker-compose build --no-cache registry
+- cd ..
 
 install:
 - echo "Default install step disabled by .travis.yml"
