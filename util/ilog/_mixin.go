@@ -11,15 +11,15 @@ type (
 	// provides some nice functionality like the Debugf and Logf formatting
 	// methods, as well as adding file, line and method data to debug output.
 	Mixin struct {
-		logFunc, debugFunc LogFunc
+		logFunc, debugFunc func(...interface{})
 	}
 )
 
 // SetLogFunc implements ILogger.SetLogFunc
-func (m *Mixin) SetLogFunc(f LogFunc) { m.logFunc = f }
+func (m *Mixin) SetLogFunc(f func(...interface{})) { m.logFunc = f }
 
 // SetDebugFunc implements ILogger.SetDebugFunc
-func (m *Mixin) SetDebugFunc(f LogFunc) { m.debugFunc = f }
+func (m *Mixin) SetDebugFunc(f func(...interface{})) { m.debugFunc = f }
 
 func (m *Mixin) log(message string, data interface{}) {
 	if m.logFunc == nil {

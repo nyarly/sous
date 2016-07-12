@@ -7,18 +7,18 @@ type (
 		// SetLogFunc sets the log function for standard log messages from this
 		// ILogger instance. If set to nil, standard logs must be ignored.
 		// nil, then logs must
-		SetLogFunc(LogFunc)
+		SetLogFunc(func(...interface{}))
 		// SetDebugFunc is similar to SetLogFunc except it controls debug-level
 		// messages.
-		SetDebugFunc(LogFunc)
+		SetDebugFunc(func(...interface{}))
 	}
-	// LogFunc is a function that can be called from methods on the object
-	// implementing ILogger to log its activity.
-	LogFunc func(string, interface{})
-	logType int
+	// Level is the log level.
+	Level int
 )
 
 const (
-	info logType = iota
-	debug
+	// Info is the log level added to non-debug messages.
+	Info Level = iota
+	// Debug is the log level added to messages created by calling debug funcs.
+	Debug
 )
