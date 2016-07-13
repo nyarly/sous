@@ -1,43 +1,48 @@
 package ilog
 
-import "log"
+import (
+	"fmt"
+	"log"
+	"os"
+)
 
 type Thing struct {
-	logFunc, debugFunc func(...interface{})
-	n                  int
+	log, debug func(...interface{})
+	n          int
 }
 
 func NewThing() *Thing {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(0)
 	return &Thing{
-		logFunc:   log.Println,
-		debugFunc: log.Println,
+		log:   log.Println,
+		debug: log.Println,
 	}
 }
 
 func (t *Thing) SetLogFunc(f func(...interface{}))   { t.log = f }
 func (t *Thing) SetDebugFunc(f func(...interface{})) { t.debug = f }
 
-func (t *Thing) log(v ...interface{}) {
-	if t.logFunc != nil {
-		t.logFunc(v...)
-	}
-}
-
-func (t *Thing) debug(v ...interface{}) {
-	if t.debugFunc != nil {
-		t.debugFunc(v...)
-	}
-}
-
 func (t *Thing) DoSomething(what string) {
 	t.n++
 	t.log("I am " + what + "ing")
-	t.debug("I've done", t.n, "things")
+	t.debug("Call", t.n)
 }
 
 func Example() {
 	t := NewThing()
 	t.DoSomething("jump")
+	writeInfo := func(m Message) { fmt.Println(m.Text) }
+	writeDebug := func(m Message) { fmt.Println(m.Text) }
+	w := NewWatcher(100, writeInfo, writeDebug)
+	w.Watch(t)
+	w.WatchDebug(t)
+	t.DoSomething("sing")
 
-	// TODO: Finish this.
+	w.CloseWait()
+	// Output:
+	// I am jumping
+	// Call 1
+	// I am singing
+	// Call 2
 }

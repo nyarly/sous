@@ -5,11 +5,10 @@ type (
 	// compatible with the Watcher.
 	ILogger interface {
 		// SetLogFunc sets the log function for standard log messages from this
-		// ILogger instance. If set to nil, standard logs must be ignored.
-		// nil, then logs must
+		// ILogger instance. The Watcher guarantees that this will never be nil.
 		SetLogFunc(func(...interface{}))
 		// SetDebugFunc is similar to SetLogFunc except it controls debug-level
-		// messages.
+		// messages. SetDebugFunc will never be passed nil by Watcher.
 		SetDebugFunc(func(...interface{}))
 	}
 	// Level is the log level.

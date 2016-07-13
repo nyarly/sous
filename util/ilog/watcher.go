@@ -115,12 +115,12 @@ func (w *Watcher) addWatch(l Level, obj ILogger, o Options, c []func(*Options), 
 
 // UnwatchInfo stops watching standard logs from an ILogger.
 func (w *Watcher) Unwatch(obj ILogger) {
-	obj.SetLogFunc(nil)
+	obj.SetLogFunc(noop)
 }
 
 // UnwatchDebug stops watching debug-level logs from an ILogger.
 func (w *Watcher) UnwatchDebug(obj ILogger) {
-	obj.SetDebugFunc(nil)
+	obj.SetDebugFunc(noop)
 }
 
 // SetSourceFilter allows you to set a filter for all log messages based on
@@ -189,8 +189,8 @@ func (w *Watcher) makeLogFunc(l Level, source string, opts Options) func(...inte
 		)
 
 		if opts.EnableFileAndLineNumber {
-			// calldepth == 2 because we always care about the direct caller of this
-			// func.
+			// calldepth == 2 because we always care about the direct caller of
+			// this func.
 			if _, file, line, gotFileAndLine = runtime.Caller(2); !gotFileAndLine {
 				file = "???"
 				line = 0
@@ -198,8 +198,8 @@ func (w *Watcher) makeLogFunc(l Level, source string, opts Options) func(...inte
 		}
 
 		if len(v) != 0 {
-			// If the last arg is a map[string]string then we have fields! Otherwise
-			// we have nil, as per spec.
+			// If the last arg is a map[string]string then we have fields!
+			// Otherwise we have nil, as per spec.
 			var hasFields bool
 			if fields, hasFields = v[len(v)-1].(map[string]string); hasFields {
 				// Remove fields from the list to avoid the risk of printing it
@@ -208,12 +208,18 @@ func (w *Watcher) makeLogFunc(l Level, source string, opts Options) func(...inte
 			}
 		}
 
+		// due to the differences in space handling between fmt.Sprint and
+		// fmt.Sprintln, we use Sprintln here and strip off the trailing
+		// newline, should probably inline some stdlib code for efficiency.
+		text := fmt.Sprintln(v...)
+		text = text[:len(text)-1]
+
 		m := Message{
 			LogType: l,
 			Source:  source,
 			File:    file,
 			Tags:    opts.Tags,
-			Text:    fmt.Sprint(v...),
+			Text:    text,
 			Line:    line,
 			Fields:  fields,
 		}
@@ -248,3 +254,5 @@ func (w *Watcher) watch() {
 		close(w.done)
 	}()
 }
+
+func noop(...interface{}) {}
