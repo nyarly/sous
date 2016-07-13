@@ -38,11 +38,31 @@ type (
 		Text string
 		// Line is the line number of this log entry.
 		Line int
+		// Tags is a list of all tags applied to this message.
+		Tags []string
 		// Fields is a dictionary of keys/values which can be used for
 		// structured logging. Fields may be nil, and may be empty. It is
 		// populated automatically if the final argument to a LogFunc happens to
 		// be a map[string]string, otherwise it is nil.
 		Fields map[string]string
+	}
+	// Options provides an object-level set of configuration on how log messages
+	// should be collected.
+	Options struct {
+		// Tags are applied to every log message sent by this type, and are used
+		// mainly for filtering.
+		Tags []string
+		// AddFields allows you to add fields to each log message. These fields
+		// will be overridden by any fields with matching keys set by the log
+		// message itself.
+		AddFields map[string]string
+		// EnableFileAndLineNumber is used for performance tuning, to stop the
+		// call to runtime.Caller used to identify the file and line the log
+		// message came from.
+		EnableFileAndLineNumber,
+		// EnableStackTrace populates all log messages from this watch call with
+		// the full stack trace of where the message came from.
+		EnableStackTrace bool
 	}
 )
 
@@ -63,17 +83,33 @@ func NewWatcher(bufSize int, infoWriter, debugWriter LogWriter) *Watcher {
 	}
 }
 
-// Watch begins watching standard logs from an ILogger.
-func (w *Watcher) Watch(obj ILogger) {
-	source := reflect.TypeOf(obj).Name()
-	obj.SetLogFunc(w.makeLogFunc(Info, source))
-	w.once.Do(func() { w.watch() })
+// Watch begins watching all non-debug-level logs from an ILogger, configured to
+// record file and line number, and not to record the stack trace.
+// You may optionally pass a configure function to override these defaults.
+func (w *Watcher) Watch(obj ILogger, configure ...func(*Options)) {
+	defaultOpts := Options{
+		EnableFileAndLineNumber: true,
+	}
+	w.addWatch(Info, obj, defaultOpts, configure, obj.SetLogFunc)
 }
 
-// WatchDebug begins watching debug-level logs from an ILogger.
-func (w *Watcher) WatchDebug(obj ILogger) {
+// WatchDebug begins watching debug-level logs from an ILogger, configured to
+// record file, line number, and stack trace.
+// You may optionally pass a configure function to override these defaults.
+func (w *Watcher) WatchDebug(obj ILogger, configure ...func(*Options)) {
+	defaultOpts := Options{
+		EnableFileAndLineNumber: true,
+		EnableStackTrace:        true,
+	}
+	w.addWatch(Debug, obj, defaultOpts, configure, obj.SetDebugFunc)
+}
+
+func (w *Watcher) addWatch(l Level, obj ILogger, o Options, c []func(*Options), f func(func(...interface{}))) {
+	for _, cf := range c {
+		cf(&o)
+	}
 	source := reflect.TypeOf(obj).Name()
-	obj.SetDebugFunc(w.makeLogFunc(Debug, source))
+	f(w.makeLogFunc(l, source, o))
 	w.once.Do(func() { w.watch() })
 }
 
@@ -138,17 +174,28 @@ func (w *Watcher) CloseWait() {
 	w.Wait()
 }
 
-func (w *Watcher) makeLogFunc(typ Level, source string) func(...interface{}) {
+func (w *Watcher) makeLogFunc(l Level, source string, opts Options) func(...interface{}) {
 	return func(v ...interface{}) {
-		// calldepth == 2 because we always care about the direct caller of this
-		// func.
-		_, file, line, ok := runtime.Caller(2)
-		if !ok {
-			file = "???"
-			line = 0
+		// source filter before anything else
+		if w.sourceFilter != nil && !w.sourceFilter(source) {
+			return
 		}
 
-		var fields map[string]string
+		var (
+			file           string
+			line           int
+			gotFileAndLine bool
+			fields         map[string]string
+		)
+
+		if opts.EnableFileAndLineNumber {
+			// calldepth == 2 because we always care about the direct caller of this
+			// func.
+			if _, file, line, gotFileAndLine = runtime.Caller(2); !gotFileAndLine {
+				file = "???"
+				line = 0
+			}
+		}
 
 		if len(v) != 0 {
 			// If the last arg is a map[string]string then we have fields! Otherwise
@@ -161,14 +208,19 @@ func (w *Watcher) makeLogFunc(typ Level, source string) func(...interface{}) {
 			}
 		}
 
-		w.write(Message{
-			LogType: typ,
+		m := Message{
+			LogType: l,
 			Source:  source,
 			File:    file,
+			Tags:    opts.Tags,
 			Text:    fmt.Sprint(v...),
 			Line:    line,
 			Fields:  fields,
-		})
+		}
+		// finally, apply any message filter
+		if w.messageFilter == nil || w.messageFilter(m) {
+			w.write(m)
+		}
 	}
 }
 
