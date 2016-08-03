@@ -3,8 +3,8 @@ package git
 import (
 	"path/filepath"
 
-	sous "github.com/opentable/sous/lib"
-	"github.com/opentable/sous/util/parallel"
+	"github.com/opentable/sous/lib"
+	"github.com/opentable/sous/util/firsterr"
 )
 
 // SourceContext gathers together a number of bits of information about the
@@ -12,14 +12,16 @@ import (
 // tag, etc.
 func (r *Repo) SourceContext() (*sous.SourceContext, error) {
 	var (
-		revision, branch, nearestTagName,
+		revision, branch,
+		nearestTagName, nearestTagRevision,
 		repoRelativeDir string
 		files, modifiedFiles, newFiles []string
 		allTags                        []sous.Tag
 		remotes                        Remotes
+		unpushedCommits                []string
 	)
 	c := r.Client
-	if err := parallel.Do(
+	if err := firsterr.Parallel().Set(
 		func(err *error) { branch, *err = c.CurrentBranch() },
 		func(err *error) { revision, *err = c.Revision() },
 		func(err *error) {
@@ -30,25 +32,30 @@ func (r *Repo) SourceContext() (*sous.SourceContext, error) {
 		},
 		func(err *error) {
 			allTags, *err = r.Client.ListTags()
-			if err != nil || len(allTags) == 0 {
+			if *err != nil || len(allTags) == 0 {
 				return
 			}
 			nearestTagName, *err = c.NearestTag()
-			if err != nil {
+			if *err != nil {
 				return
 			}
-			//nearestTagRevision, *err = c.RevisionAt(nearestTagName)
+
+			ntr, terr := c.RevisionAt(nearestTagName)
+
+			if terr == nil {
+				nearestTagRevision = ntr
+			}
 		},
 		func(err *error) { files, *err = c.ListFiles() },
 		func(err *error) { modifiedFiles, *err = c.ModifiedFiles() },
 		func(err *error) { newFiles, *err = c.NewFiles() },
 		func(err *error) { remotes, *err = c.ListRemotes() },
+		func(err *error) { unpushedCommits, *err = c.ListUnpushedCommits() },
 	); err != nil {
 		return nil, err
 	}
 
 	primaryRemoteURL := guessPrimaryRemote(remotes)
-
 	return &sous.SourceContext{
 		RootDir:                  r.Root,
 		OffsetDir:                repoRelativeDir,
@@ -59,9 +66,23 @@ func (r *Repo) SourceContext() (*sous.SourceContext, error) {
 		NewFiles:                 newFiles,
 		Tags:                     allTags,
 		NearestTagName:           nearestTagName,
+		NearestTagRevision:       nearestTagRevision,
 		PossiblePrimaryRemoteURL: primaryRemoteURL,
+		RemoteURLs:               allFetchURLs(remotes),
 		DirtyWorkingTree:         len(modifiedFiles)+len(newFiles) != 0,
 	}, nil
+}
+
+func allFetchURLs(remotes Remotes) []string {
+	var remURLs []string
+	for _, r := range remotes {
+		u, err := CanonicalRepoURL(r.FetchURL)
+		if err != nil {
+			continue
+		}
+		remURLs = append(remURLs, u)
+	}
+	return remURLs
 }
 
 func guessPrimaryRemote(remotes map[string]Remote) string {

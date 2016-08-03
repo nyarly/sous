@@ -1,4 +1,7 @@
 *.swp
 artifacts/
+samples/
 sous
 .agignore
+samples/
+check-compile.results

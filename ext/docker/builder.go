@@ -3,6 +3,7 @@ package docker
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"path/filepath"
 	"text/template"
 
@@ -17,7 +18,6 @@ type (
 	Builder struct {
 		ImageMapper               *NameCache
 		DockerRegistryHost        string
-		Context                   *sous.SourceContext
 		SourceShell, ScratchShell shell.Shell
 		Pack                      sous.Buildpack
 	}
@@ -31,11 +31,10 @@ type (
 // NewBuilder creates a new build using source code in the working
 // directory of sourceShell, and using the working dir of scratchShell as
 // temporary storage.
-func NewBuilder(nc *NameCache, drh string, c *sous.SourceContext, sourceShell, scratchShell shell.Shell) (*Builder, error) {
+func NewBuilder(nc *NameCache, drh string, sourceShell, scratchShell shell.Shell) (*Builder, error) {
 	b := &Builder{
 		ImageMapper:        nc,
 		DockerRegistryHost: drh,
-		Context:            c,
 		SourceShell:        sourceShell,
 		ScratchShell:       scratchShell,
 	}
@@ -52,58 +51,58 @@ func NewBuilder(nc *NameCache, drh string, c *sous.SourceContext, sourceShell, s
 	return b, nil
 }
 
-// Build implements sous.Builder.Build
-func (b *Builder) Build(bc *sous.BuildContext, bp sous.Buildpack, _ *sous.DetectResult) (*sous.BuildResult, error) {
-	br, err := bp.Build(bc)
+func (b *Builder) debug(msg string) {
+	Log.Debug.Printf(msg)
+}
+
+func (b *Builder) info(msg string) {
+	Log.Info.Printf(msg)
+}
+
+// Register registers the build artifact to the the registry
+func (b *Builder) Register(br *sous.BuildResult, bc *sous.BuildContext) error {
+	err := b.pushToRegistry(br, bc)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = b.ApplyMetadata(br)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.pushToRegistry(br)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.recordName(br)
-	if err != nil {
-		return nil, err
-	}
-
-	return br, nil
+	return b.recordName(br, bc)
 }
 
 // ApplyMetadata applies container metadata etc. to a container
-func (b *Builder) ApplyMetadata(br *sous.BuildResult) error {
-	br.VersionName = b.VersionTag(b.Context.Version())
-	br.RevisionName = b.RevisionTag(b.Context.Version())
-	bf := bytes.Buffer{}
+func (b *Builder) ApplyMetadata(br *sous.BuildResult, bc *sous.BuildContext) error {
+	versionName := b.VersionTag(bc.Version())
+	revisionName := b.RevisionTag(bc.Version())
 
-	c := b.SourceShell.Cmd("docker", "build", "-t", br.VersionName, "-t", br.RevisionName, "-")
-	c.Stdin(&bf)
-
-	sv := b.Context.Version()
-
-	md := template.Must(template.New("metadata").Parse(metadataDockerfileTmpl))
-	md.Execute(&bf, struct {
-		ImageID string
-		Labels  map[string]string
-	}{
-		br.ImageID,
-		DockerLabels(sv),
-	})
+	c := b.SourceShell.Cmd("docker", "build", "-t", versionName, "-t", revisionName, "-")
+	bf := b.metadataDockerfile(br, bc)
+	c.SetStdin(bf)
 
 	return c.Succeed()
 }
 
+func (b *Builder) metadataDockerfile(br *sous.BuildResult, bc *sous.BuildContext) io.Reader {
+	bf := bytes.Buffer{}
+	sv := bc.Version()
+	md := template.Must(template.New("metadata").Parse(metadataDockerfileTmpl))
+	md.Execute(&bf, struct {
+		ImageID    string
+		Labels     map[string]string
+		Advisories []string
+	}{
+		br.ImageID,
+		Labels(sv),
+		br.Advisories,
+	})
+	return &bf
+}
+
 // pushToRegistry sends the built image to the registry
-func (b *Builder) pushToRegistry(br *sous.BuildResult) error {
-	verr := b.SourceShell.Run("docker", "push", br.VersionName)
-	rerr := b.SourceShell.Run("docker", "push", br.RevisionName)
+func (b *Builder) pushToRegistry(br *sous.BuildResult, bc *sous.BuildContext) error {
+	versionName := b.VersionTag(bc.Version())
+	revisionName := b.RevisionTag(bc.Version())
+	verr := b.SourceShell.Run("docker", "push", versionName)
+	rerr := b.SourceShell.Run("docker", "push", revisionName)
 
 	if verr == nil {
 		return rerr
@@ -112,19 +111,21 @@ func (b *Builder) pushToRegistry(br *sous.BuildResult) error {
 }
 
 // recordName inserts metadata about the newly built image into our local name cache
-func (b *Builder) recordName(br *sous.BuildResult) error {
-	sv := b.Context.Version()
-	in := br.VersionName
+func (b *Builder) recordName(br *sous.BuildResult, bc *sous.BuildContext) error {
+	sv := bc.Version()
+	in := b.VersionTag(bc.Version())
 	b.SourceShell.ConsoleEcho(fmt.Sprintf("[recording \"%s\" as the docker name for \"%s\"]", in, sv.String()))
 	return b.ImageMapper.insert(sv, in, "")
 }
 
 // VersionTag computes an image tag from a SourceVersion's version
-func (b *Builder) VersionTag(v sous.SourceVersion) string {
+func (b *Builder) VersionTag(v sous.SourceID) string {
+	Log.Debug.Printf("Version tag: % #v => %s", v, versionName(v))
 	return filepath.Join(b.DockerRegistryHost, versionName(v))
 }
 
 // RevisionTag computes an image tag from a SourceVersion's revision id
-func (b *Builder) RevisionTag(v sous.SourceVersion) string {
+func (b *Builder) RevisionTag(v sous.SourceID) string {
+	Log.Debug.Printf("RevisionTag: % #v => %s", v, revisionName(v))
 	return filepath.Join(b.DockerRegistryHost, revisionName(v))
 }

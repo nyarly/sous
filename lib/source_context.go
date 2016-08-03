@@ -15,7 +15,10 @@ type (
 		Tags                                 []Tag
 		NearestTagName, NearestTagRevision   string
 		PossiblePrimaryRemoteURL             string
+		RemoteURL                            string
+		RemoteURLs                           []string
 		DirtyWorkingTree                     bool
+		RevisionUnpushed                     bool
 	}
 	// Tag represents a revision control commit tag.
 	Tag struct {
@@ -23,18 +26,19 @@ type (
 	}
 )
 
-func (sc *SourceContext) Version() SourceVersion {
+func (sc *SourceContext) Version() SourceID {
 	v, err := semv.Parse(sc.NearestTagName)
 	if err != nil {
 		v = nearestVersion(sc.Tags)
 	}
 	// Append revision ID.
 	v = semv.MustParse(v.Format("M.m.p-?") + "+" + sc.Revision)
-	sv := SourceVersion{
-		RepoURL:    RepoURL(sc.PossiblePrimaryRemoteURL),
+	sv := SourceID{
+		RepoURL:    RepoURL(sc.RemoteURL),
 		Version:    v,
 		RepoOffset: RepoOffset(sc.OffsetDir),
 	}
+	Log.Debug.Printf("Version: % #v", sv)
 	return sv
 }
 

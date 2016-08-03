@@ -6,6 +6,7 @@ import (
 	"github.com/opentable/go-singularity/dtos"
 	"github.com/opentable/sous/ext/docker"
 	"github.com/opentable/sous/lib"
+	"github.com/opentable/sous/util/firsterr"
 )
 
 type (
@@ -49,47 +50,32 @@ func BuildDeployment(cl rectificationClient, nicks map[string]string, req SingRe
 	db.Target.Cluster = req.SourceURL
 	db.request = req.ReqParent.Request
 
-	return db.Target, db.completeConstruction()
+	return db.Target, db.canRetry(db.completeConstruction())
 }
 
 func (db *deploymentBuilder) canRetry(err error) error {
-	if _, ok := err.(malformedResponse); ok {
+	if err == nil || !db.isRetryable(err) {
 		return err
 	}
-
-	if db.req.SourceURL == "" {
-		return err
-	}
-
-	if db.req.ReqParent == nil {
-		return err
-	}
-	if db.req.ReqParent.Request == nil {
-		return err
-	}
-
-	if db.req.ReqParent.Request.Id == "" {
-		return err
-	}
-
 	return &canRetryRequest{err, db.req}
 }
 
-func (db *deploymentBuilder) completeConstruction() error {
-	if err := db.retrieveDeploy(); err != nil {
-		return db.canRetry(err)
-	}
-	if err := db.retrieveImageLabels(); err != nil {
-		return db.canRetry(err)
-	}
-	if err := db.unpackDeployConfig(); err != nil {
-		return db.canRetry(err)
-	}
-	if err := db.determineManifestKind(); err != nil {
-		return db.canRetry(err)
-	}
+func (db *deploymentBuilder) isRetryable(err error) bool {
+	_, isMalformed := err.(malformedResponse)
+	return !isMalformed &&
+		db.req.SourceURL != "" &&
+		db.req.ReqParent != nil &&
+		db.req.ReqParent.Request != nil &&
+		db.req.ReqParent.Request.Id != ""
+}
 
-	return nil
+func (db *deploymentBuilder) completeConstruction() error {
+	return firsterr.Returned(
+		db.retrieveDeploy,
+		db.retrieveImageLabels,
+		db.unpackDeployConfig,
+		db.determineManifestKind,
+	)
 }
 
 func (db *deploymentBuilder) retrieveDeploy() error {
@@ -143,7 +129,7 @@ func (db *deploymentBuilder) retrieveImageLabels() error {
 	}
 	Log.Vomit.Print("Labels: ", labels)
 
-	db.Target.SourceVersion, err = docker.SourceVersionFromLabels(labels)
+	db.Target.SourceID, err = docker.SourceIDFromLabels(labels)
 	if err != nil {
 		return malformedResponse{fmt.Sprintf("For reqID: %s, %s", db.req.ReqParent.Request.Id, err.Error())}
 	}
@@ -157,7 +143,7 @@ func (db *deploymentBuilder) retrieveImageLabels() error {
 		posNick = nn
 		matchCount++
 
-		checkID := buildReqID(db.Target.SourceVersion, nn)
+		checkID := buildReqID(db.Target.SourceID, nn)
 		sous.Log.Vomit.Printf("Trying hypothetical request ID: %s", checkID)
 		if checkID == db.request.Id {
 			db.Target.ClusterNickname = nn
