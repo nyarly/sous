@@ -9,7 +9,7 @@ bash-3.2$ if echo "http://192.168.99.100:7099/singularity" | egrep -q '192.16<9
 Cleaning github.com%3Edocker%3Edockercloud-hello-world::test-cluster
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   102    0   102    0     0  13282      0 --:--:-- --:--:-- --:--:-- 14571
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   102    0   102    0     0  12342      0 --:--:-- --:--:-- --:--:-- 12750
 {"id":"github.com>docker>dockercloud-hello-world::test-cluster","requestType":"SERVICE","instances":1}
 All requests cleaned
 bash-3.2$ cygnus -H http://192.168.99.100:7099/singularity
