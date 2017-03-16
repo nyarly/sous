@@ -10,10 +10,11 @@ install:
 - "./bin/vendor-check"
 script:
 - make -j2 test
-- make reject_wip
+- make test-cli
   #- cat doc/shellexamples/*.blended
 - docker ps || true
 - docker logs testregistry_slave_1 || true
+- make reject_wip
 
 after_success:
 - make coverage
