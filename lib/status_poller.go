@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
@@ -359,7 +360,7 @@ func (sub *subPoller) stateFeatures(kind string, rezState *ResolveStatus) (*Depl
 	current := diffResolutionFor(rezState, sub.locationFilter)
 	srvIntent := serverIntent(rezState, sub.locationFilter)
 	Log.Debug.Printf("%s reports %s intent to resolve [%v]", sub.URL, kind, srvIntent)
-	Log.Debug.Printf("%s reports %s rez: %v", sub.URL, kind, current)
+	Log.Debug.Printf("%s reports %s rez: \n%s", sub.URL, kind, spew.Sdump(current))
 
 	return srvIntent, current
 }
@@ -473,12 +474,4 @@ func diffResolutionFor(rstat *ResolveStatus, rf *ResolveFilter) *DiffResolution 
 	}
 	Log.Vomit.Printf("No match for %s in %d entries", rf, len(rezs))
 	return nil
-}
-
-func (data *statusData) stableFor(rf *ResolveFilter) *DiffResolution {
-	return diffResolutionFor(data.Completed, rf)
-}
-
-func (data *statusData) currentFor(rf *ResolveFilter) *DiffResolution {
-	return diffResolutionFor(data.InProgress, rf)
 }

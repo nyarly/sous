@@ -84,7 +84,7 @@ func (vs Volumes) Clone() Volumes {
 }
 
 func (d *Deployment) String() string {
-	return fmt.Sprintf("%s @ %s %s", d.SourceID, d.Cluster, d.DeployConfig.String())
+	return fmt.Sprintf("%s @ %s %s", d.SourceID, d.Cluster, d.DeployConfig)
 }
 
 // ID returns the DeployID of this deployment.

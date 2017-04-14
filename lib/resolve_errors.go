@@ -76,6 +76,20 @@ func WrapResolveError(err error) *ErrorWrapper {
 	return &ErrorWrapper{error: err}
 }
 
+func (ew ErrorWrapper) Error() string {
+	if ew.error != nil {
+		return ew.error.Error()
+	}
+	return ew.MarshallableError.String
+}
+
+func (ew ErrorWrapper) String() string {
+	if ew.error != nil {
+		return "live: " + ew.error.Error()
+	}
+	return "marshalled: " + ew.MarshallableError.Type + ": " + ew.MarshallableError.String
+}
+
 // MarshalJSON implements json.Marshaller on ErrorWrapper.
 // It makes sure that the embedded MarshallableError is populated and then
 // marshals that. The upshot is that errors can be successfully marshalled into
